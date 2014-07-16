@@ -7,7 +7,7 @@ int BF = 10;
 #define BS1 20
 
 // code for parsing fosmid pool bam files
-
+// last edited march 2014
 // ./extractFOSMID --bam fosmid-data/SRR799544_GGACTCCTAAGGAGTA.rmdup.bam.chr1 --VCF fosmid-data/NA12878.1kg.hets.chr1.liftoverhg19.vcf --fosmids 1 --ref fosmid-data/chr1.fa > na
 
 // block of reads in a window of size 'x' bp
