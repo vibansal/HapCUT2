@@ -9,7 +9,9 @@ some bug fixes and updates for long read data
 
 September 11 2013
 
-New version of HapCUT (v.0.6) available for download. HapCUT can now generate haplotypes from fosmid pooled sequencing data ((Kitzman et al., Nature Biotech 2011)) and also from ligation based mate-pair sequencing data.
+New version of HapCUT (v.0.6) available for download. HapCUT can now generate haplotypes from fosmid pooled sequencing data 
+((Kitzman et al., Nature Biotech 2011)) and also from ligation based mate-pair sequencing data.
+The code was uploaded to github for the first time. 
 
 July 17 2012
 
@@ -17,7 +19,9 @@ An updated version of HapCUT can be downloaded from attachments on main page (HA
 
 May 1 2012 
 
-The latest version of HapCUT  can be downloaded from the attachments or from here. 
+Fixed overlapping Paired-end issue: if a paired-end read covers the same variant twice, it is only considered once in the fragment. Code evaluated
+on 1000 Genomes low coverage data. 
+
 
 April 19 2012
 
