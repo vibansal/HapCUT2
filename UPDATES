@@ -28,8 +28,6 @@ July 05 2011
 HapCUT has been extended to handle next-generation sequence data. HapCUT requires the reads for a diploid genome (aligned to a reference genome) in SAM/BAM format and a set of heterozygous variants. HapCUT uses the samtools API to parse bam files.  
 
 
-
-
 September 2007 
 
 The first version of HapCUT was implemented and the paper submitted to ECCB 2008 
