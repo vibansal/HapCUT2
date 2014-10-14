@@ -1,15 +1,13 @@
 HAPCUT, version 0.7, Vikas Bansal (vbansal@scripps.edu), last modified: March 25 2014
 
-Introduction
-============
+## Introduction
 
 HapCUT is a max-cut based algorithm for haplotype assembly that uses the mix of sequenced fragments from the two chromosomes of an individual, this program can be applied to sequence data generated from next-generation sequencing platforms. HapCUT takes as input the aligned SAM/BAM files for an individual diploid genome and the list of variants, and outputs the phased haplotype blocks that can be assembled from the sequence reads. HapCUT is described in the following artice:
 
 An efficient and accurate algorithm for the haplotype assembly problem Bioinformatics. 2008 Aug 15;24(16):i153-9.
 
 
-Requirements:
-=============
+## Requirements:
 
 To run HapCUT, you need at least the following files: 
 
@@ -20,8 +18,7 @@ To run HapCUT, you need at least the following files:
 3. The reference sequence file used to align the reads. This file should be in the fasta format and indexed using samtools to generate a .fai file. This file is optional but required for phasing indels. 
 
 
-Format of input and output files:
-================================
+## Format of input and output files:
 
 1. BAM file with read alignments: This file should be coordinate sorted, e.g. using the "samtools sort" command. In addition, the mate-chromosome and mate-position (columns 7 and 8 for an aligned read) should reflect the reference chromosome and position of the mate for paired-end reads. 
 
