@@ -22,7 +22,7 @@
 #include "common.h"
 #include "fragmatrix.h"
 #include "pointerheap.h"
-#include "annealing.h"
+//#include "annealing.h"
 #include "readinputfiles.h"
 #include "removefalsehets.c"
 //#define MAXBUF 10000
