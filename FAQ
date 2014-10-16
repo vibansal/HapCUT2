@@ -16,7 +16,7 @@ provide a reference fasta file)
 
 
 
-HapCUT input file format:
+# HapCUT input file format:
 
 
 In the hapcut input file, each line has information from a single fragment about the alleles (0/1) that it covers.
