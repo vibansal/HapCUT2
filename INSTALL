@@ -1,0 +1,15 @@
+REQUIREMENTS
+=============
+
+HapCUT requires the SAMtools package (http://samtools.sourceforge.net/) to read BAM files.
+
+
+HOW TO COMPILE THE CODE
+
+========================
+1. Download the SAMtools package from sourceforge: http://sourceforge.net/projects/samtools/files/samtools/0.1.18/
+2. Unzip files in the directory 'samtools' and run 'make' in the 'samtools' directory
+3. Download the hapcut-master source code and unzip to create hapcut-master directory 
+4. Copy the samtools directory to the hapcut-master directory or modify the Makefile to point to the location of the 'samtools' directory
+5. run 'make hairs' in the hapcut-master directory and 'make HAPCUT' in the hapcut-master/hapcut-src' directory 
+
