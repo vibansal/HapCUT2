@@ -1,5 +1,7 @@
 
 
+## FAQ about HapCUT input and output files 
+
 1. hapcut does not handle padded alignments in BAM (CGI)
 
 2. hapcut requires variants to be called using samtools or similar program and VCF file to provided as input 
