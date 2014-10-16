@@ -47,7 +47,7 @@ int TRI_ALLELIC = 0;
 //int get_chrom_name(struct alignedread* read,HASHTABLE* ht,REFLIST* reflist);
 
 #include "parsebamread.c"
-//#include "fosmidbam_hairs.c" // code for parsing fosmid pooled sequence data 
+#include "fosmidbam_hairs.c" // code for parsing fosmid pooled sequence data 
 
 //disabled sam file reading
 //#include "samhairs.c" // has two functions that handle sam file parsing 
