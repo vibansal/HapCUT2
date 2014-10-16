@@ -23,4 +23,4 @@ annealing.o: annealing.h annealing.c common.h fragmatrix.h fragmatrix.c
 	$(CC) -c annealing.c
 
 clean:	
-	rm annealing.o pointerheap.o readinputfiles.o fragmatrix.o HAPCUT
+	rm -f annealing.o pointerheap.o readinputfiles.o fragmatrix.o HAPCUT
