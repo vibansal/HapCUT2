@@ -181,7 +181,9 @@ int generate_single_fragment(struct alignedread** readlist, int s,int e,int leng
 	if (j >=2) 
 	{	
 		fprintf(stdout,"FRAGMENT "); print_fragment(&fp,varlist,stdout); 
-		if (fragment_file != stdout) print_fragment(&fp,varlist,fragment_file);
+		//fprintf(stderr,"fragfile %s \n",fragment_file);
+		//if (fragment_file != stdout) 
+		print_fragment(&fp,varlist,fragment_file);
 	}
 	free(fp.alist); free(fp.id);
 

@@ -6,10 +6,20 @@ SAMTOOLS=samtools
 
 all:	hairs
 
+fosmid: bamread.o hashtable.o readvariant.o readfasta.o hapfragments.o extracthairs.c fosmidbam_hairs.c print_clusters.c
+	$(CC) -I$(SAMTOOLS) -g -O2 bamread.o hapfragments.o hashtable.o readfasta.o readvariant.o -o extractFOSMID extracthairs.c  -L$(SAMTOOLS) -lbam -lm -lz
+
+indels: bamread.o hashtable.o readvariant.o readfasta.o hapfragments.o indelcounts.c
+	$(CC) -I$(SAMTOOLS) -g -O2 bamread.o hapfragments.o hashtable.o readfasta.o readvariant.o -o INDELCOUNTS indelcounts.c -L$(SAMTOOLS) -lbam -lm -lz
 
 hairs: bamread.o hashtable.o readvariant.o readfasta.o hapfragments.o extracthairs.c 
 	$(CC) -I$(SAMTOOLS) -g -O2 bamread.o hapfragments.o hashtable.o readfasta.o readvariant.o -o extractHAIRS extracthairs.c  -L$(SAMTOOLS) -lbam -lm -lz
 
+ancestry: bamread.o hashtable.o readvariant.o readfasta.o hapfragments.o calculateGLL.c 
+	$(CC) -I$(SAMTOOLS) -g -O2 bamread.o hapfragments.o hashtable.o readfasta.o readvariant.o -o calculateGLL calculateGLL.c  -L$(SAMTOOLS) -lbam -lm -lz
+
+PCR: bamread.o hashtable.o readvariant.o readfasta.o hapfragments.o calculateGLL.c 
+	$(CC) -I$(SAMTOOLS) -g -O2 bamread.o hapfragments.o hashtable.o readfasta.o readvariant.o -o a.out PCRdups.c  -L$(SAMTOOLS) -lbam -lm -lz
 
 hapfragments.o:	hapfragments.c hapfragments.h readvariant.h
 	$(CC) -c hapfragments.c
