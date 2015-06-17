@@ -86,8 +86,9 @@ int parse_bamfile_sorted(char* bamfile,HASHTABLE* ht,CHROMVARS* chromvars,VARIAN
 	int reads=0;
 	struct alignedread* read = (struct alignedread*)malloc(sizeof(struct alignedread));
 	
-	int i=0; int sl=0; int chrom=0;
-	int v1,v2; int absIS;
+	int i=0; int chrom=0; //int sl=0;
+	// int v1,v2;
+	int absIS;
 	int prevchrom=-1; int prevtid = -1;
 
 	FRAGMENT* flist = (FRAGMENT*)malloc(sizeof(FRAGMENT)*MAXFRAG); int fragments =0; int prevfragments =0;
@@ -132,11 +133,11 @@ int parse_bamfile_sorted(char* bamfile,HASHTABLE* ht,CHROMVARS* chromvars,VARIAN
 		// add check to see if the mate and its read are on same chromosome, bug for contigs, july 16 2012
 		if ((read->flag & 8) || absIS > MAX_IS || absIS < MIN_IS || read->IS ==0 || !(read->flag & 1) || read->tid != read->mtid) // single read
 		{
-			fragment.variants =0; v1 =0; v2=0; 
+			fragment.variants =0; // v1 =0; v2=0; 
 			if (chrom >=0 && PEONLY ==0) 
 			{
 				fragment.id = read->readid;
-				v1 = extract_variants_read(read,ht,chromvars,varlist,0,&fragment,chrom,reflist);
+				//v1 = extract_variants_read(read,ht,chromvars,varlist,0,&fragment,chrom,reflist);
 				if (fragment.variants >= 2 || (SINGLEREADS ==1 && fragment.variants >=1))	
 				{
 					// instead of printing fragment, we could change this to update genotype likelihoods 
@@ -147,8 +148,8 @@ int parse_bamfile_sorted(char* bamfile,HASHTABLE* ht,CHROMVARS* chromvars,VARIAN
 		else  // paired-end read 
 		{
 			//fprintf(stdout,"tid %d %d \n",read->tid,read->mtid);
-			fragment.variants =0; v1 =0; v2=0; fragment.id = read->readid;
-			if (chrom >=0) 	v1 = extract_variants_read(read,ht,chromvars,varlist,1,&fragment,chrom,reflist);
+			fragment.variants =0; fragment.id = read->readid; //v1 =0; v2=0;
+			//if (chrom >=0) 	v1 = extract_variants_read(read,ht,chromvars,varlist,1,&fragment,chrom,reflist);
 			//fprintf(stderr,"paired read stats %s %d flag %d IS %d\n",read->chrom,read->cigs,read->flag,read->IS);
 			if (fragment.variants > 0)
 			{
@@ -183,6 +184,7 @@ int parse_bamfile_sorted(char* bamfile,HASHTABLE* ht,CHROMVARS* chromvars,VARIAN
 		clean_fragmentlist(flist,&fragments,varlist,-1,read->position,prevchrom);
 	}
 	bam_destroy1(b);
+	return NULL;
 }
 
 

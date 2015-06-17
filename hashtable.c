@@ -7,7 +7,7 @@
 int hashstring(char* str,int htsize)
 {
         unsigned long hash= 5381; int c;
-        while (c = *str++) { hash = ((hash<<5)+hash) + c; if (hash >= htsize) hash = hash%htsize; }
+        while ((c = *str++)) { hash = ((hash<<5)+hash) + c; if (hash >= htsize) hash = hash%htsize; }
         return hash;
 }
 

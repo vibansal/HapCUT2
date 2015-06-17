@@ -52,7 +52,7 @@ int fetch_func(const bam1_t *b, void *data,struct alignedread* read)
         //      fprintf(stderr," read IS %d \n",c->isize);
 
         //if (read->mquality >= 60) read->mquality = 60; // cap it at 60 april 18 2012
-	read->readid=(char*)malloc(c->l_qname+1); char* qs = b->data;
+	read->readid=(char*)malloc(c->l_qname+1); unsigned char* qs = b->data;
         for (i=0;i<c->l_qname;i++) read->readid[i] = qs[i]; read->readid[i]= '\0';
 
 	if (c->tid >= 0) read->chrom = fp->header->target_name[c->tid]; else read->chrom = NULL;

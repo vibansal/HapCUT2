@@ -261,7 +261,7 @@ int read_variantfile_oldformat(char* snpfile,VARIANT* varlist,HASHTABLE* ht,int 
 	strcpy(prevchrom,"----");
  	int i=0;
 	int chromosomes = 0;
-	char buffer[10000];
+	//char buffer[10000];
 
 	sf = fopen(snpfile,"r");
 	for (i=0;i<snps;i++) 

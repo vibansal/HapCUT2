@@ -87,6 +87,7 @@ int estimate_readdistance_distribution(struct alignedread** readlist,int s,int e
 		}
 		//fprintf(stdout,"IRD %d %d %0.2f \n",i,intra_read_dist[i],intra_read_pdf[i]);
 	}
+	return NULL;
 }
 
 int generate_single_fragment(struct alignedread** readlist, int s,int e,int length,double read_density,FRAGMENT* flist,VARIANT* varlist)
@@ -306,7 +307,7 @@ int print_clusters(struct alignedread** readlist, int s,int e,FRAGMENT* flist,VA
 
 int init_clusters(struct alignedread** readlist,int s,int e)
 {
-        int i=0, prevpos = -1; int prevtid = -1; int cluster_start=0,cluster_end =0,cl = 0;
+        int i=0, prevpos = -1; int prevtid = -1; int cluster_start=0,cl = 0;
 
         for (i=s;i<e;i++) readlist[i]->cluster = -1; // initialized to -1 
         for (i=s;i<e;i++)
@@ -321,7 +322,7 @@ int init_clusters(struct alignedread** readlist,int s,int e)
                 {
                         cluster_start = i; cl++;
                 }
-                prevpos = readlist[i]->position; cluster_end = i;
+                prevpos = readlist[i]->position;
                 readlist[i]->cluster = cluster_start;
         }
         fprintf(stderr,"clusters %d \n",cl);

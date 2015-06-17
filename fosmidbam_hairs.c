@@ -37,7 +37,8 @@ int cluster_reads(struct alignedread** readlist, int s,int e,FRAGMENT* flist,VAR
 
 	double mean_block_size = 40000; double std_block_size = 8000; double pconst = log(std_block_size) + 0.5* log(2*3.14159); 
 	double block_open_penalty = log(1e-6);
-	double exp_mean = 1.0/500000; double gap_length_penalty = 0;
+	//double exp_mean = 1.0/500000;
+	double gap_length_penalty = 0;
 	
 	int blocks = readlist[e-1]->position/BLOCK_SIZE+1;
 	struct BLOCK_READ* RL = calloc(sizeof(struct BLOCK_READ),blocks); 
@@ -147,7 +148,7 @@ int cluster_reads(struct alignedread** readlist, int s,int e,FRAGMENT* flist,VAR
 		if (i%500000 ==0) fprintf(stderr,"done for block %d %d\n",i,blocks);
 	}
 
-	int flag =0; int block0_start = -1; int GCbases = 0;
+	int flag =0; int block0_start = -1;
 	i = blocks-1; while (i >= 0)
 	{
 		j = RL[i].previous;  ws = (i-j)*BLOCK_SIZE;
@@ -192,7 +193,7 @@ void process_chunk(struct alignedread** readlist,int s,int e,FRAGMENT* flist,VAR
 	find_matepair(readlist,s,e);
 	fprintf(stderr,"e %d s %d \n",e,s);
  
-	int cl = init_clusters(readlist,s,e); // cluster using a maximum intra-cluster distance value
+	//int cl = init_clusters(readlist,s,e); // cluster using a maximum intra-cluster distance value
 
 	//estimate_readdistance_distribution(readlist,s,e,cluster); // estimate distances between start positions of adjacent reads within same cluster 
 	// cluster size distribution from data | probability of a read being a singleton read
@@ -211,7 +212,7 @@ int parse_bamfile_fosmid(char* bamfile,HASHTABLE* ht,CHROMVARS* chromvars,VARIAN
 	fprintf(stderr,"reading sorted bamfile %s for fosmid pool\n",bamfile);
 	int reads=0;
 	int MAX_READS = 5000000; // 10 million for now
-	struct alignedread* read = (struct alignedread*)malloc(sizeof(struct alignedread));
+	//struct alignedread* read = (struct alignedread*)malloc(sizeof(struct alignedread));
 	struct alignedread** readlist = calloc(MAX_READS,sizeof(struct alignedread*));
 	for (reads=0;reads<MAX_READS;reads++) readlist[reads] = calloc(1,sizeof(struct alignedread)); 
 	struct alignedread* read_pt;
@@ -220,7 +221,7 @@ int parse_bamfile_fosmid(char* bamfile,HASHTABLE* ht,CHROMVARS* chromvars,VARIAN
 	FRAGMENT* flist = (FRAGMENT*)malloc(sizeof(FRAGMENT)*MAX_READS/5); int fragments =0;
 	
 	int chrom=0; int r=0,i=0;
-	int prevchrom=-1; int prevtid = -1; int prevposition = -1; // position of previous read in sorted bam file
+	int prevchrom=-1; int prevtid = -1; //int prevposition = -1; // position of previous read in sorted bam file
 	int lastread = 0;
 
 	samfile_t *fp; if ((fp = samopen(bamfile, "rb", 0)) == 0) { fprintf(stderr, "Fail to open BAM file %s\n", bamfile); return -1; }
@@ -270,8 +271,8 @@ int parse_bamfile_fosmid(char* bamfile,HASHTABLE* ht,CHROMVARS* chromvars,VARIAN
 
 		reads+=1; if (reads%2000000 ==0) fprintf(stderr,"processed %d reads, useful fragments \n",reads);
 		prevchrom = chrom; prevtid = readlist[r]->tid; 
-		if (readlist[r]->IS == 0) prevposition = readlist[r]->position; 
-		else if (readlist[r]->IS > 0) prevposition = readlist[r]->position + readlist[r]->IS; // outer end of fragment r1....r2
+		//if (readlist[r]->IS == 0) prevposition = readlist[r]->position; 
+		//else if (readlist[r]->IS > 0) prevposition = readlist[r]->position + readlist[r]->IS; // outer end of fragment r1....r2
 		r++;
 	}
 	process_chunk(readlist,lastread,r,flist,varlist,reflist); 

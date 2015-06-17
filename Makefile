@@ -37,4 +37,4 @@ readfasta.o: readfasta.c readfasta.h
 	$(CC) -c readfasta.c
 
 clean:
-	rm -f bamread.o readfasta.o readvariant.o hapfragment.o hashtable.o extractHAIRS
+	rm -f bamread.o readfasta.o readvariant.o hapfragments.o hashtable.o extractHAIRS

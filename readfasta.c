@@ -59,7 +59,7 @@ int read_fastaheader(char* fastafile,REFLIST* reflist) // assumed to be referenc
 	}
 	fclose(fp);
 
-	int i=0,j=0,c=0,c1=0,k=0; char length[64];
+	int i=0,j=0,c=0,c1=0,k=0; // char length[64];
 	reflist->names = (char**)malloc(sizeof(char*)*reflist->ns);
 	reflist->lengths= (int*)malloc(sizeof(int)*reflist->ns);
 	reflist->offsets= (uint64_t*)malloc(sizeof(uint64_t)*reflist->ns);

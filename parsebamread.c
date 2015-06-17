@@ -201,7 +201,8 @@ int compare_read_INDEL(struct alignedread* read,VARIANT* varlist,int ss,int star
 			if ((read->flag & 16) == 16) varlist[ss].A2 += 1<<16; else varlist[ss].A2 += 1; 
 		}
                 fragment->variants++;
-	} 
+	}
+	return NULL;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -210,7 +211,7 @@ int compare_read_INDEL(struct alignedread* read,VARIANT* varlist,int ss,int star
 // find the variants that are covered by the read and determine the alleles at each of those variants
 int extract_variants_read(struct alignedread* read,HASHTABLE* ht,CHROMVARS* chromvars,VARIANT* varlist,int paired,FRAGMENT* fragment,int chrom,REFLIST* reflist)
 {
-	int start = read->position; int end = start + read->span; int ss=0,firstvar=0,lastvar=0,j=0,ov=0,i=0;
+	int start = read->position; int end = start + read->span; int ss=0,firstvar=0,j=0,ov=0,i=0;
 	j = (int)(start/BSIZE); 
 	if (j >= chromvars[chrom].blocks) return 0; // another BUG april29 2011 found here 
 	ss = chromvars[chrom].intervalmap[j]; 
@@ -227,7 +228,6 @@ int extract_variants_read(struct alignedread* read,HASHTABLE* ht,CHROMVARS* chro
 			//printf("variant %s %d %c %c \n",varlist[ss].chrom,varlist[ss].position,varlist[ss].allele1,varlist[ss].allele2);
 			ov++; ss++;
 		}
-		lastvar = ss;
 	}
 		//fprintf(stderr,"chrom %d variants %d ss %d first %d-%d span %d-%d\n",chrom,VARIANTS,ss,chromvars[chrom].first,chromvars[chrom].last,start,end);
 		//fprintf(stderr,"ov %d %d\n",ov,firstvar);
@@ -307,6 +307,7 @@ int copy_fragment(FRAGMENT* fnew,FRAGMENT* fragment,struct alignedread* read)
                 fnew->alist[i].allele = fragment->alist[i].allele;
                 fnew->alist[i].qv = fragment->alist[i].qv;
         }
+        return NULL;
 }
 
 // add a fragment to the flist whose mate is yet to be seen
