@@ -46,7 +46,7 @@ int maxcut_haplotyping(char* fragmentfile,char* variantfile,int snps,char* outpu
 {
 	// IMP NOTE: all SNPs start from 1 instead of 0 and all offsets are 1+
 	fprintf(stderr,"calling MAXCUT based haplotype assembly algorithm\n");
-	int fragments=0,iter=0,components=0; int i=0,j=0,k=0,t=0,component;	int* slist;  int flag =0;
+	int fragments=0,iter=0,components=0; int i=0,k=0;	int* slist;  int flag =0;
 	float bestscore_mec = 0,calls=0, miscalls=0,ll = 0;
 	char buffer[MAXBUF]; 
 
@@ -83,7 +83,7 @@ int maxcut_haplotyping(char* fragmentfile,char* variantfile,int snps,char* outpu
 	// this considers only components with at least two nodes
 	fprintf(stderr,"fragments %d snps %d component(blocks) %d\n",fragments,snps,components); 
 	
-	struct BLOCK* clist = (struct BLOCK*)malloc(sizeof(struct BLOCK)*components); component =0;
+	struct BLOCK* clist = (struct BLOCK*)malloc(sizeof(struct BLOCK)*components);
 	generate_clist_structure(Flist,fragments,snpfrag,snps,components,clist);
 
 	/*****************************************************************************************************/

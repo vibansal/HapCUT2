@@ -9,7 +9,7 @@ float compute_goodcut(struct SNPfrags* snpfrag,char* hap,int* slist,int N,struct
 
 void evaluate_cut_component(struct fragment* Flist,struct SNPfrags* snpfrag,struct BLOCK* clist, int k,int* slist, char* HAP1,int iter)
 {
-	int i=0,j=0,t=0; int f=0; 
+	int i=0,t=0; int f=0; 
 	float cutvalue; float newscore;
 	/*
 	i=0;for (j=clist[k].offset;j<clist[k].offset+clist[k].length;j++) 
