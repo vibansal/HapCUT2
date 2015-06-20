@@ -1,6 +1,6 @@
 
 # HAPCUT MAKEFILE
-
+default: all
 #######################################################################################################
 # IF YOU ALREADY HAVE SAMTOOLS 0.1.18, EDIT THIS LINE TO SPECIFY ABSOLUTE PATH TO SAMTOOLS DIRECTORY:
 SAMTOOLS=samtools
@@ -21,9 +21,7 @@ B=build
 H=hairs-src
 X=hapcut-src
 
-default: all
-
-all: $(B)/extractHAIRS $(B)/extractHAIRS $(B)/HAPCUT
+all: $(B)/extractHAIRS $(B)/extractFOSMID $(B)/HAPCUT
 
 # BUILD HAIRS
 
