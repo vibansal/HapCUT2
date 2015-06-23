@@ -1,17 +1,6 @@
 
 # HAPCUT MAKEFILE
 default: all
-#######################################################################################################
-# IF YOU ALREADY HAVE SAMTOOLS 0.1.18, EDIT THIS LINE TO SPECIFY ABSOLUTE PATH TO SAMTOOLS DIRECTORY:
-SAMTOOLS=samtools
-# IF YOU SPECIFY YOUR OWN DIRECTORY ABOVE, COMMENT OUT THESE 6 LINES
-samtools:
-	wget http://sourceforge.net/projects/samtools/files/samtools/0.1.18/samtools-0.1.18.tar.bz2/download -O samtools-0.1.18.tar.bz2
-	tar xvfj samtools-0.1.18.tar.bz2
-	rm samtools-0.1.18.tar.bz2
-	mv samtools-0.1.18 $(SAMTOOLS)
-	make -C $(SAMTOOLS)
-#######################################################################################################
 
 CC=gcc -Wall -D_GNU_SOURCE
 CFLAGS=-c -Wall
@@ -20,16 +9,34 @@ CFLAGS=-c -Wall
 B=build
 H=hairs-src
 X=hapcut-src
+HTSLIB=submodules/htslib
+SAMTOOLS=submodules/samtools
+T=test
+# below is the path to CUnit directory, change if need be
+CUNIT=/usr/include/CUnit
+
 
 all: $(B)/extractHAIRS $(B)/extractFOSMID $(B)/HAPCUT
 
+samtools:
+	make -C $(SAMTOOLS)
+
+htslib:
+	make -C $(HTSLIB)
+
+# TEST
+# requires Cunit
+tests:
+	$(CC) $(T)/test.c -o $(B)/test -lcunit -I $(CUNIT)
+	./$(B)/test
+	
 # BUILD HAIRS
 
-$(B)/extractHAIRS: $(B)/bamread.o $(B)/hashtable.o $(B)/readvariant.o $(B)/readfasta.o $(B)/hapfragments.o $(H)/extracthairs.c | $(B)
-	$(CC) -I$(SAMTOOLS) -g -O2 $(B)/bamread.o $(B)/hapfragments.o $(B)/hashtable.o $(B)/readfasta.o $(B)/readvariant.o -o $(B)/extractHAIRS $(H)/extracthairs.c  -L$(SAMTOOLS) -lbam -lm -lz
+$(B)/extractHAIRS: $(B)/bamread.o $(B)/hashtable.o $(B)/readvariant.o $(B)/readfasta.o $(B)/hapfragments.o $(H)/extracthairs.c | $(B) $(SAMTOOLS) $(HTSLIB)
+	$(CC) -I$(SAMTOOLS) -I$(HTSLIB) -g -O2 $(B)/bamread.o $(B)/hapfragments.o $(B)/hashtable.o $(B)/readfasta.o $(B)/readvariant.o -o $(B)/extractHAIRS $(H)/extracthairs.c  -L$(SAMTOOLS) -L$(HTSLIB) -pthread -lhts -lbam -lm -lz
 
-$(B)/extractFOSMID: $(B)/bamread.o $(B)/hashtable.o $(B)/readvariant.o $(B)/readfasta.o $(B)/hapfragments.o $(H)/extracthairs.c $(H)/fosmidbam_hairs.c $(H)/print_clusters.c | $(B)
-	$(CC) -I$(SAMTOOLS) -g -O2 $(B)/bamread.o $(B)/hapfragments.o $(B)/hashtable.o $(B)/readfasta.o $(B)/readvariant.o -o $(B)/extractFOSMID $(H)/extracthairs.c  -L$(SAMTOOLS) -lbam -lm -lz
+$(B)/extractFOSMID: $(B)/bamread.o $(B)/hashtable.o $(B)/readvariant.o $(B)/readfasta.o $(B)/hapfragments.o $(H)/extracthairs.c $(H)/fosmidbam_hairs.c $(H)/print_clusters.c | $(B) $(SAMTOOLS) $(HTSLIB)
+	$(CC) -I$(SAMTOOLS) -I$(HTSLIB) -g -O2 $(B)/bamread.o $(B)/hapfragments.o $(B)/hashtable.o $(B)/readfasta.o $(B)/readvariant.o -o $(B)/extractFOSMID $(H)/extracthairs.c  -L$(SAMTOOLS) -L$(HTSLIB) -pthread -lhts -lbam -lm -lz
 
 #INDELCOUNTS: $(B)/bamread.o $(B)/hashtable.o $(B)/readvariant.o $(B)/readfasta.o $(B)/hapfragments.o $(H)/indelcounts.c | $(B)
 #	$(CC) -I$(SAMTOOLS) -g -O2 $(B)/bamread.o $(B)/hapfragments.o $(B)/hashtable.o $(B)/readfasta.o $(B)/readvariant.o -o $(B)/INDELCOUNTS $(H)/indelcounts.c -L$(SAMTOOLS) -lbam -lm -lz
@@ -46,8 +53,8 @@ $(B)/hapfragments.o: $(H)/hapfragments.c $(H)/hapfragments.h $(H)/readvariant.h 
 $(B)/readvariant.o: $(H)/readvariant.c $(H)/readvariant.h $(H)/hashtable.h $(H)/hashtable.c | $(B)
 	$(CC) -c $(H)/readvariant.c -o $(B)/readvariant.o
 
-$(B)/bamread.o: samtools $(H)/bamread.h $(H)/bamread.c $(H)/readfasta.h $(H)/readfasta.c | $(B)
-	$(CC) -I$(SAMTOOLS) -c $(H)/bamread.c -o $(B)/bamread.o
+$(B)/bamread.o: samtools $(H)/bamread.h $(H)/bamread.c $(H)/readfasta.h $(H)/readfasta.c | $(B) $(SAMTOOLS) $(HTSLIB)
+	$(CC) -I$(SAMTOOLS) -I$(HTSLIB) -c $(H)/bamread.c -o $(B)/bamread.o
 
 $(B)/hashtable.o: $(H)/hashtable.h $(H)/hashtable.c | $(B)
 	$(CC) -c $(H)/hashtable.c -o $(B)/hashtable.o
@@ -104,10 +111,9 @@ uninstall-fosmid:
 	rm /bin/extractFOSMID
 
 # CLEANUP
-nuke: clean remove-samtools
-
-remove-samtools:
-	rm -rf $(SAMTOOLS)
+nuke: clean
+	make clean -C submodules/samtools
+	make clean -C submodules/htslib
 
 clean:
 	rm -rf $(B)

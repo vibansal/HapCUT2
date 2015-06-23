@@ -40,8 +40,6 @@ int MAX_MEMORY = 8000;
 
 #include "find_maxcut.c"   // function compute_good_cut 
 
-/***********************************************************************************************************/
-
 int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* outputfile, int maxiter_hapcut) {
     // IMP NOTE: all SNPs start from 1 instead of 0 and all offsets are 1+
     fprintf(stderr, "calling MAXCUT based haplotype assembly algorithm\n");
@@ -138,7 +136,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     }
 
     // for each block, we maintain best haplotype solution under MFR criterion 
-    // compute the component-wise score for 'initHAP' haplotype 
+    // compute the component-wise score for 'initHAP' haplotype
     miscalls = 0;
     bestscore_mec = 0;
     for (k = 0; k < components; k++) {
@@ -205,9 +203,14 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+/** \brief HapCUT Main function: input arguments are initial fragment file, variant file with variant information and alleles for each variant 
+ * number of iterations total, when to output the solution, file to output solution
+ * 
+ */
+
 int main(int argc, char** argv) {
-    // input arguments are initial fragment file, variant file with variant information and alleles for each variant 
-    // number of iterations total, when to output the solution, file to output solution .....
+    
+    // initialize variables
     time_t ts;
     time(&ts);
     srand48((long int) ts);
@@ -222,8 +225,14 @@ int main(int argc, char** argv) {
     strcpy(fragfile, "None");
     strcpy(varfile, "None");
     strcpy(hapfile, "None");
+    
+    // iterate over command line arguments
     for (i = 1; i < argc; i += 2) {
-        if (argc < 6) break;
+        if (argc < 6) break; // requires at least 6 arguments
+
+        //TODO: parsing should check that required arguments are present.
+        // currently only checks that 6 args are supplied.
+        
         if (strcmp(argv[i], "--fragments") == 0 || strcmp(argv[i], "--frags") == 0) {
             strcpy(fragfile, argv[i + 1]);
             flag++;
@@ -264,10 +273,13 @@ int main(int argc, char** argv) {
         print_hapcut_options();
         return 0;
     } else {
+        // sufficient arguments have been supplied
         if (VCFformat == 1) {
+            // run HapCUT using VCF format file
             fprintf(stderr, "\n\nfragment file: %s\nvariantfile (VCF format):%s\nhaplotypes will be output to file: %s\niterations of maxcut algorithm: %d\nQVoffset: %d\n\n", fragfile, VCFfile, hapfile, maxiter, QVoffset);
             maxcut_haplotyping(fragfile, VCFfile, 0, hapfile, maxiter);
         } else {
+            // run HapCUT using variant format file
             fprintf(stderr, "\n\nfragment file: %s\nvariantfile (variant format):%s\nhaplotypes will be output to file: %s\niterations of maxcut algorithm: %d\nQVoffset: %d\n\n", fragfile, varfile, hapfile, maxiter, QVoffset);
             maxcut_haplotyping(fragfile, varfile, 0, hapfile, maxiter);
         }

@@ -1,7 +1,7 @@
 #include<stdint.h>
 int MIN_CLUSTER_DISTANCE = 10000;
 #include "print_clusters.c"
-
+#include "sam.h"
 int BLOCK_SIZE = 100; // 100 bp blocks
 int BF = 10;
 #define BS1 20

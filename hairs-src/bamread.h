@@ -8,6 +8,7 @@
 #include<ctype.h>
 #include "readfasta.h"
 #include "sam.h"
+#include "htslib/hts.h"
 
 extern int QVoffset;
 extern int MINQ;
