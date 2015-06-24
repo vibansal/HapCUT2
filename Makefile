@@ -18,24 +18,32 @@ CUNIT=/usr/include/CUnit
 
 all: $(B)/extractHAIRS $(B)/extractFOSMID $(B)/HAPCUT
 
-samtools:
-	make -C $(SAMTOOLS)
-
-htslib:
-	make -C $(HTSLIB)
-
 # TEST
 # requires Cunit
 tests:
 	$(CC) $(T)/test.c -o $(B)/test -lcunit -I $(CUNIT)
 	./$(B)/test
-	
+
+$(SAMTOOLS)/Makefile:
+	git submodule init
+	git submodule update
+
+$(HTSLIB)/Makefile:
+	git submodule init
+	git submodule update
+
+$(SAMTOOLS)/bam.o: $(SAMTOOLS)/Makefile
+	make -C $(SAMTOOLS) bam.o
+
+$(HTSLIB)/hts.o: $(HTSLIB)/Makefile
+	make -C $(HTSLIB) hts.o
+
 # BUILD HAIRS
 
-$(B)/extractHAIRS: $(B)/bamread.o $(B)/hashtable.o $(B)/readvariant.o $(B)/readfasta.o $(B)/hapfragments.o $(H)/extracthairs.c | $(B) $(SAMTOOLS) $(HTSLIB)
+$(B)/extractHAIRS: $(B)/bamread.o $(B)/hashtable.o $(B)/readvariant.o $(B)/readfasta.o $(B)/hapfragments.o $(H)/extracthairs.c $(SAMTOOLS)/bam.o $(HTSLIB)/hts.o | $(B)
 	$(CC) -I$(SAMTOOLS) -I$(HTSLIB) -g -O2 $(B)/bamread.o $(B)/hapfragments.o $(B)/hashtable.o $(B)/readfasta.o $(B)/readvariant.o -o $(B)/extractHAIRS $(H)/extracthairs.c  -L$(SAMTOOLS) -L$(HTSLIB) -pthread -lhts -lbam -lm -lz
 
-$(B)/extractFOSMID: $(B)/bamread.o $(B)/hashtable.o $(B)/readvariant.o $(B)/readfasta.o $(B)/hapfragments.o $(H)/extracthairs.c $(H)/fosmidbam_hairs.c $(H)/print_clusters.c | $(B) $(SAMTOOLS) $(HTSLIB)
+$(B)/extractFOSMID: $(B)/bamread.o $(B)/hashtable.o $(B)/readvariant.o $(B)/readfasta.o $(B)/hapfragments.o $(H)/extracthairs.c $(H)/fosmidbam_hairs.c $(H)/print_clusters.c $(SAMTOOLS)/bam.o $(HTSLIB)/hts.o | $(B)
 	$(CC) -I$(SAMTOOLS) -I$(HTSLIB) -g -O2 $(B)/bamread.o $(B)/hapfragments.o $(B)/hashtable.o $(B)/readfasta.o $(B)/readvariant.o -o $(B)/extractFOSMID $(H)/extracthairs.c  -L$(SAMTOOLS) -L$(HTSLIB) -pthread -lhts -lbam -lm -lz
 
 #INDELCOUNTS: $(B)/bamread.o $(B)/hashtable.o $(B)/readvariant.o $(B)/readfasta.o $(B)/hapfragments.o $(H)/indelcounts.c | $(B)
@@ -53,7 +61,7 @@ $(B)/hapfragments.o: $(H)/hapfragments.c $(H)/hapfragments.h $(H)/readvariant.h 
 $(B)/readvariant.o: $(H)/readvariant.c $(H)/readvariant.h $(H)/hashtable.h $(H)/hashtable.c | $(B)
 	$(CC) -c $(H)/readvariant.c -o $(B)/readvariant.o
 
-$(B)/bamread.o: samtools $(H)/bamread.h $(H)/bamread.c $(H)/readfasta.h $(H)/readfasta.c | $(B) $(SAMTOOLS) $(HTSLIB)
+$(B)/bamread.o: samtools $(H)/bamread.h $(H)/bamread.c $(H)/readfasta.h $(H)/readfasta.c $(SAMTOOLS)/bam.o $(HTSLIB)/hts.o | $(B)
 	$(CC) -I$(SAMTOOLS) -I$(HTSLIB) -c $(H)/bamread.c -o $(B)/bamread.o
 
 $(B)/hashtable.o: $(H)/hashtable.h $(H)/hashtable.c | $(B)
