@@ -24,15 +24,17 @@ tests:
 	$(CC) $(T)/test.c -o $(B)/test -lcunit -I $(CUNIT)
 	./$(B)/test
 
-$(SAMTOOLS)/Makefile:
-[ -f $(which git) ] && : || echo "git not found. Download samtools 1.2 and htslib 1.2.1 and place the unzipped folders in \"submodules\" directory with names matching the above variables (default \"samtools\" and \"htslib\") " && exit	
+# check if git present, else print error message explaining how to manually download submodules
+git-exists:
+	@hash foo 2>/dev/null || { echo >&2 "Git not installed (required for auto-download of required submodules). Install git and retry, or manually download samtools 1.2 and htslib 1.2.1 and place the unzipped folders in \"submodules\" directory with names matching their Makefile variables (default \"samtools\" and \"htslib\")"; exit 1; }
+
+# if samtools makefile not present, then submodules have not yet been downloaded (init & updated)
+$(SAMTOOLS)/Makefile: git-exists
 	git submodule init
 	git submodule update
 
-$(HTSLIB)/Makefile:
-[ -f $(which git) ] && : || echo "git not found. Download samtools 1.2 and htslib 1.2.1 and place the unzipped folders in \"submodules\" directory with names matching the above variables (default \"samtools\" and \"htslib\") " && exit
-	git submodule init
-	git submodule update
+# just call the samtools makefile target because it downloads both htslib and samtools submodules
+$(HTSLIB)/Makefile: $(SAMTOOLS)/Makefile
 
 $(SAMTOOLS)/libbam.a: $(SAMTOOLS)/Makefile
 	echo "Building Samtools bam library..."
