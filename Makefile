@@ -25,17 +25,21 @@ tests:
 	./$(B)/test
 
 $(SAMTOOLS)/Makefile:
+[ -f $(which git) ] && : || echo "git not found. Download samtools 1.2 and htslib 1.2.1 and place the unzipped folders in \"submodules\" directory with names matching the above variables (default \"samtools\" and \"htslib\") " && exit	
 	git submodule init
 	git submodule update
 
 $(HTSLIB)/Makefile:
+[ -f $(which git) ] && : || echo "git not found. Download samtools 1.2 and htslib 1.2.1 and place the unzipped folders in \"submodules\" directory with names matching the above variables (default \"samtools\" and \"htslib\") " && exit
 	git submodule init
 	git submodule update
 
 $(SAMTOOLS)/libbam.a: $(SAMTOOLS)/Makefile
+	echo "Building Samtools bam library..."
 	make -C $(SAMTOOLS) lib
 
 $(HTSLIB)/libhts.a: $(HTSLIB)/Makefile
+	echo "Building HTSlib libraries..."
 	make -C $(HTSLIB) lib-static
 
 # BUILD HAIRS
