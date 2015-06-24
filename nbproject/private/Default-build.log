@@ -1,0 +1,61 @@
+make -C submodules/samtools lib
+make[1]: Entering directory '/home/peter/git/hapcut2/submodules/samtools'
+gcc -g -Wall -O2 -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_CURSES_LIB=1 -I. -I../htslib -c -o bam_aux.o bam_aux.c
+gcc -g -Wall -O2 -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_CURSES_LIB=1 -I. -I../htslib -c -o bam.o bam.c
+gcc -g -Wall -O2 -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_CURSES_LIB=1 -I. -I../htslib -c -o bam_import.o bam_import.c
+gcc -g -Wall -O2 -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_CURSES_LIB=1 -I. -I../htslib -c -o sam.o sam.c
+gcc -g -Wall -O2 -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_CURSES_LIB=1 -I. -I../htslib -c -o sam_header.o sam_header.c
+gcc -g -Wall -O2 -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_CURSES_LIB=1 -I. -I../htslib -c -o bam_plbuf.o bam_plbuf.c
+ar -csru libbam.a bam_aux.o bam.o bam_import.o sam.o sam_header.o bam_plbuf.o
+make[1]: Leaving directory '/home/peter/git/hapcut2/submodules/samtools'
+make -C submodules/htslib lib-static
+make[1]: Entering directory '/home/peter/git/hapcut2/submodules/htslib'
+gcc -g -Wall -O2 -I. -c -o kfunc.o kfunc.c
+gcc -g -Wall -O2 -I. -c -o knetfile.o knetfile.c
+gcc -g -Wall -O2 -I. -c -o kstring.o kstring.c
+gcc -g -Wall -O2 -I. -c -o bgzf.o bgzf.c
+gcc -g -Wall -O2 -I. -c -o faidx.o faidx.c
+gcc -g -Wall -O2 -I. -c -o hfile.o hfile.c
+gcc -g -Wall -O2 -I. -c -o hfile_net.o hfile_net.c
+echo '#define HTS_VERSION "1.2.1"' > version.h
+gcc -g -Wall -O2 -I. -c -o hts.o hts.c
+gcc -g -Wall -O2 -I. -c -o regidx.o regidx.c
+gcc -g -Wall -O2 -I. -c -o sam.o sam.c
+gcc -g -Wall -O2 -I. -c -o synced_bcf_reader.o synced_bcf_reader.c
+gcc -g -Wall -O2 -I. -c -o vcf_sweep.o vcf_sweep.c
+gcc -g -Wall -O2 -I. -c -o tbx.o tbx.c
+gcc -g -Wall -O2 -I. -c -o vcf.o vcf.c
+gcc -g -Wall -O2 -I. -c -o vcfutils.o vcfutils.c
+gcc -g -Wall -O2 -I. -c -o cram/cram_codecs.o cram/cram_codecs.c
+gcc -g -Wall -O2 -I. -c -o cram/cram_decode.o cram/cram_decode.c
+gcc -g -Wall -O2 -I. -c -o cram/cram_encode.o cram/cram_encode.c
+gcc -g -Wall -O2 -I. -c -o cram/cram_index.o cram/cram_index.c
+gcc -g -Wall -O2 -I. -c -o cram/cram_io.o cram/cram_io.c
+gcc -g -Wall -O2 -I. -c -o cram/cram_samtools.o cram/cram_samtools.c
+gcc -g -Wall -O2 -I. -c -o cram/cram_stats.o cram/cram_stats.c
+gcc -g -Wall -O2 -I. -c -o cram/files.o cram/files.c
+gcc -g -Wall -O2 -I. -c -o cram/mFILE.o cram/mFILE.c
+gcc -g -Wall -O2 -I. -c -o cram/md5.o cram/md5.c
+gcc -g -Wall -O2 -I. -c -o cram/open_trace_file.o cram/open_trace_file.c
+gcc -g -Wall -O2 -I. -c -o cram/pooled_alloc.o cram/pooled_alloc.c
+gcc -g -Wall -O2 -I. -c -o cram/rANS_static.o cram/rANS_static.c
+gcc -g -Wall -O2 -I. -c -o cram/sam_header.o cram/sam_header.c
+gcc -g -Wall -O2 -I. -c -o cram/string_alloc.o cram/string_alloc.c
+gcc -g -Wall -O2 -I. -c -o cram/thread_pool.o cram/thread_pool.c
+gcc -g -Wall -O2 -I. -c -o cram/vlen.o cram/vlen.c
+gcc -g -Wall -O2 -I. -c -o cram/zfio.o cram/zfio.c
+ar -rc libhts.a kfunc.o knetfile.o kstring.o bgzf.o faidx.o hfile.o hfile_net.o hts.o regidx.o sam.o synced_bcf_reader.o vcf_sweep.o tbx.o vcf.o vcfutils.o cram/cram_codecs.o cram/cram_decode.o cram/cram_encode.o cram/cram_index.o cram/cram_io.o cram/cram_samtools.o cram/cram_stats.o cram/files.o cram/mFILE.o cram/md5.o cram/open_trace_file.o cram/pooled_alloc.o cram/rANS_static.o cram/sam_header.o cram/string_alloc.o cram/thread_pool.o cram/vlen.o cram/zfio.o
+ranlib libhts.a
+make[1]: Leaving directory '/home/peter/git/hapcut2/submodules/htslib'
+mkdir -p build
+gcc -Wall -D_GNU_SOURCE -Isubmodules/samtools -Isubmodules/htslib -c hairs-src/bamread.c -o build/bamread.o
+gcc -Wall -D_GNU_SOURCE -c hairs-src/hashtable.c -o build/hashtable.o
+gcc -Wall -D_GNU_SOURCE -c hairs-src/readvariant.c -o build/readvariant.o
+gcc -Wall -D_GNU_SOURCE -c hairs-src/readfasta.c -o build/readfasta.o
+gcc -Wall -D_GNU_SOURCE -c hairs-src/hapfragments.c -o build/hapfragments.o
+gcc -Wall -D_GNU_SOURCE -Isubmodules/samtools -Isubmodules/htslib -g -O2 build/bamread.o build/hapfragments.o build/hashtable.o build/readfasta.o build/readvariant.o -o build/extractHAIRS hairs-src/extracthairs.c  -Lsubmodules/samtools -Lsubmodules/htslib -pthread -lhts -lbam -lm -lz
+gcc -Wall -D_GNU_SOURCE -Isubmodules/samtools -Isubmodules/htslib -g -O2 build/bamread.o build/hapfragments.o build/hashtable.o build/readfasta.o build/readvariant.o -o build/extractFOSMID hairs-src/extracthairs.c  -Lsubmodules/samtools -Lsubmodules/htslib -pthread -lhts -lbam -lm -lz
+gcc -Wall -D_GNU_SOURCE -c hapcut-src/fragmatrix.c -o build/fragmatrix.o
+gcc -Wall -D_GNU_SOURCE -c hapcut-src/readinputfiles.c -o build/readinputfiles.o
+gcc -Wall -D_GNU_SOURCE -c hapcut-src/pointerheap.c -o build/pointerheap.o
+gcc -Wall -D_GNU_SOURCE build/fragmatrix.o build/readinputfiles.o build/pointerheap.o -o build/HAPCUT -lm hapcut-src/hapcut.c
