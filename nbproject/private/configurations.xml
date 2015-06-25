@@ -6,6 +6,12 @@
       </df>
       <df name="experiment1">
       </df>
+      <df name="experiment2">
+      </df>
+      <df name="experiment3">
+      </df>
+      <df name="experiment4">
+      </df>
       <df name="hairs-src">
         <in>bamread.c</in>
         <in>bamread.h</in>
@@ -37,6 +43,8 @@
         <in>readinputfiles.c</in>
         <in>readinputfiles.h</in>
         <in>removefalsehets.c</in>
+      </df>
+      <df name="output">
       </df>
       <df name="submodules">
         <df name="htslib">
@@ -243,6 +251,10 @@
           <in>stats_isize.h</in>
         </df>
       </df>
+      <df name="toy_data">
+      </df>
+      <df name="toy_data2">
+      </df>
     </df>
   </logicalFolder>
   <projectmakefile>Makefile</projectmakefile>
@@ -270,6 +282,8 @@
         <gdb_interceptlist>
           <gdbinterceptoptions gdb_all="false" gdb_unhandled="true" gdb_unexpected="true"/>
         </gdb_interceptlist>
+        <gdb_signals>
+        </gdb_signals>
         <gdb_options>
           <DebugOptions>
           </DebugOptions>
@@ -282,8 +296,12 @@
       <runprofile version="9">
         <runcommandpicklist>
           <runcommandpicklistitem>"${OUTPUT_PATH}"</runcommandpicklistitem>
+          <runcommandpicklistitem>build/extractHAIRS --VCF toy_data2/simulated_reads.mutations.vcf --ref toy_data2/hg19_chr20.fa --out output/hairs_output_HAPCUT2.fragments --bam toy_data2/aligned_simreads_sorted.bam</runcommandpicklistitem>
+          <runcommandpicklistitem>build/extractHAIRS --VCF toy_data/chr20_simulated_reads.mutations.vcf --ref toy_data/hg19_chr20.fa --out output/hairs_output_HAPCUT2.fragments --bam toy_data/aligned_chr20_simreads_sorted.bam</runcommandpicklistitem>
+          <runcommandpicklistitem></runcommandpicklistitem>
+          <runcommandpicklistitem>build/extractHAIRS --VCF toy_data/chr20_simulated_reads.mutations.vcf --ref toy_data/hg19_chr20.fa --out output/hairs_output_HAPCUT2.fragments --bam experiment3/aligned_chr20_simreads_sorted.bam</runcommandpicklistitem>
         </runcommandpicklist>
-        <runcommand>"${OUTPUT_PATH}"</runcommand>
+        <runcommand>build/extractHAIRS --VCF toy_data/chr20_simulated_reads.mutations.vcf --ref toy_data/hg19_chr20.fa --out output/hairs_output_HAPCUT2.fragments --bam experiment3/aligned_chr20_simreads_sorted.bam</runcommand>
         <rundir>.</rundir>
         <buildfirst>false</buildfirst>
         <terminal-type>0</terminal-type>

@@ -141,7 +141,7 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
             fragment.variants = 0; // v1 =0; v2=0; 
             if (chrom >= 0 && PEONLY == 0) {
                 fragment.id = read->readid;
-                //v1 = extract_variants_read(read,ht,chromvars,varlist,0,&fragment,chrom,reflist);
+                extract_variants_read(read,ht,chromvars,varlist,0,&fragment,chrom,reflist);
                 if (fragment.variants >= 2 || (SINGLEREADS == 1 && fragment.variants >= 1)) {
                     // instead of printing fragment, we could change this to update genotype likelihoods 
                     print_fragment(&fragment, varlist, fragment_file);
@@ -152,7 +152,7 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
             //fprintf(stdout,"tid %d %d \n",read->tid,read->mtid);
             fragment.variants = 0;
             fragment.id = read->readid; //v1 =0; v2=0;
-            //if (chrom >=0) 	v1 = extract_variants_read(read,ht,chromvars,varlist,1,&fragment,chrom,reflist);
+            if (chrom >=0) extract_variants_read(read,ht,chromvars,varlist,1,&fragment,chrom,reflist);
             //fprintf(stderr,"paired read stats %s %d flag %d IS %d\n",read->chrom,read->cigs,read->flag,read->IS);
             if (fragment.variants > 0) {
                 //fprintf(stderr,"variants %d read %s %s \n",fragment.variants,read->chrom,read->readid);

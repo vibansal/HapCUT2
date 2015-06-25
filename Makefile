@@ -24,13 +24,11 @@ tests:
 	$(CC) $(T)/test.c -o $(B)/test -lcunit -I $(CUNIT)
 	./$(B)/test
 
-# check if git present, else print error message
-# credit to lhunath for the one-line check below http://stackoverflow.com/questions/592620/check-if-a-program-exists-from-a-bash-script
-git-exists:
-	@hash git 2>/dev/null || { echo >&2 "Git not installed (required for auto-download of required submodules). Install git and retry, or manually download samtools 1.2 and htslib 1.2.1 and place the unzipped folders in \"submodules\" directory with names matching their Makefile variables (default \"samtools\" and \"htslib\")"; exit 1; }
-
 # if samtools makefile not present, then submodules have not yet been downloaded (init & updated)
-$(SAMTOOLS)/Makefile: git-exists
+# first check if git present, else print error message
+# credit to lhunath for the one-line check for git below http://stackoverflow.com/questions/592620/check-if-a-program-exists-from-a-bash-script
+$(SAMTOOLS)/Makefile:
+	@hash git 2>/dev/null || { echo >&2 "Git not installed (required for auto-download of required submodules). Install git and retry, or manually download samtools 1.2 and htslib 1.2.1 and place the unzipped folders in \"submodules\" directory with names matching their Makefile variables (default \"samtools\" and \"htslib\")"; exit 1; }
 	git submodule init
 	git submodule update
 
@@ -47,11 +45,12 @@ $(HTSLIB)/libhts.a: $(HTSLIB)/Makefile
 
 # BUILD HAIRS
 
+#temporarily removed -O2 flag after -I$(HTSLIB)
 $(B)/extractHAIRS: $(B)/bamread.o $(B)/hashtable.o $(B)/readvariant.o $(B)/readfasta.o $(B)/hapfragments.o $(H)/extracthairs.c $(SAMTOOLS)/libbam.a $(HTSLIB)/libhts.a | $(B)
-	$(CC) -I$(SAMTOOLS) -I$(HTSLIB) -g -O2 $(B)/bamread.o $(B)/hapfragments.o $(B)/hashtable.o $(B)/readfasta.o $(B)/readvariant.o -o $(B)/extractHAIRS $(H)/extracthairs.c  -L$(SAMTOOLS) -L$(HTSLIB) -pthread -lhts -lbam -lm -lz
-
+	$(CC) -I$(SAMTOOLS) -I$(HTSLIB) -g $(B)/bamread.o $(B)/hapfragments.o $(B)/hashtable.o $(B)/readfasta.o $(B)/readvariant.o -o $(B)/extractHAIRS $(H)/extracthairs.c  -L$(SAMTOOLS) -L$(HTSLIB) -pthread -lhts -lbam -lm -lz
+#temporarily removed -O2 flag after -I$(HTSLIB)
 $(B)/extractFOSMID: $(B)/bamread.o $(B)/hashtable.o $(B)/readvariant.o $(B)/readfasta.o $(B)/hapfragments.o $(H)/extracthairs.c $(H)/fosmidbam_hairs.c $(H)/print_clusters.c $(SAMTOOLS)/libbam.a $(HTSLIB)/libhts.a | $(B)
-	$(CC) -I$(SAMTOOLS) -I$(HTSLIB) -g -O2 $(B)/bamread.o $(B)/hapfragments.o $(B)/hashtable.o $(B)/readfasta.o $(B)/readvariant.o -o $(B)/extractFOSMID $(H)/extracthairs.c  -L$(SAMTOOLS) -L$(HTSLIB) -pthread -lhts -lbam -lm -lz
+	$(CC) -I$(SAMTOOLS) -I$(HTSLIB) -g $(B)/bamread.o $(B)/hapfragments.o $(B)/hashtable.o $(B)/readfasta.o $(B)/readvariant.o -o $(B)/extractFOSMID $(H)/extracthairs.c  -L$(SAMTOOLS) -L$(HTSLIB) -pthread -lhts -lbam -lm -lz
 
 #INDELCOUNTS: $(B)/bamread.o $(B)/hashtable.o $(B)/readvariant.o $(B)/readfasta.o $(B)/hapfragments.o $(H)/indelcounts.c | $(B)
 #	$(CC) -I$(SAMTOOLS) -g -O2 $(B)/bamread.o $(B)/hapfragments.o $(B)/hashtable.o $(B)/readfasta.o $(B)/readvariant.o -o $(B)/INDELCOUNTS $(H)/indelcounts.c -L$(SAMTOOLS) -lbam -lm -lz
@@ -104,26 +103,30 @@ $(B):
 # INSTALL
 install: install-hapcut install-hairs install-fosmid
 
+install-samtools:
+	make -C $(SAMTOOLS)
+	make -C $(SAMTOOLS) install
+
 install-hapcut:
-	cp $(B)/HAPCUT /bin
+	cp $(B)/HAPCUT /usr/local/bin
 
 install-hairs:
-	cp $(B)/extractHAIRS /bin
+	cp $(B)/extractHAIRS /usr/local/bin
 
 install-fosmid:
-	cp $(B)/extractFOSMID /bin
+	cp $(B)/extractFOSMID /usr/local/bin
 
 # UNINSTALL
 uninstall: uninstall-hapcut uninstall-hairs uninstall-fosmid
 
 uninstall-hapcut:
-	rm /bin/HAPCUT
+	rm /usr/local/bin
 
 uninstall-hairs:
-	rm /bin/extractHAIRS
+	rm /usr/local/bin
 
 uninstall-fosmid:
-	rm /bin/extractFOSMID
+	rm /usr/local/bin
 
 # CLEANUP
 nuke: clean
