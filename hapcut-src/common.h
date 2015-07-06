@@ -14,7 +14,7 @@ extern int SCORING_FUNCTION;
 
 struct block {
     int offset;
-    char* hap;
+    char* hap;    
     short len;
     float* pv;
     char* qv;

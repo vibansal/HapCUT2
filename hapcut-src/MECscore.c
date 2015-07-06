@@ -1,8 +1,20 @@
 
-// function to compute weight of a edge between two variants in the max-cut graph (score of +1 if the phasing agrees with the phasing suggested by the fragment and score of -1 if it does not)
-// this function needs to be modified to utilize base-quality scores, so that the weight of an edge is (1-e1)(1-e2) for the two base-calls
-
+// 
+// 
+/**
+ * @brief a function to compute weight of a edge between two variants in the max-cut graph (score of +1 if the phasing agrees with the phasing suggested by the fragment and score of -1 if it does not)
+ * this function needs to be modified to utilize base-quality scores, so that the weight of an edge is (1-e1)(1-e2) for the two base-calls
+ * 
+ * @param hap an array representing a haplotype
+ * @param i the index of first variant
+ * @param j the index of second variant
+ * @param p ???
+ * @param Flist an array of pointers to fragment structs (represents the list of fragments)
+ * @param f the index of the fragment under consideration
+ * @return the weight of the edge between variant i and j
+ */
 float edge_weight(char* hap, int i, int j, char* p, struct fragment* Flist, int f) {
+
     float q1 = 1, q2 = 1;
     int k = 0, l = 0;
     // new code added so that edges are weighted by quality scores, running time is linear in length of fragment !! 08/15/13 | reduce this
@@ -12,8 +24,8 @@ float edge_weight(char* hap, int i, int j, char* p, struct fragment* Flist, int 
             else if (Flist[f].list[k].offset + l == j) q2 = Flist[f].list[k].pv[l];
         }
     }
-    float p1 = q1 * q2 + (1 - q1)*(1 - q2);
-    float p2 = q1 * (1 - q2) + q2 * (1 - q1);
+    float p1 = q1 * q2 + (1 - q1)*(1 - q2); // probability that neither variant has an error or both do
+    float p2 = q1 * (1 - q2) + q2 * (1 - q1); // probability that exactly one of the variants has an error
     if (hap[i] == hap[j] && p[0] == p[1]) return log10(p1 / p2);
     else if (hap[i] != hap[j] && p[0] != p[1]) return log10(p1 / p2);
     else if (hap[i] == hap[j] && p[0] != p[1]) return log10(p2 / p1);
@@ -22,8 +34,17 @@ float edge_weight(char* hap, int i, int j, char* p, struct fragment* Flist, int 
 }
 
 
-// compute MECSCORE of the fragment matrix compared to a haplotype 'h' 
-
+/**
+ * @brief compute MECSCORE of the fragment matrix compared to a haplotype 'h'
+ * 
+ * @param Flist an array of pointers to fragment structs (represents the list of fragments)
+ * @param fragments the number of fragments in Flist
+ * @param h a haplotype to compute the MEC score with respect to
+ * @param ll
+ * @param calls variable to count the total number of base calls
+ * @param miscalls variable to count the total number of base miscalls
+ * @return 
+ */
 int mecscore(struct fragment* Flist, int fragments, char* h, float* ll, float* calls, float* miscalls) {
     //	fprintf(stderr,"QVoffset is now %d \n",QVoffset);
     int j = 0, k = 0, f = 0;
@@ -32,10 +53,12 @@ int mecscore(struct fragment* Flist, int fragments, char* h, float* ll, float* c
     *calls = 0;
     *miscalls = 0;
     float prob;
-    float prob1;
+    float prob1;              // probability of correct call based on qual value
     float good = 0, bad = 0;
     int switches = 0;
     int m = 0;
+    
+    // iterate over all fragments
     for (f = 0; f < fragments; f++) {
         good = bad = 0;
         p0 = p1 = 0; //if (Flist[f].blocks ==1 && Flist[f].list[0].len ==1) continue;
@@ -44,18 +67,24 @@ int mecscore(struct fragment* Flist, int fragments, char* h, float* ll, float* c
         switches = 0;
 
         for (j = 0; j < Flist[f].blocks; j++) {
-            *calls += Flist[f].list[j].len;
+            *calls += Flist[f].list[j].len; // increment call count
             for (k = 0; k < Flist[f].list[j].len; k++) {
+                // skip if no call or below min quality
                 if (h[Flist[f].list[j].offset + k] == '-') continue;
                 if ((int) Flist[f].list[j].qv[k] - QVoffset < MINQ) continue;
+                
+                // standard quality value conversion
                 prob = QVoffset - (int) Flist[f].list[j].qv[k];
                 prob /= 10;
                 prob1 = 1.0;
                 prob1 -= pow(10, prob);
 
                 //if (h[Flist[f].list[j].offset+k] == Flist[f].list[j].hap[k]) good +=1; else bad +=1;
+                
+                // increment good or bad count depending on whether it's a mismatch or not
                 if (h[Flist[f].list[j].offset + k] == Flist[f].list[j].hap[k]) good += prob1;
                 else bad += prob1;
+                
                 if (h[Flist[f].list[j].offset + k] == Flist[f].list[j].hap[k] && m == -1) {
                     m = 1;
                     switches++;

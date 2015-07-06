@@ -244,35 +244,55 @@ void generate_clist_structure(struct fragment* Flist, int fragments, struct SNPf
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// this function updates the data structure snpfrag which links the heterozyous SNPs and the haplotype fragments
-// // it generates a list of fragments (flist) that affect each SNP 
-
-void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int* components) {
+/**
+ * @brief this function updates the data structure snpfrag which links the heterozyous SNPs and the haplotype fragments
+ * it generates a list of fragments (flist) that affect each SNP
+ * 
+ * @param Flist the fragment array, read from the fragment matrix inputfile
+ * @param fragments the size of Flist
+ * @param snpfrag a pointer to  the SNPfrag data structure to be populated by this function
+ * @param snps the total number of SNPs in the dataset
+ */
+void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps) {
     int i = 0, j = 0, k = 0, calls = 0; //maxdeg=0,avgdeg=0;
 
     // find the first fragment whose endpoint lies at snp 'i' or beyond
+    
+    // iterate over all SNPs and set a default snpfrag value
     for (i = 0; i < snps; i++) {
         snpfrag[i].frags = 0;
         snpfrag[i].ff = -1;
     }
+    
+    // iterate over all fragments
     for (i = 0; i < fragments; i++) {
+        //FIXME: Why is this being done for all fragments?
+        // j and k are just being reassigned, so shouldn't it just be
+        // done a single time for i=fragments-1?
         j = Flist[i].list[0].offset;
         k = Flist[i].list[Flist[i].blocks - 1].len + Flist[i].list[Flist[i].blocks - 1].offset;
         // commented the line below since it slows program for long mate-pairs june 7 2012
         //for (t=j;t<k;t++) { if (snpfrag[t].ff == -1) snpfrag[t].ff = i;  } 
     } //for (i=0;i<snps;i++) { fprintf(stdout,"SNP %d firstfrag %d start snp %d \n",i,snpfrag[i].ff,i); } 
 
+    // for each fragment, for each block, for each base, increment the fragment count at SNP position
     for (i = 0; i < fragments; i++) {
         for (j = 0; j < Flist[i].blocks; j++) {
             //if (Flist[i].list[j].offset+k < 0 || Flist[i].list[j].offset+k >= snps) fprintf(stdout,"%d %d %s\n",Flist[i].list[j].offset,snps,Flist[i].id);
-            for (k = 0; k < Flist[i].list[j].len; k++) snpfrag[Flist[i].list[j].offset + k].frags++;
+            for (k = 0; k < Flist[i].list[j].len; k++){
+                snpfrag[Flist[i].list[j].offset + k].frags++;
+            }
         }
     }
+    
+    // for each SNPfrag (one for each SNP), allocate array sizes big enough
+    // to hold indices for fragments and allele identities
     for (i = 0; i < snps; i++) {
         snpfrag[i].flist = (int*) malloc(sizeof (int)*snpfrag[i].frags);
         snpfrag[i].alist = (char*) malloc(snpfrag[i].frags);
     }
 
+    // initialize SNPfrags with default values
     for (i = 0; i < snps; i++) {
         snpfrag[i].component = -1;
         snpfrag[i].csize = 1;
@@ -281,6 +301,11 @@ void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snp
         snpfrag[i].best_mec = 10000;
     }
 
+    // for each fragment, for each block, for each base, set appropriate data in SNPfrag:
+    // flist (array of indices of fragments overlapping a column)
+    // alist (array of allele identities at each of these overlapping fragments)
+    // frags (number of frags overlapping)
+    // 
     for (i = 0; i < fragments; i++) {
         calls = 0;
         for (j = 0; j < Flist[i].blocks; j++) {
@@ -292,13 +317,20 @@ void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snp
             }
         }
         // for each SNP in the fragment -> number of edges can be incremented by size of fragment -1, feb 14 2013
+        // non-fosmid data
         if (FOSMIDS == 0) {
             for (j = 0; j < Flist[i].blocks; j++) {
-                for (k = 0; k < Flist[i].list[j].len; k++) snpfrag[Flist[i].list[j].offset + k].edges += calls - 1;
+                for (k = 0; k < Flist[i].list[j].len; k++){
+                    snpfrag[Flist[i].list[j].offset + k].edges += calls - 1;
+                }
             }
+        // fosmid data
         } else if (FOSMIDS >= 1) {
             for (j = 0; j < Flist[i].blocks; j++) {
-                for (k = 0; k < Flist[i].list[j].len; k++) snpfrag[Flist[i].list[j].offset + k].edges += 4;
+                for (k = 0; k < Flist[i].list[j].len; k++){
+                    // ??? Why 4 here
+                    snpfrag[Flist[i].list[j].offset + k].edges += 4;
+                }
             }
             // only one edge for first and last nodes
             j = 0;

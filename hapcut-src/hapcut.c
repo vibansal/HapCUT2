@@ -77,7 +77,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     /****************************** READ FRAGMENT MATRIX*************************************************/
 
     struct SNPfrags* snpfrag = (struct SNPfrags*) malloc(sizeof (struct SNPfrags)*snps);
-    update_snpfrags(Flist, fragments, snpfrag, snps, &components);
+    update_snpfrags(Flist, fragments, snpfrag, snps);
     double MEM_ALLOC = 0;
     for (i = 0; i < snps; i++) MEM_ALLOC += snpfrag[i].edges * 0.002;
     MEM_ALLOC *= 0.016;

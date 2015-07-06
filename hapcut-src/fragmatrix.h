@@ -28,7 +28,7 @@ void label_node(struct SNPfrags* snpfrag, int node, int comp);
 void add_edges(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int* components);
 void add_edges_fosmids(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int* components);
 
-void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int* components);
+void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps);
 void output_current_solution(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, char* hap, char* best);
 
 int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* fname, int score, char* outfile);
