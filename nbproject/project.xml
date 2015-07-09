@@ -14,7 +14,19 @@
             </sourceRootList>
             <confList>
                 <confElem>
-                    <name>Default</name>
+                    <name>Hapcut2</name>
+                    <type>0</type>
+                </confElem>
+                <confElem>
+                    <name>Valgrind_Hapcut2</name>
+                    <type>0</type>
+                </confElem>
+                <confElem>
+                    <name>extractHairs</name>
+                    <type>0</type>
+                </confElem>
+                <confElem>
+                    <name>Valgrind_extractHairs</name>
                     <type>0</type>
                 </confElem>
             </confList>

@@ -258,17 +258,13 @@ int main(int argc, char** argv) {
     VARIANT* varlist;
     int chromosomes = 0;
 
-    if (VCFformat == 1) {
-        variants = count_variants(variantfile, sampleid, &samplecol);
-        if (variants < 0) return -1;
-        varlist = (VARIANT*) malloc(sizeof (VARIANT) * variants);
-        chromosomes = read_variantfile(variantfile, varlist, &ht, &hetvariants, samplecol);
-    } else {
-        variants = count_variants_oldformat(variantfile);
-        if (variants < 0) return -1;
-        varlist = (VARIANT*) malloc(sizeof (VARIANT) * variants);
-        chromosomes = read_variantfile_oldformat(variantfile, varlist, &ht, variants);
+    variants = count_variants(variantfile, sampleid, &samplecol);
+    if (variants < 0) return -1;
+    if (fragment_file != NULL){
+        fprintf(fragment_file, "@num_variants=%i\n", variants);
     }
+    varlist = (VARIANT*) malloc(sizeof (VARIANT) * variants);
+    chromosomes = read_variantfile(variantfile, varlist, &ht, &hetvariants, samplecol);
     // variants is set to hetvariants only, but this is not correct since 
     VARIANTS = variants;
     // there are two options, we include all variants in the chromvars datastructure but only use heterozygous variants for outputting HAIRS 

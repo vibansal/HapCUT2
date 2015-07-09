@@ -32,6 +32,7 @@ void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snp
 void output_current_solution(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, char* hap, char* best);
 
 int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* fname, int score, char* outfile);
+int print_simplefile(char* h1, char* h2, char* simplefile);
 void print_haplotypes_vcf(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, char* outfile);
 void print_hapcut_options();
 
@@ -59,6 +60,7 @@ int fragment_compare(const void *a, const void *b);
 int determine_connected_components(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps);
 void generate_clist_structure(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int components, struct BLOCK* clist);
 
+int is_none(char* string);
 
 #endif
 

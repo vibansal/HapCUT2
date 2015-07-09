@@ -39,7 +39,7 @@ int compare_read_SNP(struct alignedread* read, VARIANT* varlist, int ss, int sta
             else varlist[ss].A2 += 1;
         }
         if (TRI_ALLELIC == 1 && varlist[ss].heterozygous == '2') fprintf(stderr, "comparing read %s to non-ref-het SNP %d:%d %s %s | allele = %c\n", read->readid, ss + 1, varlist[ss].position, varlist[ss].allele1, varlist[ss].allele2, match);
-        return 1;
+        return 0;
     }
     return 0;
     //printf("allele %s %d %c/%c %c %c %d\t",varlist[ss].chrom,varlist[ss].position,varlist[ss].allele1,varlist[ss].allele2,read->sequence[l1+offset],read->quality[l1+offset],offset);
@@ -296,7 +296,7 @@ int extract_variants_read(struct alignedread* read, HASHTABLE* ht, CHROMVARS* ch
         else if (op == BAM_CSOFT_CLIP) l1 += ol;
         else if (op == BAM_CHARD_CLIP) l2 += 0;
     }
-    return 1;
+    return 0;
     //	printf("read %s %d %s %d %d %d %s XM %d parsed %d %d %d vars %d\n",read->readid,read->flag,read->chrom,read->position,read->mquality,read->IS,read->cigar,read->XM,chrom,start,end,ov);
 }
 
@@ -334,6 +334,6 @@ int add_fragment(FRAGMENT* flist, FRAGMENT* fragment, struct alignedread* read, 
     flist[fragments].id = (char*) malloc(sl + 1);
     for (i = 0; i < sl; i++) flist[fragments].id[i] = read->readid[i];
     flist[fragments].id[i] = '\0';
-    return 1;
+    return 0;
 }
 

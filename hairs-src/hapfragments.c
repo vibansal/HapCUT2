@@ -35,11 +35,18 @@ int print_fragment(FRAGMENT* fragment, VARIANT* varlist, FILE* outfile) {
     // varid is printed with offset of 1 rather than 0 since that is encoded in the Hapcut program
     fprintf(outfile, " %d %c", fragment->alist[0].varid + 1, fragment->alist[0].allele);
     for (i = 1; i < fragment->variants; i++) {
-        if (fragment->alist[i].varid - fragment->alist[i - 1].varid == 1) fprintf(outfile, "%c", fragment->alist[i].allele);
-        else fprintf(outfile, " %d %c", fragment->alist[i].varid + 1, fragment->alist[i].allele);
+        
+        if (fragment->alist[i].varid - fragment->alist[i - 1].varid == 1){
+            fprintf(outfile, "%c", fragment->alist[i].allele);
+        }else {
+            fprintf(outfile, " %d %c", fragment->alist[i].varid + 1, fragment->alist[i].allele);
+        }
     }
+    
     fprintf(outfile, " ");
-    for (i = 0; i < fragment->variants; i++) fprintf(outfile, "%c", fragment->alist[i].qv);
+    for (i = 0; i < fragment->variants; i++){
+        fprintf(outfile, "%c", fragment->alist[i].qv);
+    }
     fprintf(outfile, "\n");
 
     return NULL;

@@ -2,35 +2,40 @@
 // THIS FUNCTION PRINTS THE CURRENT HAPLOTYPE ASSEMBLY in a new file block by block 
 
 void print_hapcut_options() {
-    fprintf(stdout, "\nHAPCUT: haplotype assembly using cut computations, last updated 09/11/13 \n\n");
-    fprintf(stdout, "USAGE : ./HAPCUT --fragments fragment_file --VCF variantcalls.vcf --output haplotype_output_file > hapcut.log\n\n");
-    fprintf(stderr, "=============== PROGRAM OPTIONS ======================================== \n\n");
-    fprintf(stderr, "--fragments <FILENAME>: file with haplotype-informative reads generated using the extracthairs program\n");
-    //fprintf(stderr,"--variants : variant file in hapCUT format (same file as used for extracthairs)\n");
-    fprintf(stderr, "--VCF <FILENAME>: variant file in VCF format ((same file as used for running the extracthairs program)\n");
-    fprintf(stderr, "--output <FILENAME> : file to which phased haplotype segments/blocks will be output | the program will write best current haplotypes to this file after every 10 iterations\n");
-    fprintf(stderr, "--maxiter <int> : maximum number of global iterations for HAPCUT, default is 100\n");
-    fprintf(stderr, "--qvoffset <33/48/64> : quality value offset for base quality scores, default is 33 (use same value as for extracthairs)\n");
-    fprintf(stderr, "--maxcutiter <int> : maximum number of iterations to find max cut for each haplotype block in a given iteration, default value is 100 | if this is set to -1, the number of iterations = N/10 where N is the number of nodes in the block\n");
-    fprintf(stderr, "--longreads <0/1> : set to 1 for phasing long read data if program uses too much memory, default is 0\n");
-    fprintf(stderr, "--fosmids <0/1> : set to 1 for phasing fosmid pooled sequencing data, default is 0\n");
-    fprintf(stderr, "--sf <0/1> : scoring function for comparing reads against haplotypes: default is 0 (MEC score), set to 1 (switch error rate) for fosmid data\n");
+    fprintf(stdout, "\nHAPCUT: haplotype assembly using cut computations, last updated 07/8/2015 \n\n");
+    fprintf(stdout, "USAGE : ./HAPCUT [options]* -v <vcf_file> -f <fragment_file>\n\n");
+    fprintf(stderr, "=============== REQUIRED ARGUMENTS ======================================== \n\n");
+    fprintf(stderr, "-f, --fragments   <FILENAME>: file with haplotype-informative reads generated using the extracthairs program, or simulated with happysim.py\n\n");
+    fprintf(stderr, "-v,  --vcf        <FILENAME>: variant file in VCF format (use same file as used for running the extracthairs program).\n");
+    fprintf(stderr, "=============== OPTIONAL ARGUMENTS ======================================== \n\n");
+    fprintf(stderr, "-o,  --output     <FILENAME>: print detailed haplotype output file (defaults to hapcut2.out, assuming VCF was provided). The program will write best current haplotypes to this file after every 10 iterations\n");
+    fprintf(stderr, "-s   --simple     <FILENAME>: print simple haplotype output file for benchmarking (this option allows you to skip VCF file (-v))\n");
+    fprintf(stderr, "-m,  --maxiter    <int>     : maximum number of global iterations for HAPCUT (default 100)\n");
+    fprintf(stderr, "-q,  --qvoffset   <33/48/64>: quality value offset for base quality scores (default 33) (use same value as for extracthairs)\n");
+    fprintf(stderr, "-mc, --maxcutiter <int>     : maximum number of iterations to find max cut for each haplotype block in a given iteration, default value is 100. If this is set to -1, the number of iterations = N/10 where N is the number of nodes in the block\n");
+    fprintf(stderr, "-l,  --longreads            : set this flag for long read data if program uses too much memory (default False)\n");
+    fprintf(stderr, "-fo, --fosmid               : set this flag for phasing fosmid pooled sequencing data (default False)\n");
+    fprintf(stderr, "-sw   --switch               : use switch error rate (for fosmid data) instead of MEC (default False)\n");
     fprintf(stderr, "\n");
 
     fprintf(stderr, "NOTES:\n");
-    fprintf(stderr, " 1. Make sure to use the same VCF file for running extracthairs and HapCUT\"\n");
-    fprintf(stderr, " 2. For phasing fosmid data or synthetic long read data, use the options \"--fosmids 1 --sf 1\"\n");
-    fprintf(stderr, " 3. For phasing Hi-C data, use a large value for the maxIS option in extracthairs and set the paramter maxcutiter = 100 \n ");
+    fprintf(stderr, " 1. Always use the same VCF file for running extracthairs and HapCUT\"\n");
+    fprintf(stderr, " 2. For phasing fosmid data or synthetic long read data, use the options \"-fo -s\"\n");
+    fprintf(stderr, " 3. For phasing Hi-C data, use a large value for the maxIS option in extracthairs and use option \" -mc 100\" \n ");
     fprintf(stderr, "\n");
-
 }
 
 int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* fname, int score, char* outfile) {
     // print a new file containing one block phasing and the corresponding fragments 
+    if (is_none(outfile)){
+        return 0;
+    }
     int i = 0, t = 0, k = 0, span = 0;
     char c, c1, c2;
-    //char fn[200]; sprintf(fn,"%s-%d.phase",fname,score); 
     FILE* fp;
+
+    //char fn[200]; sprintf(fn,"%s-%d.phase",fname,score);
+
     fp = fopen(outfile, "w");
     float delta = 0;
 
@@ -78,9 +83,29 @@ int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
         if (i < blocks - 1) fprintf(fp, "******** \n");
     }
     fclose(fp);
-    return 1;
+
+    return 0;
 }
 
+int print_simplefile(char* h1, char* h2, char* simplefile){
+    
+    if (is_none(simplefile)){
+        return 0;
+    }
+    // print haplotypes 1 and 2 to files for simple benchmarking
+    // credit to dasblinkenlight on stackoverflow for full buffering soln: http://stackoverflow.com/questions/11558540/c-why-is-a-fprintfstdout-so-slow
+    char buf[10000];
+    setvbuf(stdout, buf, _IOFBF, sizeof(buf));
+    FILE* fp;
+    fp = fopen(simplefile, "w");
+    fprintf(fp,"h1\n");
+    fprintf(fp, h1);
+    fprintf(fp,"\nh2\n");
+    fprintf(fp, h2); 
+    fclose(fp);
+    
+    return 0;
+}
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // important NOTE: to get from SNP i to its component in 'clist', we have variable snpfrag[i].bcomp, feb 1 2012
 

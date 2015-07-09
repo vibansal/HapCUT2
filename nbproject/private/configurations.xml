@@ -4,14 +4,6 @@
     <df root="." name="0">
       <df name="build">
       </df>
-      <df name="experiment1">
-      </df>
-      <df name="experiment2">
-      </df>
-      <df name="experiment3">
-      </df>
-      <df name="experiment4">
-      </df>
       <df name="hairs-src">
         <in>bamread.c</in>
         <in>bamread.h</in>
@@ -44,7 +36,19 @@
         <in>readinputfiles.h</in>
         <in>removefalsehets.c</in>
       </df>
-      <df name="output">
+      <df name="old">
+        <df name="experiment1">
+        </df>
+        <df name="experiment2">
+        </df>
+        <df name="experiment3">
+        </df>
+        <df name="experiment4">
+        </df>
+        <df name="toy_data">
+        </df>
+        <df name="toy_data2">
+        </df>
       </df>
       <df name="submodules">
         <df name="htslib">
@@ -123,7 +127,6 @@
           </df>
           <in>bgzf.c</in>
           <in>bgzip.c</in>
-          <in>config.h</in>
           <in>faidx.c</in>
           <in>hfile.c</in>
           <in>hfile_internal.h</in>
@@ -251,15 +254,117 @@
           <in>stats_isize.h</in>
         </df>
       </df>
-      <df name="toy_data">
-      </df>
-      <df name="toy_data2">
-      </df>
     </df>
   </logicalFolder>
   <projectmakefile>Makefile</projectmakefile>
   <confs>
-    <conf name="Default" type="0">
+    <conf name="Hapcut2" type="0">
+      <toolsSet>
+        <developmentServer>localhost</developmentServer>
+        <platform>2</platform>
+      </toolsSet>
+      <compile>
+        <compiledirpicklist>
+          <compiledirpicklistitem>.</compiledirpicklistitem>
+          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+        </compiledirpicklist>
+        <compiledir>${AUTO_FOLDER}</compiledir>
+        <compilecommandpicklist>
+          <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
+          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+        </compilecommandpicklist>
+        <compilecommand>${AUTO_COMPILE}</compilecommand>
+      </compile>
+      <dbx_gdbdebugger version="1">
+        <gdb_pathmaps>
+        </gdb_pathmaps>
+        <gdb_interceptlist>
+          <gdbinterceptoptions gdb_all="false" gdb_unhandled="true" gdb_unexpected="true"/>
+        </gdb_interceptlist>
+        <gdb_signals>
+        </gdb_signals>
+        <gdb_options>
+          <DebugOptions>
+            <option name="gdb_follow_fork_mode" value="child"/>
+            <option name="gdb_detach_on_fork" value="off"/>
+            <option name="gdb_source_dirs"
+                    value="/home/peter/git/hapcut2/hapcut-src:/home/peter/git/hapcut2/hairs-src"/>
+            <option name="debug_dir" value="/home/peter/git/hapcut2/."/>
+          </DebugOptions>
+        </gdb_options>
+        <gdb_buildfirst gdb_buildfirst_overriden="false" gdb_buildfirst_old="false"/>
+      </dbx_gdbdebugger>
+      <nativedebugger version="1">
+        <engine>gdb</engine>
+      </nativedebugger>
+      <runprofile version="9">
+        <runcommandpicklist>
+          <runcommandpicklistitem>"${OUTPUT_PATH}"</runcommandpicklistitem>
+          <runcommandpicklistitem>build/extractHAIRS --VCF toy_data2/simulated_reads.mutations.vcf --ref toy_data2/hg19_chr20.fa --out output/hairs_output_HAPCUT2.fragments --bam toy_data2/aligned_simreads_sorted.bam</runcommandpicklistitem>
+          <runcommandpicklistitem>build/extractHAIRS --VCF toy_data/chr20_simulated_reads.mutations.vcf --ref toy_data/hg19_chr20.fa --out output/hairs_output_HAPCUT2.fragments --bam toy_data/aligned_chr20_simreads_sorted.bam</runcommandpicklistitem>
+          <runcommandpicklistitem></runcommandpicklistitem>
+          <runcommandpicklistitem>build/extractHAIRS --VCF toy_data/chr20_simulated_reads.mutations.vcf --ref toy_data/hg19_chr20.fa --out output/hairs_output_HAPCUT2.fragments --bam experiment3/aligned_chr20_simreads_sorted.bam</runcommandpicklistitem>
+          <runcommandpicklistitem>mkdir output &amp;&amp; ./build/HAPCUT -s simple_out -l -f ../happysim/happysim_output/fragments</runcommandpicklistitem>
+          <runcommandpicklistitem>./build/HAPCUT -s simple_out -l -f ../happysim/happysim_output/fragments</runcommandpicklistitem>
+        </runcommandpicklist>
+        <runcommand>./build/HAPCUT -s simple_out -l -f ../happysim/happysim_output/fragments</runcommand>
+        <rundir>.</rundir>
+        <buildfirst>true</buildfirst>
+        <terminal-type>0</terminal-type>
+        <remove-instrumentation>0</remove-instrumentation>
+        <environment>
+        </environment>
+      </runprofile>
+    </conf>
+    <conf name="Valgrind_Hapcut2" type="0">
+      <toolsSet>
+        <developmentServer>localhost</developmentServer>
+        <platform>2</platform>
+      </toolsSet>
+      <compile>
+        <compiledirpicklist>
+          <compiledirpicklistitem>.</compiledirpicklistitem>
+          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+        </compiledirpicklist>
+        <compiledir>${AUTO_FOLDER}</compiledir>
+        <compilecommandpicklist>
+          <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
+          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+        </compilecommandpicklist>
+        <compilecommand>${AUTO_COMPILE}</compilecommand>
+      </compile>
+      <dbx_gdbdebugger version="1">
+        <gdb_pathmaps>
+        </gdb_pathmaps>
+        <gdb_interceptlist>
+          <gdbinterceptoptions gdb_all="false" gdb_unhandled="true" gdb_unexpected="true"/>
+        </gdb_interceptlist>
+        <gdb_options>
+          <DebugOptions>
+            <option name="gdb_follow_fork_mode" value="child"/>
+          </DebugOptions>
+        </gdb_options>
+        <gdb_buildfirst gdb_buildfirst_overriden="false" gdb_buildfirst_old="false"/>
+      </dbx_gdbdebugger>
+      <nativedebugger version="1">
+        <engine>gdb</engine>
+      </nativedebugger>
+      <runprofile version="9">
+        <runcommandpicklist>
+          <runcommandpicklistitem>"${OUTPUT_PATH}"</runcommandpicklistitem>
+          <runcommandpicklistitem>valgrind --leak-check=full --show-reachable=yes ./build/HAPCUT -s simple_out -l -f ../happysim/happysim_output/fragments</runcommandpicklistitem>
+          <runcommandpicklistitem>valgrind --leak-check=full --show-reachable=yes --track-origins=yes ./build/HAPCUT -s simple_out -l -f ../happysim/happysim_output/fragments</runcommandpicklistitem>
+        </runcommandpicklist>
+        <runcommand>valgrind --leak-check=full --show-reachable=yes --track-origins=yes ./build/HAPCUT -s simple_out -l -f ../happysim/happysim_output/fragments</runcommand>
+        <rundir></rundir>
+        <buildfirst>true</buildfirst>
+        <terminal-type>0</terminal-type>
+        <remove-instrumentation>0</remove-instrumentation>
+        <environment>
+        </environment>
+      </runprofile>
+    </conf>
+    <conf name="extractHairs" type="0">
       <toolsSet>
         <developmentServer>localhost</developmentServer>
         <platform>2</platform>
@@ -294,13 +399,54 @@
       <runprofile version="9">
         <runcommandpicklist>
           <runcommandpicklistitem>"${OUTPUT_PATH}"</runcommandpicklistitem>
-          <runcommandpicklistitem>build/extractHAIRS --VCF toy_data2/simulated_reads.mutations.vcf --ref toy_data2/hg19_chr20.fa --out output/hairs_output_HAPCUT2.fragments --bam toy_data2/aligned_simreads_sorted.bam</runcommandpicklistitem>
-          <runcommandpicklistitem>build/extractHAIRS --VCF toy_data/chr20_simulated_reads.mutations.vcf --ref toy_data/hg19_chr20.fa --out output/hairs_output_HAPCUT2.fragments --bam toy_data/aligned_chr20_simreads_sorted.bam</runcommandpicklistitem>
-          <runcommandpicklistitem></runcommandpicklistitem>
-          <runcommandpicklistitem>build/extractHAIRS --VCF toy_data/chr20_simulated_reads.mutations.vcf --ref toy_data/hg19_chr20.fa --out output/hairs_output_HAPCUT2.fragments --bam experiment3/aligned_chr20_simreads_sorted.bam</runcommandpicklistitem>
         </runcommandpicklist>
-        <runcommand>build/extractHAIRS --VCF toy_data/chr20_simulated_reads.mutations.vcf --ref toy_data/hg19_chr20.fa --out output/hairs_output_HAPCUT2.fragments --bam experiment3/aligned_chr20_simreads_sorted.bam</runcommand>
-        <rundir>.</rundir>
+        <runcommand>"${OUTPUT_PATH}"</runcommand>
+        <rundir></rundir>
+        <buildfirst>false</buildfirst>
+        <terminal-type>0</terminal-type>
+        <remove-instrumentation>0</remove-instrumentation>
+        <environment>
+        </environment>
+      </runprofile>
+    </conf>
+    <conf name="Valgrind_extractHairs" type="0">
+      <toolsSet>
+        <developmentServer>localhost</developmentServer>
+        <platform>2</platform>
+      </toolsSet>
+      <compile>
+        <compiledirpicklist>
+          <compiledirpicklistitem>.</compiledirpicklistitem>
+          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+        </compiledirpicklist>
+        <compiledir>${AUTO_FOLDER}</compiledir>
+        <compilecommandpicklist>
+          <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
+          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+        </compilecommandpicklist>
+        <compilecommand>${AUTO_COMPILE}</compilecommand>
+      </compile>
+      <dbx_gdbdebugger version="1">
+        <gdb_pathmaps>
+        </gdb_pathmaps>
+        <gdb_interceptlist>
+          <gdbinterceptoptions gdb_all="false" gdb_unhandled="true" gdb_unexpected="true"/>
+        </gdb_interceptlist>
+        <gdb_options>
+          <DebugOptions>
+          </DebugOptions>
+        </gdb_options>
+        <gdb_buildfirst gdb_buildfirst_overriden="false" gdb_buildfirst_old="false"/>
+      </dbx_gdbdebugger>
+      <nativedebugger version="1">
+        <engine>gdb</engine>
+      </nativedebugger>
+      <runprofile version="9">
+        <runcommandpicklist>
+          <runcommandpicklistitem>"${OUTPUT_PATH}"</runcommandpicklistitem>
+        </runcommandpicklist>
+        <runcommand>"${OUTPUT_PATH}"</runcommand>
+        <rundir></rundir>
         <buildfirst>false</buildfirst>
         <terminal-type>0</terminal-type>
         <remove-instrumentation>0</remove-instrumentation>

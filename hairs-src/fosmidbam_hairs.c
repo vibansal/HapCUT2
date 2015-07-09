@@ -220,7 +220,7 @@ int cluster_reads(struct alignedread** readlist, int s, int e, FRAGMENT* flist, 
         }
         i = j;
     }
-    return 1;
+    return 0;
 
     free(RL);
 }
@@ -326,6 +326,6 @@ int parse_bamfile_fosmid(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
     for (reads = 0; reads < MAX_READS; reads++) free(readlist[reads]);
     free(readlist);
     bam_destroy1(b);
-    return 1;
+    return 0;
 }
 
