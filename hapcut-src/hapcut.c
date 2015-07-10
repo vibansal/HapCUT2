@@ -221,8 +221,8 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
             if (clist[k].MEC > 0) evaluate_cut_component(Flist, snpfrag, clist, k, slist, HAP1, iter);
         }
         for (i = 0; i < snps; i++) {
-            // commented out on april 6 4pm 2012
-            //if (HAP1[i] == '0') HAP2[i] = '1'; else if (HAP1[i] == '1') HAP2[i] = '0'; else HAP2[i] = HAP1[i]; 
+            // commented out on april 6 4pm 2012; uncommented july 10 2015
+            if (HAP1[i] == '0') HAP2[i] = '1'; else if (HAP1[i] == '1') HAP2[i] = '0'; else HAP2[i] = HAP1[i]; 
         }
     }
     /************************** RUN THE MAX_CUT ALGORITHM ITERATIVELY TO IMPROVE MEC SCORE*********************************/

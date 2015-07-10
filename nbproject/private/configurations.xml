@@ -2,6 +2,10 @@
 <configurationDescriptor version="95">
   <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
     <df root="." name="0">
+      <df name="benchmark">
+        <df name="run0">
+        </df>
+      </df>
       <df name="build">
       </df>
       <df name="hairs-src">
@@ -51,6 +55,10 @@
         </df>
       </df>
       <df name="submodules">
+        <df name="happysim">
+          <df name="__pycache__">
+          </df>
+        </df>
         <df name="htslib">
           <df name="cram">
             <in>cram.h</in>
