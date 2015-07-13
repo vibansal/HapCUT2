@@ -13,16 +13,21 @@
             <file>file:/home/peter/git/hapcut2/hapcut-src/find_starting_haplotypes.c</file>
             <file>file:/home/peter/git/hapcut2/hairs-src/readfasta.c</file>
             <file>file:/home/peter/git/hapcut2/hapcut-src/pointerheap.c</file>
+            <file>file:/home/peter/git/hapcut2/hapcut-src/readinputfiles.c</file>
             <file>file:/home/peter/git/hapcut2/hairs-src/parsebamread.c</file>
             <file>file:/home/peter/git/hapcut2/hapcut-src/fragmatrix.h</file>
+            <file>file:/home/peter/git/hapcut2/hapcut-src/removefalsehets.c</file>
             <file>file:/home/peter/git/hapcut2/hapcut-src/fragmatrix.c</file>
+            <file>file:/home/peter/git/hapcut2/hairs-src/extracthairs.c</file>
             <file>file:/home/peter/git/hapcut2/hairs-src/fosmidbam_hairs.c</file>
             <file>file:/home/peter/git/hapcut2/hairs-src/hashtable.c</file>
             <file>file:/home/peter/git/hapcut2/hapcut-src/common.h</file>
+            <file>file:/home/peter/git/hapcut2/hairs-src/hapfragments.c</file>
             <file>file:/home/peter/git/hapcut2/Makefile</file>
             <file>file:/home/peter/git/hapcut2/hapcut-src/MECscore.c</file>
             <file>file:/home/peter/git/hapcut2/hapcut-src/hapcut.c</file>
             <file>file:/home/peter/git/hapcut2/hapcut-src/find_maxcut.c</file>
+            <file>file:/home/peter/git/hapcut2/hairs-src/print_clusters.c</file>
             <file>file:/home/peter/git/hapcut2/hapcut-src/printhaplotypes.c</file>
         </group>
     </open-files>
