@@ -7,7 +7,6 @@ CFLAGS=-c -Wall
 
 # DIRECTORIES
 B=build
-BE=benchmark  
 H=hairs-src
 X=hapcut-src
 HTSLIB=submodules/htslib
@@ -19,7 +18,7 @@ CUNIT=/usr/include/CUnit
 
 all: $(B)/extractHAIRS $(B)/extractFOSMID $(B)/HAPCUT
 
-# TEST (TODO)
+# TEST
 # requires Cunit
 tests:
 	$(CC) $(T)/test.c -o $(B)/test -lcunit -I $(CUNIT)
@@ -44,13 +43,6 @@ $(HTSLIB)/libhts.a: $(HTSLIB)/Makefile
 	echo "Building HTSlib libraries..."
 	make -C $(HTSLIB) lib-static
 
-# download and run happysim for benchmarking
-# requires python 3.4 and numpy
-.PHONY: benchmark
-$(BE)/benchmark_scores: | $(SAMTOOLS)/Makefile $(B)/HAPCUT
-	rm -rf $(BE)
-	python submodules/happysim/benchmark.py -o $(BE)
-	
 # BUILD HAIRS
 
 #temporarily removed -O2 flag after -I$(HTSLIB)
@@ -142,4 +134,4 @@ nuke: clean
 	make clean -C submodules/htslib
 
 clean:
-	rm -rf $(B) $(BE)
+	rm -rf $(B)
