@@ -104,7 +104,7 @@ int read_fastaheader(char* fastafile, REFLIST* reflist) // assumed to be referen
     }
     fclose(fp);
     fprintf(stderr, "fasta file %s has %d chromosomes/contigs\n\n", fastafile, reflist->ns);
-    return 0;
+    return 1;
 }
 
 // new function that reads the chromosome 'chrom' directly from fasta file using seek

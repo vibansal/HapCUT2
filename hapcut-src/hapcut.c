@@ -34,21 +34,13 @@ int VCFformat = 0;
 int MINQ = 10; // additional base quality filter in hapcut added april 18 2012
 int MAXCUT_ITER = 100; // maximum number of iterations for max-cut algorithm, if this is proportional to 'N' -> complexity is 'N^2', added march 13 2013
 int FOSMIDS = 0; // if this variable is 1, the data is fosmid long read data 
-int SCORING_FUNCTION = 0; // 0 = MEC score, 1 = switches
-int PRINT_HAPFILE = 0; // whether to print out full haplotype block outputfile
+int SCORING_FUNCTION = 0; // 0 = MEC score, 1 = switches 
 int PRINT_FRAGMENT_SCORES = 0; // output the MEC/switch error score of erroneous reads/fragments to a file for evaluation 
 int MAX_MEMORY = 8000;
 
 #include "find_maxcut.c"   // function compute_good_cut 
 
-int is_none(char* string){
-    if (strcmp(string, "None") == 0){
-        return 1;
-    }else
-        return 0;
-}
-
-int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* outputfile, char* simplefile, int maxiter_hapcut) {
+int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* outputfile, int maxiter_hapcut) {
     // IMP NOTE: all SNPs start from 1 instead of 0 and all offsets are 1+
     fprintf(stderr, "calling MAXCUT based haplotype assembly algorithm\n");
     int fragments = 0, iter = 0, components = 0;
@@ -65,34 +57,23 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
         fprintf(stderr, "couldn't open fragment file %s\n", fragmentfile);
         exit(0);
     }
-    
-    // new method uses an @num_variants=<num> tag at top of fragments file to count variants
-    // this allows simulated benchmark runs to easily avoid using a VCF file at all.
-    fgets(buffer, MAXBUF, ff);
-    char *eq = strrchr(buffer, '=');
-    
-    if(!eq || eq == buffer){
-        fprintf(stderr, "ERROR: Num variants tag not found at top of fragment file.\n");
-        return -1;
-    }
-
-    snps = atoi(eq + 1);
-
-    if (snps < 0) {
-        fprintf(stderr, "ERROR: Unable to read @num_variants=<num> tag at top of fragment file.\n");
-        return -1;
-    }
     fragments = 0;
     while (fgets(buffer, MAXBUF, ff) != NULL) fragments++;
     fclose(ff);
     Flist = (struct fragment*) malloc(sizeof (struct fragment)*fragments);
     flag = read_fragment_matrix(fragmentfile, Flist, fragments);
     if (flag < 0) {
-        fprintf(stderr, "ERROR: Unable to read fragment matrix file %s \n", fragmentfile);
+        fprintf(stderr, "unable to read fragment matrix file %s \n", fragmentfile);
         return -1;
     }
-    
-    fprintf(stderr, "processed fragment file: fragments %d variants %d\n", fragments, snps);
+
+    if (VCFformat == 0) snps = count_variants(variantfile);
+    else snps = count_variants_vcf(variantfile);
+    if (snps < 0) {
+        fprintf(stderr, "unable to read variant file %s \n", variantfile);
+        return -1;
+    }
+    fprintf(stderr, "processed fragment file and variant file: fragments %d variants %d\n", fragments, snps);
     /****************************** READ FRAGMENT MATRIX*************************************************/
 
     struct SNPfrags* snpfrag = (struct SNPfrags*) malloc(sizeof (struct SNPfrags)*snps);
@@ -128,8 +109,10 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     time_t now;
     slist = (int*) malloc(sizeof (int)*snps);
     char fn[1000];
-    
-    read_vcffile(variantfile, snpfrag, snps);
+
+    if (VCFformat == 0) read_variantfile(variantfile, snpfrag, snps);
+    else read_vcffile(variantfile, snpfrag, snps);
+
     /*****************************************************************************************************/
     if (RANDOM_START == 1) {
         fprintf(stdout, "starting from a completely random solution SOLUTION \n");
@@ -188,28 +171,17 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
         fprintf(stderr, "iter %d current haplotype MEC %f calls %d LL %f %s \n", iter, miscalls, (int) calls, ll, buf);
         if ((iter % 10 == 0 && iter > 0)) {
             // new code added april 7 2012
-            for (k = 0; k < components; k++){
-                find_bestvariant_segment(Flist, fragments, snpfrag, clist, k, HAP1, HAP2);
-            }
-            
-            if (!is_none(outputfile)){
-                sprintf(fn, "%s", outputfile); // newfile for every update to score....
-                //sprintf(fn,"%s.%f",outputfile,miscalls);   // newfile for every update to score....
-                fprintf(stdout, "OUTPUTTING HAPLOTYPE ASSEMBLY TO FILE %s\n", fn);
-                fprintf(stderr, "OUTPUTTING HAPLOTYPE ASSEMBLY TO FILE %s\n", fn);
-                print_hapfile(clist, components, HAP1, Flist, fragments, snpfrag, variantfile, miscalls, fn);
+            for (k = 0; k < components; k++) find_bestvariant_segment(Flist, fragments, snpfrag, clist, k, HAP1, HAP2);
 
-            }
-            
-            if (!is_none(simplefile)){
-                print_simplefile(HAP1, HAP2, simplefile);
-            }
+            sprintf(fn, "%s", outputfile); // newfile for every update to score....
+            //sprintf(fn,"%s.%f",outputfile,miscalls);   // newfile for every update to score....
+            fprintf(stdout, "OUTPUTTING HAPLOTYPE ASSEMBLY TO FILE %s\n", fn);
+            fprintf(stderr, "OUTPUTTING HAPLOTYPE ASSEMBLY TO FILE %s\n", fn);
             //if (VCFformat ==1) print_haplotypes_vcf(clist,components,HAP1,Flist,fragments,snpfrag,snps,fn);
+            print_hapfile(clist, components, HAP1, Flist, fragments, snpfrag, variantfile, miscalls, fn);
 
             // do this only if some option is specified 
-            if (PRINT_FRAGMENT_SCORES == 1){
-                print_fragmentmatrix_MEC(Flist, fragments, HAP1, outputfile);
-            }
+            if (PRINT_FRAGMENT_SCORES == 1) print_fragmentmatrix_MEC(Flist, fragments, HAP1, outputfile);
 
         }
 
@@ -227,7 +199,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     }
     /************************** RUN THE MAX_CUT ALGORITHM ITERATIVELY TO IMPROVE MEC SCORE*********************************/
     //	annealing_haplotyping_full(Flist,fragments,snpfrag,snps,maxiter+100,HAP1,HAP2,0); return 1;
-    return 0;
+    return 1;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -244,98 +216,77 @@ int main(int argc, char** argv) {
     srand48((long int) ts);
     if (MINCUTALGO == 2) RANDOM_START = 0;
     int i = 0, j = 0;
+    int flag = 0;
     char fragfile[10000];
+    char varfile[10000];
     char VCFfile[10000];
     char hapfile[10000];
-    char simplefile[10000];
     int maxiter = 100;
     strcpy(fragfile, "None");
-    strcpy(VCFfile, "None");    
+    strcpy(varfile, "None");
     strcpy(hapfile, "None");
-    strcpy(simplefile, "None");
-    int fosmid_tag = 0;
-
+    
     // iterate over command line arguments
-    for (i = 1; i < argc; i++) {
-        if (argc < 2) break; // requires 2 arguments (fragment tag and filename))
+    for (i = 1; i < argc; i += 2) {
+        if (argc < 6) break; // requires at least 6 arguments
+
+        //TODO: parsing should check that required arguments are present.
+        // currently only checks that 6 args are supplied.
         
-        if (strcmp(argv[i], "--fragments") == 0 || strcmp(argv[i], "-f") == 0) {
+        if (strcmp(argv[i], "--fragments") == 0 || strcmp(argv[i], "--frags") == 0) {
             strcpy(fragfile, argv[i + 1]);
-            i++;
-        } else if (strcmp(argv[i], "--VCF") == 0 || strcmp(argv[i], "--vcf") == 0 || strcmp(argv[i], "-v") == 0) {
-            
+            flag++;
+        } else if (strcmp(argv[i], "--variants") == 0) {
             j = strlen(argv[i + 1]); // check if it is a VCF file ending with .vcf or .VCF 
-            
             if (j > 3 && ((argv[i + 1][j - 1] == 'f' && argv[i + 1][j - 2] == 'c' && argv[i + 1][j - 3] == 'v') || (argv[i + 1][j - 1] == 'F' && argv[i + 1][j - 2] == 'C' && argv[i + 1][j - 3] == 'V'))) {
                 strcpy(VCFfile, argv[i + 1]);
+                VCFformat = 1;
+                flag++;
             } else {
-                fprintf(stderr, "ERROR: Please provide variant file in VCF format using --VCF option, old variant format is no longer supported\n\n");
-                return -1;
+                fprintf(stderr, "please provide variant file in VCF format using --VCF option, old variant format is no longer supported\n\n");
+                return 1;
             }
-            
-            VCFformat = 1;
+        } else if (strcmp(argv[i], "--VCF") == 0 || strcmp(argv[i], "--vcf") == 0) {
             strcpy(VCFfile, argv[i + 1]);
-            i++;
-        } else if (strcmp(argv[i], "--output") == 0 || strcmp(argv[i], "-o") == 0) {
+            VCFformat = 1;
+            flag++;
+        } else if (strcmp(argv[i], "--output") == 0 || strcmp(argv[i], "--out") == 0) {
             strcpy(hapfile, argv[i + 1]);
-            i++;
-        } else if (strcmp(argv[i], "--simple") == 0 || strcmp(argv[i], "-s") == 0) {
-            strcpy(simplefile, argv[i + 1]);
-            i++;
-        }else if (strcmp(argv[i], "--maxiter") == 0 || strcmp(argv[i], "-m") == 0){
-            maxiter = atoi(argv[i + 1]);
-            i++;
-        } else if (strcmp(argv[i], "--longreads") == 0 || strcmp(argv[i], "-l") == 0){ // pacbio
-            FOSMIDS = 1;
-        } else if (strcmp(argv[i], "--fosmid") == 0 || strcmp(argv[i], "-fo") == 0){           
-            FOSMIDS = 1;
-            fosmid_tag = 1;
-        } else if (strcmp(argv[i], "--switch") == 0 || strcmp(argv[i], "-sw") == 0){            
-            SCORING_FUNCTION = 1;
-        } else if (strcmp(argv[i], "--printscores") == 0 || strcmp(argv[i], "-p") == 0){
-            PRINT_FRAGMENT_SCORES = 1;
-        } else if (strcmp(argv[i], "--maxcutiter") == 0 || strcmp(argv[i], "-mc") == 0) {
+            flag++;
+        } else if (strcmp(argv[i], "--maxiter") == 0) maxiter = atoi(argv[i + 1]);
+        else if (strcmp(argv[i], "--longreads") == 0 || strcmp(argv[i], "--lr") == 0) // long reads pacbio 
+        {
+            FOSMIDS = atoi(argv[i + 1]);
+        } else if (strcmp(argv[i], "--fosmid") == 0 || strcmp(argv[i], "--fosmids") == 0) {
+            FOSMIDS = atoi(argv[i + 1]);
+            if (FOSMIDS == 1) SCORING_FUNCTION = 1; // unless explicitly specified, for fosmids use switch error based function...
+        } else if (strcmp(argv[i], "--sf") == 0 || strcmp(argv[i], "--switches") == 0) SCORING_FUNCTION = atoi(argv[i + 1]);
+        else if (strcmp(argv[i], "--printscores") == 0 || strcmp(argv[i], "--scores") == 0) PRINT_FRAGMENT_SCORES = atoi(argv[i + 1]);
+        else if (strcmp(argv[i], "--maxcutiter") == 0) {
             MAXCUT_ITER = atoi(argv[i + 1]);
-            i++;
             fprintf(stderr, "max iterations for max-cut calculations is %d \n", MAXCUT_ITER);
-        } else if (strcmp(argv[i], "--QVoffset") == 0 || strcmp(argv[i], "--qvoffset") == 0 || strcmp(argv[i], "-q") == 0){
-            QVoffset = atoi(argv[i + 1]);
-            i++;
-        } else if (strcmp(argv[i], "--maxmem") == 0 || strcmp(argv[i], "-mm") == 0){
-            MAX_MEMORY = atoi(argv[i + 1]);
-            i++;
-        }else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
-            print_hapcut_options();
-            return 0;
-        }
+        } else if (strcmp(argv[i], "--QVoffset") == 0 || strcmp(argv[i], "--qvoffset") == 0) QVoffset = atoi(argv[i + 1]);
+        else if (strcmp(argv[i], "--maxmem") == 0) MAX_MEMORY = atoi(argv[i + 1]);
     }
-    
-    if (SCORING_FUNCTION == 0 && fosmid_tag == 1){
-        fprintf(stderr, "WARNING: Highly recommended to use switch error rate (-s) with fosmid data\n");
-    }
-    
-    if (is_none(VCFfile)){
-        fprintf(stderr, "WARNING: VCF file not specified. Printing simple output file for benchmarking purposes.\n");
-        fprintf(stderr, "THIS IS USUALLY NOT WHAT YOU WANT.\n");
-        if (is_none(simplefile)){
-            strcpy(simplefile,"simple.out");   
-        }
-    }
-    
-    // check for essential arguments
-    if (is_none(fragfile)||(is_none(VCFfile) && is_none(simplefile))){
+    if (flag != 3) // three essential arguments are not supplied 
+    {
         print_hapcut_options();
-        return -1;
+        return 0;
+    } else {
+        // sufficient arguments have been supplied
+        if (VCFformat == 1) {
+            // run HapCUT using VCF format file
+            fprintf(stderr, "\n\nfragment file: %s\nvariantfile (VCF format):%s\nhaplotypes will be output to file: %s\niterations of maxcut algorithm: %d\nQVoffset: %d\n\n", fragfile, VCFfile, hapfile, maxiter, QVoffset);
+            maxcut_haplotyping(fragfile, VCFfile, 0, hapfile, maxiter);
+        } else {
+            // run HapCUT using variant format file
+            fprintf(stderr, "\n\nfragment file: %s\nvariantfile (variant format):%s\nhaplotypes will be output to file: %s\niterations of maxcut algorithm: %d\nQVoffset: %d\n\n", fragfile, varfile, hapfile, maxiter, QVoffset);
+            maxcut_haplotyping(fragfile, varfile, 0, hapfile, maxiter);
+        }
     }
-    
-    // default hapfile name
-    if (!is_none(VCFfile) && is_none(hapfile)){
-        strcpy(hapfile, "hapcut2.out");   
-    }
-    
-    // sufficient arguments have been supplied
-    fprintf(stderr, "\n\nfragment file: %s\nvariantfile (VCF format):%s\nhaplotypes will be output to file: %s\nsimple haplotypes will be output to file: %s\niterations of maxcut algorithm: %d\nQVoffset: %d\n\n", fragfile, VCFfile, hapfile, simplefile, maxiter, QVoffset);
-    maxcut_haplotyping(fragfile, VCFfile, 0, hapfile, simplefile, maxiter);
-    
-    return 0;
+    return 1;
 }
+
+
+
+

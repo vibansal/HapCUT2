@@ -13,7 +13,7 @@ int get_chrom_name(struct alignedread* read, HASHTABLE* ht, REFLIST* reflist) {
             }
         }
     }
-    return 0;
+    return 1;
 }
 
 
@@ -192,7 +192,7 @@ int generate_single_fragment(struct alignedread** readlist, int s, int e, int le
     }
     fprintf(stdout, "\n");
     free(fragment.alist);
-    return 0;
+    return 1;
 }
 
 int print_read(struct alignedread** readlist, int i, int prevpos, FRAGMENT* flist, VARIANT* varlist) {
@@ -210,7 +210,7 @@ int print_read(struct alignedread** readlist, int i, int prevpos, FRAGMENT* flis
 
     if (readlist[i]->mateindex < 0 || readlist[readlist[i]->mateindex]->findex < 0) {
         fprintf(stdout, " \n");
-        return 0;
+        return 1;
     }
 
     i = readlist[i]->mateindex;
@@ -225,7 +225,7 @@ int print_read(struct alignedread** readlist, int i, int prevpos, FRAGMENT* flis
         }
     }
     fprintf(stdout, " \n");
-    return 0;
+    return 1;
 }
 
 // print reads within a range (s-e) 
@@ -296,7 +296,7 @@ int print_clusters(struct alignedread** readlist, int s, int e, FRAGMENT* flist,
             obs = 0;
         }
     }
-    return 0;
+    return 1;
 }
 
 int init_clusters(struct alignedread** readlist, int s, int e) {

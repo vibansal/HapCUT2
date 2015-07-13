@@ -34,7 +34,7 @@ int insert_keyvalue(HASHTABLE* ht, char* key, int slen, int value) {
     tempkey->next = ht->blist[hash];
     ht->blist[hash] = tempkey;
     ht->bucketlengths[hash]++;
-    return 0;
+    return 1;
 }
 
 int getindex(HASHTABLE* ht, char* chrom) {

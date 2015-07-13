@@ -1,13 +1,9 @@
 #include "readinputfiles.h"
 
 int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragments) {
-    int i = 0, j = 0, k = 0, t = 0, t1 = 0, x=0;
+    int i = 0, j = 0, k = 0, t = 0, t1 = 0;
     int blocks = 0, type = 0, l = 0, biter = 0, offset = 0;
     char buffer[MAXBUF];
-
-    for (x = 0; x < MAXBUF; x++){
-        buffer[i] = 0;
-    }
     char blockseq[5000];
     char ch;
 
@@ -16,8 +12,6 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
         fprintf(stderr, "couldn't open fragment file \n");
         return -1;
     }
-    fgets(buffer, MAXBUF, ff); // throw away num variants metadata line
-
     for (i = 0; i < fragments; i++) {
         //		fprintf(stdout,"%s \n",buffer);
         j = 0;
@@ -49,7 +43,6 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
                 }
                 type = 1;
                 Flist[i].blocks = blocks;
-                if(blocks >= 0)
                 Flist[i].list = (struct block*) malloc(sizeof (struct block)*(blocks));
                 biter = 0;
                 //printf("blocks %d \n",blocks);
@@ -99,7 +92,6 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
             t = 0;
         }
     }
-
     fclose(ff);
     qsort(Flist, fragments, sizeof (struct fragment), fragment_compare);
     //for (i=0;i<fragments;i++)  fprintf(stdout,"fragment %d blocks %d offset %d\n",i,Flist[i].blocks,Flist[i].list[0].offset);
@@ -136,9 +128,6 @@ int count_variants_vcf(char* vcffile) {
 // read variants from VCF file, this code doesn't check the vcf file and assumes that column 10 contains the genotypes for the individual we are interested in phasing
 
 int read_vcffile(char* vcffile, struct SNPfrags* snpfrag, int snps) {
-    if (is_none(vcffile)){
-        return 0;
-    }
     char buffer[100000];
     char temp[1000];
     int i = 0, j = 0, s = 0, e = 0, var = 0;
@@ -218,7 +207,7 @@ int read_vcffile(char* vcffile, struct SNPfrags* snpfrag, int snps) {
         var++;
     }
     fclose(fp);
-    return 0;
+    return 1;
 }
 
 int count_variants(char* variantfile) {
@@ -264,7 +253,7 @@ int read_variantfile(char* variantfile, struct SNPfrags* snpfrag, int snps) {
     //	for (i=0;i<snps;i++) fscanf(sf,"%s %s %d %s %s %s %d \n",snpfrag[i].id,snpfrag[i].chromosome,&snpfrag[i].position,snpfrag[i].allele0,snpfrag[i].allele1,genotype,&score);
     fprintf(stderr, "read variants from variantfile %s \n", variantfile);
     fclose(sf); // bug fixed feb 1 2012 
-    return 0;
+    return 1;
 }
 
 int read_haplotypefile(char* hapfile, struct SNPfrags* snpfrag, int snps, char* HAP1, char* initHAP, int* bn) {
@@ -316,7 +305,7 @@ int read_haplotypefile(char* hapfile, struct SNPfrags* snpfrag, int snps, char* 
         }
         fclose(sf);
     }
-    return 0;
+    return 1;
     /***************************** READ HAPLOTYPE SOLUTION*************************************************/
 }
 
