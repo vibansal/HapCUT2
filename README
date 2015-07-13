@@ -40,13 +40,9 @@ Subsequently, each line represents a variant that is phased as part of the block
 variant_id haplotype_1 haplotype_2 chromosome position refallele variantallele genotype allele_counts:genotype_likelihoods:delta:MEC_variant 
 
 	Haplotype_1 and Haplotype_2 correspond to the two phased haplotypes (0 corresponds to the refallele and 1 corresponds to the variantallele)
-
 	allele_counts: two integers that correspond to the number of reads supporting the two haplotypes at this variant
-
 	genotype_likelihoods: likelihoods for three possible diploid genotypes (0/0, 0/1, 1/1) for this variant using the haplotype informative reads and conditional on the current haplotypes
-
 	delta: maximum of the two values (GL(0/0)-GL(0/1), GL(1/1)-GL(0/1)), positive value of delta indicates that this variant could potentially not be heterozygous. 
-
 	MEC_variant: reduction in the MEC score of the current assembled haplotypes by removing this variant. High value of MEC_variant indicates that the variant is either not a real variant or that the variant is not heterozygous. Variants for which delta >=3 and MEC_variant is >=2 are flagged as "FV". 
 
 
@@ -80,7 +76,7 @@ HapCUT input arguments:
 	 4. --maxiter: number of iterations to run HAPCUT
 
 
-How to phase fosmid pooled sequencing data (Kitzman et al. Nat. Biotech. 2011) 
+How to phase fosmid pooled sequencing data (Kitzman et al. Nat. Biotech. 2011) or dilution-amplification-sequencing based haplotyping approach (Kaper et al. PNAS 2013)
 ======================================================================================================================================================================
 
 1. Align reads for each pool to reference genome using your favorite aligner.
