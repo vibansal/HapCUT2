@@ -4,3 +4,6 @@
 [submodule "submodules/htslib"]
 	path = submodules/htslib
 	url = https://github.com/samtools/htslib
+[submodule "submodules/happysim"]
+	path = submodules/happysim
+	url = https://github.com/pjedge/happysim
