@@ -4,13 +4,9 @@
     <df root="." name="0">
       <df name="build">
       </df>
-      <df name="experiment1">
+      <df name="data">
       </df>
-      <df name="experiment2">
-      </df>
-      <df name="experiment3">
-      </df>
-      <df name="experiment4">
+      <df name="experiments">
       </df>
       <df name="hairs-src">
         <in>bamread.c</in>
@@ -44,9 +40,45 @@
         <in>readinputfiles.h</in>
         <in>removefalsehets.c</in>
       </df>
-      <df name="output">
+      <df name="old">
+        <df name="experiment5">
+        </df>
+        <df name="experiment6">
+        </df>
+        <df name="experiment7">
+        </df>
+        <df name="long_read_error_rate_analysis">
+          <df name="numreads10080err_0">
+          </df>
+          <df name="numreads10080err_0.04">
+          </df>
+          <df name="numreads10080err_0.08">
+          </df>
+          <df name="numreads10080err_0.12">
+          </df>
+          <df name="numreads10080err_0.16">
+          </df>
+          <df name="numreads5040err_0">
+          </df>
+          <df name="numreads5040err_0.04">
+          </df>
+          <df name="numreads5040err_0.08">
+          </df>
+          <df name="numreads5040err_0.12">
+          </df>
+          <df name="numreads5040err_0.16">
+          </df>
+        </df>
+        <df name="toy_data2">
+        </df>
+        <df name="toy_data3">
+        </df>
+        <df name="toy_genome">
+        </df>
       </df>
       <df name="submodules">
+        <df name="happysim">
+        </df>
         <df name="htslib">
           <df name="cram">
             <in>cram.h</in>
@@ -123,7 +155,6 @@
           </df>
           <in>bgzf.c</in>
           <in>bgzip.c</in>
-          <in>config.h</in>
           <in>faidx.c</in>
           <in>hfile.c</in>
           <in>hfile_internal.h</in>
@@ -250,10 +281,6 @@
           <in>stats_isize.c</in>
           <in>stats_isize.h</in>
         </df>
-      </df>
-      <df name="toy_data">
-      </df>
-      <df name="toy_data2">
       </df>
     </df>
   </logicalFolder>
