@@ -45,16 +45,16 @@ float edge_weight(char* hap, int i, int j, char* p, struct fragment* Flist, int 
  * @param miscalls variable to count the total number of base miscalls
  * @return 
  */
-int mecscore(struct fragment* Flist, int fragments, char* h, float* ll, float* calls, float* miscalls) {
+int mecscore(struct fragment* Flist, int fragments, char* h, double* ll, double* calls, double* miscalls) {
     //	fprintf(stderr,"QVoffset is now %d \n",QVoffset);
     int j = 0, k = 0, f = 0;
     *ll = 0;
-    float p0, p1;
+    double p0, p1;
     *calls = 0;
     *miscalls = 0;
-    float prob;
-    float prob1;              // probability of correct call based on qual value
-    float good = 0, bad = 0;
+    double prob;
+    double prob1;              // probability of correct call based on qual value
+    double good = 0, bad = 0;
     int switches = 0;
     int m = 0;
     
@@ -80,7 +80,6 @@ int mecscore(struct fragment* Flist, int fragments, char* h, float* ll, float* c
                 prob1 -= pow(10, prob);
 
                 //if (h[Flist[f].list[j].offset+k] == Flist[f].list[j].hap[k]) good +=1; else bad +=1;
-                
                 // increment good or bad count depending on whether it's a mismatch or not
                 if (h[Flist[f].list[j].offset + k] == Flist[f].list[j].hap[k]) good += prob1;
                 else bad += prob1;

@@ -182,7 +182,7 @@ float evaluate_variant(struct fragment* Flist, int fragments, struct SNPfrags* s
 
 int removevariants(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int maxiter, char* HAP1, char* HAP2, struct BLOCK* clist, int components) {
     int iter = 0, k = 0;
-    float calls = 0, miscalls = 0, ll = 0, bestll = 0;
+    double calls = 0, miscalls = 0, ll = 0, bestll = 0;
     //int switches =0; int prev = 0;
     /*****************************************************************************************************/
     //for (i=0;i<snps;i++) fprintf(stdout,"first fragment for SNP %d %d \n",i,snpfrag[i].ff);
