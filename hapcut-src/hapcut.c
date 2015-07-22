@@ -31,7 +31,8 @@ int RANDOM_START = 1;
 int MINCUTALGO = 1;
 int QVoffset = 33;
 int VCFformat = 0;
-int MINQ = 10; // additional base quality filter in hapcut added april 18 2012
+//int MINQ = 10; // additional base quality filter in hapcut added april 18 2012
+int MINQ = 0; // additional base quality filter in hapcut added april 18 2012
 int MAXCUT_ITER = 100; // maximum number of iterations for max-cut algorithm, if this is proportional to 'N' -> complexity is 'N^2', added march 13 2013
 int FOSMIDS = 0; // if this variable is 1, the data is fosmid long read data 
 int SCORING_FUNCTION = 0; // 0 = MEC score, 1 = switches 
@@ -47,7 +48,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     int i = 0, k = 0;
     int* slist;
     int flag = 0;
-    float bestscore_mec = 0, calls = 0, miscalls = 0, ll = 0;
+    double bestscore_mec = 0, calls = 0, miscalls = 0, ll = 0;
     char buffer[MAXBUF];
 
     /****************************** READ FRAGMENT MATRIX*************************************************/

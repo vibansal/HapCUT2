@@ -19,7 +19,7 @@ int compare_haps(struct BLOCK* clist, int components, char* orig, char* h1, stru
 int compare_Flist_hap(struct SNPfrags* snpfrag, int snps, struct fragment* Flist, int fragments, char* h, int Z, int QV);
 int mutate_Flist(struct fragment* Flist, int fragments, double errrate);
 int correct_fragment(struct fragment* Flist, int f, char* h);
-int mecscore(struct fragment* Flist, int fragments, char* h, float* ll, float* calls, float* miscalls);
+int mecscore(struct fragment* Flist, int fragments, char* h, double* ll, double* calls, double* miscalls);
 float compute_fragscore(struct fragment* Flist, int f, char* h, float* ll);
 void update_fragscore(struct fragment* Flist, int f, char* h);
 void frag_cluster_initialize(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* h1, int snps, struct BLOCK* clist, int comps);

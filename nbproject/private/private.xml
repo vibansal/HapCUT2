@@ -10,14 +10,25 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/home/peter/git/hapcut2/hapcut-src/fragmatrix.c</file>
-            <file>file:/home/peter/git/hapcut2/hapcut-src/common.h</file>
-            <file>file:/home/peter/git/hapcut2/hapcut-src/pointerheap.c</file>
+            <file>file:/home/peter/git/hapcut2/hairs-src/readfasta.c</file>
+            <file>file:/home/peter/git/hapcut2/hairs-src/parsebamread.c</file>
             <file>file:/home/peter/git/hapcut2/hapcut-src/readinputfiles.c</file>
-            <file>file:/home/peter/git/hapcut2/hapcut-src/MECscore.c</file>
-            <file>file:/home/peter/git/hapcut2/hapcut-src/hapcut.c</file>
+            <file>file:/home/peter/git/hapcut2/hairs-src/readfasta.h</file>
+            <file>file:/home/peter/git/hapcut2/hairs-src/bamread.h</file>
             <file>file:/home/peter/git/hapcut2/hapcut-src/removefalsehets.c</file>
-            <file>file:/home/peter/git/hapcut2/hapcut-src/find_maxcut.c</file>
+            <file>file:/home/peter/git/hapcut2/hairs-src/hapfragments.h</file>
+            <file>file:/home/peter/git/hapcut2/hairs-src/readvariant.h</file>
+            <file>file:/home/peter/git/hapcut2/hairs-src/extracthairs.c</file>
+            <file>file:/home/peter/git/hapcut2/hairs-src/bamread.c</file>
+            <file>file:/home/peter/git/hapcut2/hairs-src/fosmidbam_hairs.c</file>
+            <file>file:/home/peter/git/hapcut2/hairs-src/hashtable.c</file>
+            <file>file:/home/peter/git/hapcut2/hairs-src/hapfragments.c</file>
+            <file>file:/home/peter/git/hapcut2/Makefile</file>
+            <file>file:/home/peter/git/hapcut2/hairs-src/hashtable.h</file>
+            <file>file:/home/peter/git/hapcut2/hairs-src/readvariant.c</file>
+            <file>file:/home/peter/git/hapcut2/hapcut-src/hapcut.c</file>
+            <file>file:/home/peter/git/hapcut2/hairs-src/print_clusters.c</file>
+            <file>file:/home/peter/git/hapcut2/hapcut-src/printhaplotypes.c</file>
         </group>
     </open-files>
 </project-private>
