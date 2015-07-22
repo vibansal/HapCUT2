@@ -2,11 +2,45 @@
 <configurationDescriptor version="95">
   <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
     <df root="." name="0">
+      <df name="benchmark">
+        <df name="run0">
+        </df>
+        <df name="run1">
+        </df>
+        <df name="run10">
+        </df>
+        <df name="run11">
+        </df>
+        <df name="run12">
+        </df>
+        <df name="run13">
+        </df>
+        <df name="run14">
+        </df>
+        <df name="run15">
+        </df>
+        <df name="run16">
+        </df>
+        <df name="run17">
+        </df>
+        <df name="run2">
+        </df>
+        <df name="run3">
+        </df>
+        <df name="run4">
+        </df>
+        <df name="run5">
+        </df>
+        <df name="run6">
+        </df>
+        <df name="run7">
+        </df>
+        <df name="run8">
+        </df>
+        <df name="run9">
+        </df>
+      </df>
       <df name="build">
-      </df>
-      <df name="data">
-      </df>
-      <df name="experiments">
       </df>
       <df name="hairs-src">
         <in>bamread.c</in>
@@ -41,43 +75,23 @@
         <in>removefalsehets.c</in>
       </df>
       <df name="old">
-        <df name="experiment5">
+        <df name="experiment1">
         </df>
-        <df name="experiment6">
+        <df name="experiment2">
         </df>
-        <df name="experiment7">
+        <df name="experiment3">
         </df>
-        <df name="long_read_error_rate_analysis">
-          <df name="numreads10080err_0">
-          </df>
-          <df name="numreads10080err_0.04">
-          </df>
-          <df name="numreads10080err_0.08">
-          </df>
-          <df name="numreads10080err_0.12">
-          </df>
-          <df name="numreads10080err_0.16">
-          </df>
-          <df name="numreads5040err_0">
-          </df>
-          <df name="numreads5040err_0.04">
-          </df>
-          <df name="numreads5040err_0.08">
-          </df>
-          <df name="numreads5040err_0.12">
-          </df>
-          <df name="numreads5040err_0.16">
-          </df>
+        <df name="experiment4">
+        </df>
+        <df name="toy_data">
         </df>
         <df name="toy_data2">
-        </df>
-        <df name="toy_data3">
-        </df>
-        <df name="toy_genome">
         </df>
       </df>
       <df name="submodules">
         <df name="happysim">
+          <df name="__pycache__">
+          </df>
         </df>
         <df name="htslib">
           <df name="cram">

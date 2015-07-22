@@ -9,15 +9,16 @@ float evaluate_variant(struct fragment* Flist, int fragments, struct SNPfrags* s
 // phase each component individually
 
 void find_bestvariant_segment(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, char* HAP1, char* HAP2) {
-    int i = 0;
+    int i=0,t=0;
     //	fprintf(stdout,"\ncomponent offset: %d length %d delta scores MEC %f\n",clist[k].offset+1,clist[k].length,clist[k].bestMEC);
-    for (i = 0; i < clist[k].phased; i++) {
-        //fprintf(stderr,"flipping variant %d ll %f \n",i,ll);
-        //t = clist[k].slist[i]; 
-        //delta = evaluate_variant(Flist,fragments,snpfrag,t,HAP1);
-        //fprintf(stdout,"%s_%d_%s_%s_%s ",snpfrag[t].chromosome,snpfrag[t].position,snpfrag[t].allele0,snpfrag[t].allele1,snpfrag[t].genotypes);
-        //fprintf(stdout," R0 %d %d SNP %d \n",snpfrag[t].R0,snpfrag[t].R1,t);
-        //fprintf(stdout,"DELTA %f %f %f %f %f\n",delta,likelihoods[0],likelihoods[1],likelihoods[2],likelihoods[3]);
+    for (i=0;i<clist[k].phased;i++)
+    {
+            //fprintf(stderr,"flipping variant %d ll %f \n",i,ll);
+            t = clist[k].slist[i]; 
+            evaluate_variant(Flist,fragments,snpfrag,t,HAP1);
+            //fprintf(stdout,"%s_%d_%s_%s_%s ",snpfrag[t].chromosome,snpfrag[t].position,snpfrag[t].allele0,snpfrag[t].allele1,snpfrag[t].genotypes);
+            //fprintf(stdout," R0 %d %d SNP %d \n",snpfrag[t].R0,snpfrag[t].R1,t);
+            //fprintf(stdout,"DELTA %f %f %f %f %f\n",delta,likelihoods[0],likelihoods[1],likelihoods[2],likelihoods[3]);
     }
 }
 
