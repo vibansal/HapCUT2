@@ -11,8 +11,11 @@
         <in>readvariant.c</in>
       </df>
       <df name="hapcut-src">
+        <in>find_maxLv.c</in>
         <in>fragmatrix.c</in>
         <in>hapcut.c</in>
+        <in>likelihood_functions.c</in>
+        <in>likelihood_functions.h</in>
         <in>pointerheap.c</in>
         <in>readinputfiles.c</in>
       </df>
@@ -179,9 +182,15 @@
           </incDir>
         </cTool>
       </item>
+      <item path="hapcut-src/find_maxLv.c" ex="false" tool="0" flavor2="0">
+      </item>
       <item path="hapcut-src/fragmatrix.c" ex="false" tool="0" flavor2="0">
       </item>
       <item path="hapcut-src/hapcut.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="hapcut-src/likelihood_functions.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="hapcut-src/likelihood_functions.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="hapcut-src/pointerheap.c" ex="false" tool="0" flavor2="0">
       </item>

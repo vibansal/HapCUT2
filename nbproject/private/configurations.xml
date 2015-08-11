@@ -40,6 +40,20 @@
         <df name="run9">
         </df>
       </df>
+      <df name="benchmark.bak">
+        <df name="run0">
+        </df>
+        <df name="run1">
+        </df>
+        <df name="run2">
+        </df>
+        <df name="run3">
+        </df>
+        <df name="run4">
+        </df>
+        <df name="run5">
+        </df>
+      </df>
       <df name="build">
       </df>
       <df name="hairs-src">
@@ -61,12 +75,15 @@
       <df name="hapcut-src">
         <in>MECscore.c</in>
         <in>common.h</in>
+        <in>find_maxLv.c</in>
         <in>find_maxcut.c</in>
         <in>find_starting_haplotypes.c</in>
         <in>fragmatrix.c</in>
         <in>fragmatrix.h</in>
         <in>hapcut-annealing.c</in>
         <in>hapcut.c</in>
+        <in>likelihood_functions.c</in>
+        <in>likelihood_functions.h</in>
         <in>pointerheap.c</in>
         <in>pointerheap.h</in>
         <in>printhaplotypes.c</in>
@@ -89,10 +106,6 @@
         </df>
       </df>
       <df name="submodules">
-        <df name="happysim">
-          <df name="__pycache__">
-          </df>
-        </df>
         <df name="htslib">
           <df name="cram">
             <in>cram.h</in>

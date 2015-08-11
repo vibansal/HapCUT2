@@ -1,18 +1,7 @@
 
 // 
 // 
-/**
- * @brief a function to compute weight of a edge between two variants in the max-cut graph (score of +1 if the phasing agrees with the phasing suggested by the fragment and score of -1 if it does not)
- * this function needs to be modified to utilize base-quality scores, so that the weight of an edge is (1-e1)(1-e2) for the two base-calls
- * 
- * @param hap an array representing a haplotype
- * @param i the index of first variant
- * @param j the index of second variant
- * @param p ???
- * @param Flist an array of pointers to fragment structs (represents the list of fragments)
- * @param f the index of the fragment under consideration
- * @return the weight of the edge between variant i and j
- */
+
 float edge_weight(char* hap, int i, int j, char* p, struct fragment* Flist, int f) {
 
     float q1 = 1, q2 = 1;

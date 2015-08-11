@@ -79,7 +79,7 @@ $(B)/readfasta.o: $(H)/readfasta.c $(H)/readfasta.h | $(B)
 # BUILD HAPCUT
 
 $(B)/HAPCUT: $(B)/fragmatrix.o $(B)/readinputfiles.o $(B)/pointerheap.o $(X)/hapcut.c $(X)/find_maxcut.c | $(B) 
-	$(CC) $(B)/fragmatrix.o $(B)/readinputfiles.o $(B)/pointerheap.o -o $(B)/HAPCUT -lm $(X)/hapcut.c
+	$(CC) -pg $(B)/fragmatrix.o $(B)/readinputfiles.o $(B)/pointerheap.o -o $(B)/HAPCUT -lm $(X)/hapcut.c
 
 #$(B)/HAPCUT-1: fragmatrix.o readinputfiles.o pointerheap.o annealing.o $(X)/hapcut-annealing.c | $(B)
 #	$(CC) $(X)/fragmatrix.o $(X)/readinputfiles.o $(X)/pointerheap.o $(X)/annealing.o  -o $(B)/HAPCUT-1 -lm $(X)/hapcut-annealing.c

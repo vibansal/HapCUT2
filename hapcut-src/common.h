@@ -43,8 +43,8 @@ struct BLOCK {
     int* flist;
     int frags;
     //struct NODE* tree; int nodes; // nodes is the number of nodes in tree  
-    float MEC, bestMEC, lastMEC;
-    float LL, bestLL; // log likellihood scores 
+    float LL, bestLL; // log likelihood scores
+    int iters_since_improvement; // how many iterations of maxcut since improvement was seen 
     int calls;
     int* slist; // ordered list of variants in this connected component
     int lastvar; // index of the first and last variants in this connected component

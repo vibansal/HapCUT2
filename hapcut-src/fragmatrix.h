@@ -8,8 +8,15 @@
 #include<string.h>
 #include<ctype.h>
 #include "common.h"
+#include <assert.h>
 
 //#define _GNU_SOURCE
+    
+    
+float fragment_likelihood_h(char* hap, struct fragment* Flist, int f, int partial, int* S);
+float fragment_loglikelihood_H(char* hap1, char* hap2, struct fragment* Flist, int f, int partial, int* S);
+float data_loglikelihood(char* hap1, char* hap2, struct fragment* Flist, int fragments, int partial, int* S);
+float cut_difference_Lv(int v, int* S, char* hap1, char* hap2, struct fragment* Flist, int fragments);
 
 int fraglength(struct fragment* Flist, int f);
 float edge_weight(char* hap, int i, int j, char* p, struct fragment* Flist, int f);

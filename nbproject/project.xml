@@ -22,5 +22,8 @@
                 <project-formatting-style>false</project-formatting-style>
             </formatting>
         </data>
+        <spellchecker-wordlist xmlns="http://www.netbeans.org/ns/spellchecker-wordlist/1">
+            <word>haplotype</word>
+        </spellchecker-wordlist>
     </configuration>
 </project>

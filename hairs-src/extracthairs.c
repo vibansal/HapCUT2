@@ -295,7 +295,6 @@ int main(int argc, char** argv) {
             read_fasta(fastafile, reflist);
         }
     }
-    //return 1;
     if (readsorted == 0 && bamfiles > 0) {
         for (i = 0; i < bamfiles; i++) {
             if (FOSMIDS == 0) parse_bamfile_sorted(bamfilelist[i], &ht, chromvars, varlist, reflist);
