@@ -11,13 +11,22 @@
 #ifdef	__cplusplus
 extern "C" {
 #endif
-    
+ 
+#include<stdio.h>
+#include <math.h>
+#include<stdlib.h>
+#include "common.h"
 #include <assert.h>
+#include <string.h>
     
-float fragment_likelihood_h(char* hap, struct fragment* Flist, int f, int partial, int* S);
-float fragment_loglikelihood_H(char* hap1, char* hap2, struct fragment* Flist, int f, int partial, int* S);
-float data_loglikelihood(char* hap1, char* hap2, struct fragment* Flist, int fragments, int partial, int* S);
-float cut_difference_Lv(int v, int* S, char* hap1, char* hap2, struct fragment* Flist, int fragments);
+int evaluate_cut_component(struct fragment* Flist, char* S, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, char* HAP1, char* HAP2, int iter);
+float compute_goodcut(struct SNPfrags* snpfrag, char* HAP1, char* HAP2, char* S, int* slist, int N, struct fragment* Flist, struct BLOCK* clist, int k);
+
+void flip_haps(char* hap1, char* hap2, int v);
+float fragment_likelihood_h(char* hap, struct fragment* Flist, int f, int partial, char* S);
+float fragment_loglikelihood_H(char* hap1, char* hap2, struct fragment* Flist, int f, int partial, char* S);
+float data_loglikelihood(char* hap1, char* hap2, struct fragment* Flist, int partial, char* S, int* frag_ix, int numfrags);
+float cut_difference_Lv(int v, char* S, char* hap1, char* hap2, struct fragment* Flist, struct BLOCK* clist, int k);
 
 #ifdef	__cplusplus
 }

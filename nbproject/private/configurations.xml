@@ -2,59 +2,11 @@
 <configurationDescriptor version="95">
   <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
     <df root="." name="0">
-      <df name="benchmark">
-        <df name="run0">
-        </df>
-        <df name="run1">
-        </df>
-        <df name="run10">
-        </df>
-        <df name="run11">
-        </df>
-        <df name="run12">
-        </df>
-        <df name="run13">
-        </df>
-        <df name="run14">
-        </df>
-        <df name="run15">
-        </df>
-        <df name="run16">
-        </df>
-        <df name="run17">
-        </df>
-        <df name="run2">
-        </df>
-        <df name="run3">
-        </df>
-        <df name="run4">
-        </df>
-        <df name="run5">
-        </df>
-        <df name="run6">
-        </df>
-        <df name="run7">
-        </df>
-        <df name="run8">
-        </df>
-        <df name="run9">
-        </df>
-      </df>
-      <df name="benchmark.bak">
-        <df name="run0">
-        </df>
-        <df name="run1">
-        </df>
-        <df name="run2">
-        </df>
-        <df name="run3">
-        </df>
-        <df name="run4">
-        </df>
-        <df name="run5">
-        </df>
-      </df>
       <df name="build">
+      </df>
+      <df name="data">
+      </df>
+      <df name="experiments">
       </df>
       <df name="hairs-src">
         <in>bamread.c</in>
@@ -92,20 +44,44 @@
         <in>removefalsehets.c</in>
       </df>
       <df name="old">
-        <df name="experiment1">
+        <df name="experiment5">
         </df>
-        <df name="experiment2">
+        <df name="experiment6">
         </df>
-        <df name="experiment3">
+        <df name="experiment7">
         </df>
-        <df name="experiment4">
-        </df>
-        <df name="toy_data">
+        <df name="long_read_error_rate_analysis">
+          <df name="numreads10080err_0">
+          </df>
+          <df name="numreads10080err_0.04">
+          </df>
+          <df name="numreads10080err_0.08">
+          </df>
+          <df name="numreads10080err_0.12">
+          </df>
+          <df name="numreads10080err_0.16">
+          </df>
+          <df name="numreads5040err_0">
+          </df>
+          <df name="numreads5040err_0.04">
+          </df>
+          <df name="numreads5040err_0.08">
+          </df>
+          <df name="numreads5040err_0.12">
+          </df>
+          <df name="numreads5040err_0.16">
+          </df>
         </df>
         <df name="toy_data2">
         </df>
+        <df name="toy_data3">
+        </df>
+        <df name="toy_genome">
+        </df>
       </df>
       <df name="submodules">
+        <df name="happysim">
+        </df>
         <df name="htslib">
           <df name="cram">
             <in>cram.h</in>
@@ -352,8 +328,11 @@
           <runcommandpicklistitem>build/extractHAIRS --VCF toy_data/chr20_simulated_reads.mutations.vcf --ref toy_data/hg19_chr20.fa --out output/hairs_output_HAPCUT2.fragments --bam toy_data/aligned_chr20_simreads_sorted.bam</runcommandpicklistitem>
           <runcommandpicklistitem></runcommandpicklistitem>
           <runcommandpicklistitem>build/extractHAIRS --VCF toy_data/chr20_simulated_reads.mutations.vcf --ref toy_data/hg19_chr20.fa --out output/hairs_output_HAPCUT2.fragments --bam experiment3/aligned_chr20_simreads_sorted.bam</runcommandpicklistitem>
+          <runcommandpicklistitem>./build/HAPCUT --fragments ../happysim/happysim_out/sim_fragments --vcf ../happysim/happysim_out/sim_variants.vcf --output hapcut_out --longreads 1</runcommandpicklistitem>
+          <runcommandpicklistitem>./build/HAPCUT --fragments ../happysim/happysim_out/sim_fragments --vcf ../happysim/happysim_out/sim_variants.vcf --maxiter 1000 --maxcutiter 1000 --output hapcut_out --longreads 1</runcommandpicklistitem>
+          <runcommandpicklistitem>./build/HAPCUT --fragments ../happysim/happysim_out/sim_fragments --vcf ../happysim/happysim_out/sim_variants.vcf --maxiter 10000 --maxcutiter 10000 --output hapcut_out --longreads 1</runcommandpicklistitem>
         </runcommandpicklist>
-        <runcommand>build/extractHAIRS --VCF toy_data/chr20_simulated_reads.mutations.vcf --ref toy_data/hg19_chr20.fa --out output/hairs_output_HAPCUT2.fragments --bam experiment3/aligned_chr20_simreads_sorted.bam</runcommand>
+        <runcommand>./build/HAPCUT --fragments ../happysim/happysim_out/sim_fragments --vcf ../happysim/happysim_out/sim_variants.vcf --maxiter 10000 --maxcutiter 10000 --output hapcut_out --longreads 1</runcommand>
         <rundir>.</rundir>
         <buildfirst>false</buildfirst>
         <terminal-type>0</terminal-type>

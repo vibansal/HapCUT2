@@ -1,4 +1,7 @@
 
+#include "common.h"
+
+
 // THIS FUNCTION PRINTS THE CURRENT HAPLOTYPE ASSEMBLY in a new file block by block 
 
 void print_hapcut_options() {
@@ -25,10 +28,10 @@ void print_hapcut_options() {
 
 }
 
-int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* fname, int score, char* outfile) {
+int print_hapfile(struct BLOCK* clist, int blocks, char* h1, char* h2, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* fname, char* outfile) {
     // print a new file containing one block phasing and the corresponding fragments 
     int i = 0, t = 0, k = 0, span = 0;
-    char c, c1, c2;
+    char c1, c2;
     //char fn[200]; sprintf(fn,"%s-%d.phase",fname,score); 
     FILE* fp;
     fp = fopen(outfile, "w");
@@ -37,7 +40,7 @@ int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
     for (i = 0; i < blocks; i++) {
         span = snpfrag[clist[i].lastvar].position - snpfrag[clist[i].offset].position;
         fprintf(fp, "BLOCK: offset: %d len: %d phased: %d ", clist[i].offset + 1, clist[i].length, clist[i].phased);
-        fprintf(fp, "SPAN: %d MECscore %2.2f fragments %d\n", span, clist[i].bestMEC, clist[i].frags);
+        fprintf(fp, "SPAN: %d LogLikelihood %2.2f fragments %d\n", span, clist[i].bestLL, clist[i].frags);
         for (k = 0; k < clist[i].phased; k++) {
             t = clist[i].slist[k];
             //fprintf(fp,"frags %d | ",snpfrag[t].frags); 
@@ -46,8 +49,6 @@ int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
             //if (snpfrag[clist[i].offset+k].component == snpfrag[clist[i].offset].component)	fprintf(fp,"%d\t%c\t%c\t%s\t%d\t%s\t%s\t%s\n",t+1,'-','-',snpfrag[t].chromosome,snpfrag[t].position,snpfrag[t].allele0,snpfrag[t].allele1,snpfrag[t].genotypes); 
             //if (snpfrag[clist[i].offset+k].component == snpfrag[clist[i].offset].component)	
             {
-                if (h1[t] == '0') c = '1';
-                else if (h1[t] == '1') c = '0';
                 delta = snpfrag[t].L00 - snpfrag[t].L01;
                 if (snpfrag[t].L11 - snpfrag[t].L01 > delta) delta = snpfrag[t].L11 - snpfrag[t].L01;
                 // print this line to keep consistency with old format 
@@ -63,7 +64,7 @@ int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
                     }
                     fprintf(fp, "%d\t%c\t%c\t", t + 1, c1, c2); // two alleles that are phased in VCF like format
                 } else {
-                    fprintf(fp, "%d\t%c\t%c\t", t + 1, h1[t], c);
+                    fprintf(fp, "%d\t%c\t%c\t", t + 1, h1[t], h2[t]);
                 }
                 fprintf(fp, "%s\t%d\t%s\t%s\t%s\t%d,%d:%0.1f,%0.1f,%0.1f:%0.1f:%0.1f", snpfrag[t].chromosome, snpfrag[t].position, snpfrag[t].allele0, snpfrag[t].allele1, snpfrag[t].genotypes, snpfrag[t].R0, snpfrag[t].R1, snpfrag[t].L00, snpfrag[t].L01, snpfrag[t].L11, delta, snpfrag[t].rMEC);
                 if (delta >= 3 && snpfrag[t].rMEC >= 2) fprintf(fp, ":FV");
@@ -110,7 +111,7 @@ void print_haplotypes_vcf(struct BLOCK* clist, int blocks, char* h1, struct frag
                 }
                 span = snpfrag[clist[k].lastvar].position - snpfrag[clist[k].offset].position;
                 fprintf(fp, "SP:%c|%c:%d ", c1, c2, clist[k].offset + 1);
-                fprintf(fp, "BLOCKlength: %d phased %d SPAN: %d MECscore %2.2f fragments %d\n", clist[k].length, clist[k].phased, span, clist[k].bestMEC, clist[k].frags);
+                fprintf(fp, "BLOCKlength: %d phased %d SPAN: %d LogLikelihood %2.2f fragments %d\n", clist[k].length, clist[k].phased, span, clist[k].bestLL, clist[k].frags);
             } else {
                 if (h1[i] == '0') {
                     c1 = '0';

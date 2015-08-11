@@ -78,11 +78,8 @@ $(B)/readfasta.o: $(H)/readfasta.c $(H)/readfasta.h | $(B)
 
 # BUILD HAPCUT
 
-$(B)/HAPCUT: $(B)/fragmatrix.o $(B)/readinputfiles.o $(B)/pointerheap.o $(X)/hapcut.c $(X)/find_maxcut.c | $(B) 
-	$(CC) -pg $(B)/fragmatrix.o $(B)/readinputfiles.o $(B)/pointerheap.o -o $(B)/HAPCUT -lm $(X)/hapcut.c
-
-#$(B)/HAPCUT-1: fragmatrix.o readinputfiles.o pointerheap.o annealing.o $(X)/hapcut-annealing.c | $(B)
-#	$(CC) $(X)/fragmatrix.o $(X)/readinputfiles.o $(X)/pointerheap.o $(X)/annealing.o  -o $(B)/HAPCUT-1 -lm $(X)/hapcut-annealing.c
+$(B)/HAPCUT: $(B)/fragmatrix.o $(B)/readinputfiles.o $(B)/pointerheap.o $(B)/likelihood_functions.o $(X)/hapcut.c | $(B) 
+	$(CC) -pg $(B)/fragmatrix.o $(B)/readinputfiles.o $(B)/pointerheap.o $(B)/likelihood_functions.o -o $(B)/HAPCUT -lm $(X)/hapcut.c
 
 $(B)/fragmatrix.o: $(X)/fragmatrix.h $(X)/fragmatrix.c $(X)/common.h $(X)/printhaplotypes.c $(X)/MECscore.c $(X)/find_starting_haplotypes.c | $(B)
 	$(CC) -c $(X)/fragmatrix.c -o $(B)/fragmatrix.o
@@ -95,6 +92,11 @@ $(B)/pointerheap.o: $(X)/pointerheap.h $(X)/pointerheap.c $(X)/common.h | $(B)
 
 $(B)/annealing.o: $(X)/annealing.h $(X)/annealing.c $(X)/common.h $(X)/fragmatrix.h $(X)/fragmatrix.c | $(B)
 	$(CC) -c $(X)/annealing.c -o $(B)/annealing.o
+
+$(B)/likelihood_functions.o: $(X)/likelihood_functions.c $(X)/fragmatrix.h | $(B)
+	$(CC) -c $(X)/likelihood_functions.c -o $(B)/likelihood_functions.o
+	
+
 
 # create build directory
 $(B):
@@ -120,13 +122,13 @@ install-fosmid:
 uninstall: uninstall-hapcut uninstall-hairs uninstall-fosmid
 
 uninstall-hapcut:
-	rm /usr/local/bin
+	rm /usr/local/bin/HAPCUT
 
 uninstall-hairs:
-	rm /usr/local/bin
+	rm /usr/local/bin/extractHAIRS
 
 uninstall-fosmid:
-	rm /usr/local/bin
+	rm /usr/local/bin/extractFOSMID
 
 # CLEANUP
 nuke: clean
