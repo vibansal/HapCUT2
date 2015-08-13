@@ -87,12 +87,11 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile, 
 
     /*****************************************************************************************************/
 
-    char* HAP1 = (char*) malloc(snps + 1);
-    char* besthap_mec = (char*) malloc(snps + 1);
-    char* HAP2 = (char*) malloc(snps + 1);
+    char* HAP1 = (char*) calloc(snps + 1, sizeof(char));
+    //char* besthap_mec = (char*) malloc(snps + 1);
+    char* HAP2 = (char*) calloc(snps + 1, sizeof(char));
     //struct tm *ts1;
     //char buf[80];
-    char* S;
     //time_t now;
     //slist = (int*) malloc(sizeof (int)*snps);
     char fn[1000];
@@ -117,9 +116,6 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile, 
                 }
             }
         }
-    }
-    for (i = 0; i < snps; i++) {
-        besthap_mec[i] = HAP1[i];
     }
 
     // for each block, we maintain best haplotype solution
@@ -162,14 +158,13 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile, 
 
         }
         int unimproved_components = 0;
-        S = (char*) calloc(snps, sizeof(char));
         for (k = 0; k < components; k++) // COMPUTATION OF TREE FOR EACH COMPONENT 
         {
             if (iter == 0) fprintf(stdout, "\n component %d length %d phased %d %d...%d \n", k, clist[k].length, clist[k].phased, clist[k].offset, clist[k].lastvar);
             // call function for each component only if MEC > 0 april 17 2012
-            unimproved_components += evaluate_cut_component(Flist, S, snpfrag, clist, k, HAP1, HAP2, iter);
+            unimproved_components += evaluate_cut_component(Flist, snpfrag, clist, k, HAP1, HAP2, iter);
         }
-        free(S);/*
+        /*
         if (unimproved_components == components){
             for (k = 0; k < components; k++) find_bestvariant_segment(Flist, fragments, snpfrag, clist, k, HAP1, HAP2);
             sprintf(fn, "%s", outputfile); // newfile for every update to score....
