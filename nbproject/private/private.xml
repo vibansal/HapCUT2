@@ -9,18 +9,6 @@
     </data>
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
-        <group>
-            <file>file:/home/peter/git/hapcut2/hapcut-src/likelihood_functions.c</file>
-            <file>file:/home/peter/git/hapcut2/hapcut-src/fragmatrix.c</file>
-            <file>file:/home/peter/git/hapcut2/hairs-src/extracthairs.c</file>
-            <file>file:/home/peter/git/hapcut2/hapcut-src/common.h</file>
-            <file>file:/home/peter/git/hapcut2/hapcut-src/find_maxLv.c</file>
-            <file>file:/home/peter/git/hapcut2/hairs-src/hapfragments.c</file>
-            <file>file:/home/peter/git/hapcut2/Makefile</file>
-            <file>file:/home/peter/git/hapcut2/hapcut-src/pointerheap.c</file>
-            <file>file:/home/peter/git/hapcut2/hapcut-src/readinputfiles.c</file>
-            <file>file:/home/peter/git/hapcut2/hapcut-src/fragmatrix.h</file>
-            <file>file:/home/peter/git/hapcut2/hapcut-src/hapcut.c</file>
-        </group>
+        <group/>
     </open-files>
 </project-private>

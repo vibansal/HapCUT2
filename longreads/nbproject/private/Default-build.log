@@ -1,0 +1,4 @@
+gcc -D_GNU_SOURCE -c fragmatrix.c
+gcc -D_GNU_SOURCE -c readinputfiles.c
+gcc -D_GNU_SOURCE -c pointerheap.c
+gcc -D_GNU_SOURCE fragmatrix.o readinputfiles.o  pointerheap.o -o HAPCUT -lm hapcut.c

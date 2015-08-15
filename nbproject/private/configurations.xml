@@ -91,6 +91,24 @@
         <in>readinputfiles.h</in>
         <in>removefalsehets.c</in>
       </df>
+      <df name="longreads">
+        <in>MECscore.c</in>
+        <in>common.h</in>
+        <in>find_maxcut.c</in>
+        <in>find_starting_haplotypes.c</in>
+        <in>fragmatrix.c</in>
+        <in>fragmatrix.h</in>
+        <in>hapcut.c</in>
+        <in>like_scores.c</in>
+        <in>maxcut_functions.c</in>
+        <in>maxcut_lr.c</in>
+        <in>pointerheap.c</in>
+        <in>pointerheap.h</in>
+        <in>printhaplotypes.c</in>
+        <in>readinputfiles.c</in>
+        <in>readinputfiles.h</in>
+        <in>removefalsehets.c</in>
+      </df>
       <df name="old">
         <df name="experiment1">
         </df>
