@@ -11,12 +11,6 @@
 #include <assert.h>
 
 //#define _GNU_SOURCE
-    
-    
-float fragment_likelihood_h(char* hap, struct fragment* Flist, int f, int partial, int* S);
-float fragment_loglikelihood_H(char* hap1, char* hap2, struct fragment* Flist, int f, int partial, int* S);
-float data_loglikelihood(char* hap1, char* hap2, struct fragment* Flist, int fragments, int partial, int* S);
-float cut_difference_Lv(int v, int* S, char* hap1, char* hap2, struct fragment* Flist, int fragments);
 
 int fraglength(struct fragment* Flist, int f);
 float edge_weight(char* hap, int i, int j, char* p, struct fragment* Flist, int f);
@@ -38,7 +32,7 @@ void add_edges_fosmids(struct fragment* Flist, int fragments, struct SNPfrags* s
 void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps);
 void output_current_solution(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, char* hap, char* best);
 
-int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* fname, int score, char* outfile);
+int print_hapfile(struct BLOCK* clist, int blocks, char* h1, char* h2, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* fname, char* outfile);
 void print_haplotypes_vcf(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, char* outfile);
 void print_hapcut_options();
 
@@ -65,7 +59,6 @@ int fragment_compare(const void *a, const void *b);
 
 int determine_connected_components(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps);
 void generate_clist_structure(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int components, struct BLOCK* clist);
-
 
 #endif
 
