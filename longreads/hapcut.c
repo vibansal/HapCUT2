@@ -40,7 +40,7 @@ int THRESHOLD_TYPE = 0;
 float HOMOZYGOUS_PRIOR = 0.0001;
 int PRINT_FRAGMENT_SCORES = 0; // output the MEC/switch error score of erroneous reads/fragments to a file for evaluation 
 int MAX_MEMORY = 8000;
-int CONVERGE = 1000000; // stop iterations on a given component/block if exceed this many iterations since improvement
+int CONVERGE = 5; // stop iterations on a given component/block if exceed this many iterations since improvement
 
 
 int NEW_CODE = 1; // likelihood based, max-cut calculated using partial likelihoods
