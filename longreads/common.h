@@ -102,6 +102,7 @@ struct SNPfrags {
     int A0, A1;
     float G00, G01, G11; // allele counts and genotype likelihoods using singleton reads that cover only one variant
     int rank; // rank of tree at this node
+    float homozygous_prior; // prior probability of homozygousity. Based on GQ field of VCF.
 };
 
 // hold onto posterior probabilities from pruning calculations for one SNP

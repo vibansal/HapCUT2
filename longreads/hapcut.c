@@ -134,7 +134,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
 
     if (VCFformat == 0) read_variantfile(variantfile, snpfrag, snps);
     else read_vcffile(variantfile, snpfrag, snps);
-
+    
     /*****************************************************************************************************/
     if (RANDOM_START == 1) {
         fprintf(stdout, "starting from a completely random solution SOLUTION \n");

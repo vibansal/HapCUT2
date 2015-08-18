@@ -440,6 +440,7 @@ int compare_hap_probs(const void *a, const void *b) {
     return ia->post_hap - ib->post_hap;
 }
 
+
 // given a and b, where
 // a = log10(x)
 // b = log10(y)
@@ -450,6 +451,18 @@ float addlogs(float a, float b) {
         return (a + log10(1 + pow(10, b - a)));
     else
         return (b + log10(1 + pow(10, a - b)));
+}
+
+// given a and b, where
+// a = log10(x)
+// b = log10(y)
+// returns log10(x-y)
+
+float subtractlogs(float a, float b) {
+    if (a > b)
+        return (a + log10(1 - pow(10, b - a)));
+    else
+        return (b + log10(1 - pow(10, a - b)));
 }
 
 // returns an array length [snps] called 'pruned' that indicates which SNPs were pruned:
@@ -464,12 +477,16 @@ void prune_snps(char* pruned, float prune_threshold, float homozygous_threshold,
     int i, j, f, num_to_prune;
     char temp1;
     float P_data_H, P_data_Hf, P_data_H00, P_data_H11, total;
-    float log_hom_prior = log10(HOMOZYGOUS_PRIOR);
-    float log_het_prior = log10(0.5 - HOMOZYGOUS_PRIOR);
+    float log_hom_prior; 
+    float log_het_prior;
     struct hap_prob* hap_probs = malloc(snps * sizeof (struct hap_prob));
 
     for (i = 0; i < snps; i++) {
-
+        
+        // get prior probabilities for homozygous and heterozygous genotypes
+        log_hom_prior = snpfrag[i].homozygous_prior;
+        log_het_prior = subtractlogs(log10(0.5), log_hom_prior);
+        
         // this is for sorting, later
         hap_probs[i].snp_ix = i;
 
