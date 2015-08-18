@@ -56,7 +56,6 @@
       </nativedebugger>
       <runprofile version="9">
         <runcommandpicklist>
-          <runcommandpicklistitem>./HAPCUT --fragments ../../happysim/happysim_out/sim_fragments --VCF ../../happysim/happysim_out/sim_variants.vcf --output hapcut_out --longreads 1 --prune 0.001</runcommandpicklistitem>
           <runcommandpicklistitem>./HAPCUT --fragments ../../happysim/happysim_out/sim_fragments --VCF ../../happysim/happysim_out/sim_variants.vcf --output hapcut_out --longreads 1 --prune 0.001 --maxiter 5</runcommandpicklistitem>
           <runcommandpicklistitem>./HAPCUT --fragments ../../happysim/happysim_out/sim_fragments --VCF ../../happysim/happysim_out/sim_variants.vcf --output hapcut_out --longreads 1 --prune 0.01 --maxiter 5</runcommandpicklistitem>
           <runcommandpicklistitem>./HAPCUT --fragments ../../happysim/happysim_out/sim_fragments --VCF ../../happysim/happysim_out/sim_variants.vcf --output hapcut_out --longreads 1 --prune 0.005</runcommandpicklistitem>
@@ -66,8 +65,9 @@
           <runcommandpicklistitem>./HAPCUT --fragments ../../happysim/happysim_out/sim_fragments --VCF ../../happysim/happysim_out/sim_variants.vcf --output hapcut_out --longreads 1 --maxiter 10 --pt 0.8 --ht 0.8</runcommandpicklistitem>
           <runcommandpicklistitem>./HAPCUT --fragments ../../happysim/happysim_out/sim_fragments --VCF ../../happysim/happysim_out/sim_variants.vcf --output hapcut_out --longreads 1 --maxiter 10 --pt 0.75 --ht 0.75</runcommandpicklistitem>
           <runcommandpicklistitem>./HAPCUT --fragments ../../happysim/happysim_out/sim_fragments --VCF ../../happysim/happysim_out/sim_variants.vcf --output hapcut_out --longreads 1 --pt 0.75 --ht 0.75 --converge 5</runcommandpicklistitem>
+          <runcommandpicklistitem>./HAPCUT --fragments ../../happysim/happysim_out/sim_fragments --VCF ../../happysim/happysim_out/sim_variants.vcf --output hapcut_out --longreads 1</runcommandpicklistitem>
         </runcommandpicklist>
-        <runcommand>./HAPCUT --fragments ../../happysim/happysim_out/sim_fragments --VCF ../../happysim/happysim_out/sim_variants.vcf --output hapcut_out --longreads 1 --pt 0.75 --ht 0.75 --converge 5</runcommand>
+        <runcommand>./HAPCUT --fragments ../../happysim/happysim_out/sim_fragments --VCF ../../happysim/happysim_out/sim_variants.vcf --output hapcut_out --longreads 1</runcommand>
         <rundir>.</rundir>
         <buildfirst>false</buildfirst>
         <terminal-type>0</terminal-type>

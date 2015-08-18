@@ -77,8 +77,8 @@ void add_edges_fosmids(struct fragment* Flist, int fragments, struct SNPfrags* s
         }
         //else if (snpfrag[i].component ==i || snpfrag[i].edges ==0) singletons++;
     }
-    fprintf(stdout, "\nnumber of non-trivial connected components %d max-Degree %d connected variants %d coverage-per-variant %f \n", *components, maxdeg, nodes_in_graph, (double) avgdeg / (double) csnps);
-    fprintf(stderr, "\nnumber of non-trivial connected components %d max-Degree %d connected variants %d coverage-per-variant %f \n", *components, maxdeg, nodes_in_graph, (double) avgdeg / (double) csnps);
+    fprintf(stdout, "Number of non-trivial connected components %d max-Degree %d connected variants %d coverage-per-variant %f \n", *components, maxdeg, nodes_in_graph, (double) avgdeg / (double) csnps);
+    //fprintf(stderr, "Number of non-trivial connected components %d max-Degree %d connected variants %d coverage-per-variant %f \n", *components, maxdeg, nodes_in_graph, (double) avgdeg / (double) csnps);
 }
 
 // for each fragment: add all pairwise edges between all variants in it, complexity = O(k^2) for 'k' length fragment

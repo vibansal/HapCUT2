@@ -241,7 +241,7 @@ int read_vcffile(char* vcffile, struct SNPfrags* snpfrag, int snps) {
 
             snpfrag[var].homozygous_prior = atof(GQ) / -10; // log prior probability of homozygousity
         } else{
-            snpfrag[var].homozygous_prior = log10(HOMOZYGOUS_PRIOR);
+            snpfrag[var].homozygous_prior = HOMOZYGOUS_PRIOR;
         }
         
         var++;

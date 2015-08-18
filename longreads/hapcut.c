@@ -37,7 +37,7 @@ int MAXCUT_ITER = 100; // maximum number of iterations for max-cut algorithm, if
 int FOSMIDS = 1; // if this variable is 1, the data is fosmid long read data 
 int SCORING_FUNCTION = 0; // 0 = MEC score, 1 = switches
 int THRESHOLD_TYPE = 0;
-float HOMOZYGOUS_PRIOR = 0.0001;
+float HOMOZYGOUS_PRIOR = -80; // assumed to be really unlikely
 int PRINT_FRAGMENT_SCORES = 0; // output the MEC/switch error score of erroneous reads/fragments to a file for evaluation 
 int MAX_MEMORY = 8000;
 int CONVERGE = 5; // stop iterations on a given component/block if exceed this many iterations since improvement
@@ -137,7 +137,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     
     /*****************************************************************************************************/
     if (RANDOM_START == 1) {
-        fprintf(stdout, "starting from a completely random solution SOLUTION \n");
+        fprintf(stdout, "starting from a completely random solution SOLUTION \n\n");
         for (i = 0; i < snps; i++) {
             if (snpfrag[i].frags == 0) {
                 HAP1[i] = '-';
@@ -192,7 +192,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
         ts1 = localtime(&now);
         strftime(buf, sizeof (buf), "%a %Y-%m-%d %H:%M:%S %Z", ts1);
         fprintf(stdout, "iter %d current haplotype MEC %f calls %d LL %f %s \n", iter, miscalls, (int) calls, ll, buf);
-        fprintf(stderr, "iter %d current haplotype MEC %f calls %d LL %f %s \n", iter, miscalls, (int) calls, ll, buf);
+        //fprintf(stderr, "iter %d current haplotype MEC %f calls %d LL %f %s \n", iter, miscalls, (int) calls, ll, buf);
         if ((iter % 5 == 0 && iter > 0)) {
             // new code added april 7 2012
             for (k = 0; k < components; k++) find_bestvariant_segment(Flist, fragments, snpfrag, clist, k, HAP1, HAP2);
@@ -200,7 +200,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
             sprintf(fn, "%s", outputfile); // newfile for every update to score....
             //sprintf(fn,"%s.%f",outputfile,miscalls);   // newfile for every update to score....
             fprintf(stdout, "OUTPUTTING HAPLOTYPE ASSEMBLY TO FILE %s\n", fn);
-            fprintf(stderr, "OUTPUTTING HAPLOTYPE ASSEMBLY TO FILE %s\n", fn);
+            //fprintf(stderr, "OUTPUTTING HAPLOTYPE ASSEMBLY TO FILE %s\n", fn);
             //if (VCFformat ==1) print_haplotypes_vcf(clist,components,HAP1,Flist,fragments,snpfrag,snps,fn);
             print_hapfile(clist, components, HAP1, Flist, fragments, snpfrag, variantfile, miscalls, fn, pruned);
 
@@ -212,7 +212,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
         for (k = 0; k < components; k++) // COMPUTATION OF TREE FOR EACH COMPONENT 
         {
             //if ((k*50)%components ==0) fprintf(stderr,"#");
-            if (iter == 0) fprintf(stdout, "\n component %d length %d phased %d %d...%d \n", k, clist[k].length, clist[k].phased, clist[k].offset, clist[k].lastvar);
+            if (iter == 0) fprintf(stdout, "component %d length %d phased %d %d...%d \n", k, clist[k].length, clist[k].phased, clist[k].offset, clist[k].lastvar);
             // call function for each component only if MEC > 0 april 17 2012
             if (clist[k].MEC > 0) converged_count += evaluate_cut_component(Flist, snpfrag, clist, k, slist, HAP1, iter);
             else converged_count++;
@@ -253,7 +253,7 @@ int main(int argc, char** argv) {
     if (MINCUTALGO == 2) RANDOM_START = 0;
     int i = 0, j = 0;
     int flag = 0;
-    float prune_threshold = 0.9, homozygous_threshold = 0.9;
+    float prune_threshold = 0.8, homozygous_threshold = 0.8;
     char fragfile[10000];
     char varfile[10000];
     char VCFfile[10000];

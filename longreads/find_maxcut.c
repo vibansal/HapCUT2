@@ -64,7 +64,7 @@ void single_variant_flips_LL(struct fragment* Flist, struct SNPfrags* snpfrag, s
 
 void single_variant_flips(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1) {
     int t = 0, i = 0, f = 0;
-    float newscore = clist[k].MEC;
+    float newscore = clist[k].bestMEC;
 
     for (t = 0; t < clist[k].phased; t++) {
         if (HAP1[slist[t]] == '1') HAP1[slist[t]] = '0';
@@ -83,9 +83,7 @@ void single_variant_flips(struct fragment* Flist, struct SNPfrags* snpfrag, stru
             else if (HAP1[slist[t]] == '0') HAP1[slist[t]] = '1';
             for (i = 0; i < snpfrag[slist[t]].frags; i++) {
                 f = snpfrag[slist[t]].flist[i];
-                newscore -= Flist[f].currscore;
                 update_fragscore(Flist, f, HAP1);
-                newscore += Flist[f].currscore;
             }
         } else {
             clist[k].MEC = newscore;
@@ -103,11 +101,9 @@ int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, str
     if (clist[k].iters_since_improvement > CONVERGE) {
         return 1; // return 1 only if converged
     }
-
     int i = 0, j = 0, t = 0;
     int f = 0;
     float cutvalue;
-    float newscore;
     /*
        i=0;for (j=clist[k].offset;j<clist[k].offset+clist[k].length;j++) 
        {
@@ -126,11 +122,9 @@ int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, str
     }
 
     clist[k].bestMEC = clist[k].MEC;
-    newscore = clist[k].MEC;
     // evaluate the impact of flipping of each SNP on MEC score, loop needed to improve MEC score
     single_variant_flips(Flist, snpfrag, clist, k, slist, HAP1);
 
-    newscore = clist[k].MEC;
     clist[k].MEC = 0;
     for (i = 0; i < clist[k].frags; i++) {
         update_fragscore(Flist, clist[k].flist[i], HAP1);
@@ -143,7 +137,6 @@ int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, str
     if (clist[k].MEC > 0) cutvalue = compute_goodcut(snpfrag, HAP1, slist, &clist[k], Flist, MINCUTALGO);
     // flip the subset of columns in slist with positive value 
     if (cutvalue <= 3 || MINCUTALGO == 2) { //getchar();
-        //printf("code reached here \n");
         for (i = 0; i < clist[k].phased; i++) {
             if (slist[i] > 0 && HAP1[slist[i]] == '1') HAP1[slist[i]] = '0';
             else if (slist[i] > 0 && HAP1[slist[i]] == '0') HAP1[slist[i]] = '1';
@@ -154,6 +147,12 @@ int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, str
             update_fragscore(Flist, clist[k].flist[i], HAP1);
             clist[k].MEC += Flist[clist[k].flist[i]].currscore;
         }
+        // this is to test whether cutting off haplotypes that are still changing but stuck at a log-likelihood is effective
+        // my suspicion is that haps are getting stuck at LLs where they twiddle between equivalent solutions.
+        if (clist[k].MEC == clist[k].bestMEC)
+            improved = 0;
+        
+        
         if (clist[k].MEC > clist[k].bestMEC) // new haplotype is not better than current haplotype, revert to old haplotype
         {
             improved = 0;
@@ -476,7 +475,7 @@ float subtractlogs(float a, float b) {
 void prune_snps(char* pruned, float prune_threshold, float homozygous_threshold, int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1) {
     int i, j, f, num_to_prune;
     char temp1;
-    float P_data_H, P_data_Hf, P_data_H00, P_data_H11, total;
+    float P_data_H, P_data_Hf, P_data_H00, P_data_H11, total, temp;
     float log_hom_prior; 
     float log_het_prior;
     struct hap_prob* hap_probs = malloc(snps * sizeof (struct hap_prob));
@@ -537,12 +536,22 @@ void prune_snps(char* pruned, float prune_threshold, float homozygous_threshold,
         hap_probs[i].post_hapf = log_het_prior + P_data_Hf - total;
         hap_probs[i].post_00 = log_hom_prior + P_data_H00 - total;
         hap_probs[i].post_11 = log_hom_prior + P_data_H11 - total;
-
     }
 
     // change the status of SNPs that are above the homozygous threshold
     // doing this in a separate loop just to be more decoupled
     for (i = 0; i < snps; i++) {
+        // flip the haplotype at this position if necessary
+        if (hap_probs[i].post_hapf > hap_probs[i].post_hap){
+            temp = hap_probs[i].post_hap;
+            hap_probs[i].post_hap = hap_probs[i].post_hapf;
+            hap_probs[i].post_hapf = temp;
+            if (HAP1[i] == '1')
+                HAP1[i] = '0';
+            else if (HAP1[i] == '0')
+                HAP1[i] = '1';
+        }                
+        
         // indexing by HAP[i] would do the exact same thing but this way it's robust to qsort() and therefore code structural changes.
         if (hap_probs[i].post_00 > log10(homozygous_threshold))
             pruned[hap_probs[i].snp_ix] = 2; // 2 specifies 00 homozygous
