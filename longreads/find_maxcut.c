@@ -136,37 +136,37 @@ int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, str
     cutvalue = 10;
     if (clist[k].MEC > 0) cutvalue = compute_goodcut(snpfrag, HAP1, slist, &clist[k], Flist, MINCUTALGO);
     // flip the subset of columns in slist with positive value 
-    if (cutvalue <= 3 || MINCUTALGO == 2) { //getchar();
+    //if (cutvalue <= 3 || MINCUTALGO == 2) { //getchar();
+    for (i = 0; i < clist[k].phased; i++) {
+        if (slist[i] > 0 && HAP1[slist[i]] == '1') HAP1[slist[i]] = '0';
+        else if (slist[i] > 0 && HAP1[slist[i]] == '0') HAP1[slist[i]] = '1';
+    }
+    clist[k].bestMEC = clist[k].MEC;
+    clist[k].MEC = 0;
+    for (i = 0; i < clist[k].frags; i++) {
+        update_fragscore(Flist, clist[k].flist[i], HAP1);
+        clist[k].MEC += Flist[clist[k].flist[i]].currscore;
+    }
+    // this is to test whether cutting off haplotypes that are still changing but stuck at a log-likelihood is effective
+    // my suspicion is that haps are getting stuck at LLs where they twiddle between equivalent solutions.
+    if (clist[k].MEC == clist[k].bestMEC)
+        improved = 0;
+    
+    
+    if (clist[k].MEC > clist[k].bestMEC) // new haplotype is not better than current haplotype, revert to old haplotype
+    {
+        improved = 0;
         for (i = 0; i < clist[k].phased; i++) {
             if (slist[i] > 0 && HAP1[slist[i]] == '1') HAP1[slist[i]] = '0';
             else if (slist[i] > 0 && HAP1[slist[i]] == '0') HAP1[slist[i]] = '1';
         }
-        clist[k].bestMEC = clist[k].MEC;
         clist[k].MEC = 0;
         for (i = 0; i < clist[k].frags; i++) {
             update_fragscore(Flist, clist[k].flist[i], HAP1);
             clist[k].MEC += Flist[clist[k].flist[i]].currscore;
         }
-        // this is to test whether cutting off haplotypes that are still changing but stuck at a log-likelihood is effective
-        // my suspicion is that haps are getting stuck at LLs where they twiddle between equivalent solutions.
-        if (clist[k].MEC == clist[k].bestMEC)
-            improved = 0;
-        
-        
-        if (clist[k].MEC > clist[k].bestMEC) // new haplotype is not better than current haplotype, revert to old haplotype
-        {
-            improved = 0;
-            for (i = 0; i < clist[k].phased; i++) {
-                if (slist[i] > 0 && HAP1[slist[i]] == '1') HAP1[slist[i]] = '0';
-                else if (slist[i] > 0 && HAP1[slist[i]] == '0') HAP1[slist[i]] = '1';
-            }
-            clist[k].MEC = 0;
-            for (i = 0; i < clist[k].frags; i++) {
-                update_fragscore(Flist, clist[k].flist[i], HAP1);
-                clist[k].MEC += Flist[clist[k].flist[i]].currscore;
-            }
-        } else clist[k].bestMEC = clist[k].MEC; // update current haplotype
-    }
+    } else clist[k].bestMEC = clist[k].MEC; // update current haplotype
+    //}
     if (iter > 0 && clist[k].MEC > 0) fprintf(stdout, "component %d offset %d length %d phased %d  calls %d MEC %0.1f cutvalue %f bestMEC %0.2f\n", k, clist[k].offset, clist[k].length, clist[k].phased, clist[k].calls, clist[k].MEC, cutvalue, clist[k].bestMEC);
 
     if (improved) {
