@@ -47,7 +47,7 @@ int NEW_CODE = 0; // likelihood based, max-cut calculated using partial likeliho
 
 /***********************************************************************************************************/
 
-int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* outputfile, int maxiter_hapcut, float prune_threshold, float homozygous_threshold) {
+int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* outputfile, int maxiter_hapcut, float prune_threshold, float homozygous_threshold, float switch_threshold) {
     // IMP NOTE: all SNPs start from 1 instead of 0 and all offsets are 1+
     fprintf(stderr, "calling MAXCUT based haplotype assembly algorithm\n");
     int fragments = 0, iter = 0, components = 0;
@@ -228,7 +228,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
 
     // POST-PROCESSING WORK: PRUNE SNPS AND REMOVE LIKELY HOMOZYGOUS VARIANTS
     if (prune_threshold > 0) {
-        prune_snps(pruned, prune_threshold, homozygous_threshold, snps, Flist, snpfrag, HAP1);
+        prune_snps(pruned, prune_threshold, homozygous_threshold, switch_threshold, snps, Flist, snpfrag, clist, HAP1);
     }
     char outputfile_pruned[1000];
     strcpy(outputfile_pruned, outputfile);
@@ -251,7 +251,7 @@ int main(int argc, char** argv) {
     if (MINCUTALGO == 2) RANDOM_START = 0;
     int i = 0, j = 0;
     int flag = 0;
-    float prune_threshold = 0.8, homozygous_threshold = 0.8;
+    float prune_threshold = 0.8, homozygous_threshold = 0.8, switch_threshold = 0.8;
     char fragfile[10000];
     char varfile[10000];
     char VCFfile[10000];
@@ -286,6 +286,8 @@ int main(int argc, char** argv) {
             prune_threshold = atof(argv[i + 1]);
         } else if (strcmp(argv[i], "--homozygous_threshold") == 0 || strcmp(argv[i], "--ht") == 0) {
             homozygous_threshold = atof(argv[i + 1]);
+        }else if (strcmp(argv[i], "--switch_threshold") == 0 || strcmp(argv[i], "--st") == 0) {
+            switch_threshold = atof(argv[i + 1]);
         } else if (strcmp(argv[i], "--threshold_type") == 0 || strcmp(argv[i], "--tt") == 0) // type of threshold (1 for fraction of SNPs to prune, 0 for posterior probability cutoff)
         {
             THRESHOLD_TYPE = atoi(argv[i + 1]);
@@ -319,10 +321,10 @@ int main(int argc, char** argv) {
     } else {
         if (VCFformat == 1) {
             fprintf(stderr, "\n\nfragment file: %s\nvariantfile (VCF format):%s\nhaplotypes will be output to file: %s\niterations of maxcut algorithm: %d\nQVoffset: %d\n\n", fragfile, VCFfile, hapfile, maxiter, QVoffset);
-            maxcut_haplotyping(fragfile, VCFfile, 0, hapfile, maxiter, prune_threshold, homozygous_threshold);
+            maxcut_haplotyping(fragfile, VCFfile, 0, hapfile, maxiter, prune_threshold, homozygous_threshold, switch_threshold);
         } else {
             fprintf(stderr, "\n\nfragment file: %s\nvariantfile (variant format):%s\nhaplotypes will be output to file: %s\niterations of maxcut algorithm: %d\nQVoffset: %d\n\n", fragfile, varfile, hapfile, maxiter, QVoffset);
-            maxcut_haplotyping(fragfile, varfile, 0, hapfile, maxiter, prune_threshold, homozygous_threshold);
+            maxcut_haplotyping(fragfile, varfile, 0, hapfile, maxiter, prune_threshold, homozygous_threshold, switch_threshold);
         }
     }
     return 1;
