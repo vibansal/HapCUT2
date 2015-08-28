@@ -23,7 +23,7 @@ extern float HOMOZYGOUS_PRIOR;
 
 int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1, int iter);
 float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, struct BLOCK* component, struct fragment* Flist, int algo);
-void prune_snps(char* pruned, float prune_threshold, float homozygous_threshold, float switch_threshold, int snps, struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, char* HAP1);
+void prune_snps(char* pruned, float prune_threshold, float homozygous_threshold, int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1);
 float addlogs(float a, float b);
 
 void single_variant_flips_LL(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1) {
@@ -472,10 +472,10 @@ float subtractlogs(float a, float b) {
 // the fraction to prune is determined by prune_threshold if THRESHOLD_TYPE is 1.
 // else, the default behavior is that prune_threshold is the posterior probability cutoff.
 
-void prune_snps(char* pruned, float prune_threshold, float homozygous_threshold, float switch_threshold, int snps, struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, char* HAP1) {
-    int i, j, k, f, num_to_prune;
+void prune_snps(char* pruned, float prune_threshold, float homozygous_threshold, int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1) {
+    int i, j, f, num_to_prune;
     char temp1;
-    float P_data_H, P_data_Hf, P_data_H00, P_data_H11, P_data_Hsw, total, temp;
+    float P_data_H, P_data_Hf, P_data_H00, P_data_H11, total, temp;
     float log_hom_prior; 
     float log_het_prior;
     struct hap_prob* hap_probs = malloc(snps * sizeof (struct hap_prob));
@@ -495,7 +495,6 @@ void prune_snps(char* pruned, float prune_threshold, float homozygous_threshold,
             hap_probs[i].post_hapf = 0;
             hap_probs[i].post_00 = 0;
             hap_probs[i].post_11 = 0;
-            hap_probs[i].post_sw = 0;
             continue;
         }
 
@@ -506,26 +505,23 @@ void prune_snps(char* pruned, float prune_threshold, float homozygous_threshold,
         P_data_Hf = 0;
         P_data_H00 = 0;
         P_data_H11 = 0;
-        P_data_Hsw = 0; // switch error at i
 
         //looping over fragments overlapping i and sum up read probabilities
         for (j = 0; j < snpfrag[i].frags; j++) {
 
             f = snpfrag[i].flist[j];
             // normal haplotypes
-            P_data_H += simple_fragscore(Flist, f, HAP1, -1, -1);
-            // haplotypes with switch error starting at i
-            P_data_Hsw += simple_fragscore(Flist, f, HAP1, -1, i);
+            P_data_H += simple_fragscore(Flist, f, HAP1, -1);
             // haplotypes with i flipped
             if (HAP1[i] == '1') HAP1[i] = '0';
             else if (HAP1[i] == '0') HAP1[i] = '1';
-            P_data_Hf += simple_fragscore(Flist, f, HAP1, -1, -1);
+            P_data_Hf += simple_fragscore(Flist, f, HAP1, -1);
             // haplotypes with i homozygous 00
             HAP1[i] = '0';
-            P_data_H00 += simple_fragscore(Flist, f, HAP1, i, -1);
+            P_data_H00 += simple_fragscore(Flist, f, HAP1, i);
             // haplotypes with i homozygous 11
             HAP1[i] = '1';
-            P_data_H11 += simple_fragscore(Flist, f, HAP1, i, -1);
+            P_data_H11 += simple_fragscore(Flist, f, HAP1, i);
             //return haplotype to original value
             HAP1[i] = temp1;
         }
@@ -540,20 +536,11 @@ void prune_snps(char* pruned, float prune_threshold, float homozygous_threshold,
         hap_probs[i].post_hapf = log_het_prior + P_data_Hf - total;
         hap_probs[i].post_00 = log_hom_prior + P_data_H00 - total;
         hap_probs[i].post_11 = log_hom_prior + P_data_H11 - total;
-        hap_probs[i].post_sw = P_data_Hsw - addlogs(P_data_H, P_data_Hsw);
     }
 
-    // figure out if block should be split at this position, or switched
-    for (i = 0; i < snps; i++) {
-        //fprintf(stderr, "%f  %f\n", 1-pow(10,hap_probs[i].post_sw),pow(10,hap_probs[i].post_sw));
-        
-        if (hap_probs[i].post_hap < log10(prune_threshold)){
-            pruned[hap_probs[i].snp_ix] = 1;
-            continue;
-        }
-           
     // change the status of SNPs that are above the homozygous threshold
     // doing this in a separate loop just to be more decoupled
+    for (i = 0; i < snps; i++) {
         // flip the haplotype at this position if necessary
         if (hap_probs[i].post_hapf > hap_probs[i].post_hap){
             temp = hap_probs[i].post_hap;
@@ -566,33 +553,27 @@ void prune_snps(char* pruned, float prune_threshold, float homozygous_threshold,
         }                
         
         // indexing by HAP[i] would do the exact same thing but this way it's robust to qsort() and therefore code structural changes.
-        if (hap_probs[i].post_00 > log10(homozygous_threshold)){
+        if (hap_probs[i].post_00 > log10(homozygous_threshold))
             pruned[hap_probs[i].snp_ix] = 2; // 2 specifies 00 homozygous
-            continue;
-        }else if (hap_probs[i].post_11 > log10(homozygous_threshold)){ // 3 specifies 11 homozygous
+        else if (hap_probs[i].post_11 > log10(homozygous_threshold)) // 3 specifies 11 homozygous
             pruned[hap_probs[i].snp_ix] = 3;
-            continue;
-        }
-        
-        if (hap_probs[i].post_sw > log10(switch_threshold)){
-            // block should be switched here
-            for (j = 0; j < clist[snpfrag[i].component].length; j++){
-                if (clist[snpfrag[i].component].slist[j] >= i){
-                    // need to switch this position
-                    if (HAP1[clist[snpfrag[i].component].slist[j]] == '1')
-                        HAP1[clist[snpfrag[i].component].slist[j]] = '0';
-                    else if (clist[snpfrag[i].component].slist[j] == '0')
-                        HAP1[clist[snpfrag[i].component].slist[j]] = '1';
-  
-                }
-            }
-            continue;
-        }else if (subtractlogs(0, hap_probs[i].post_sw) < log10(switch_threshold)){
-            // probability that there wasn't a switch error is below threshold
-            // block should be split here
-            pruned[i] = 4; // 4 specifies block split
-        }
+    }
 
+    if (THRESHOLD_TYPE == 1) {
+        // prune threshold is a fraction of SNPs (useful mostly for fixing prune rate to compare tools)
+
+        // sort haplotype probs so we can select the lowest values to prune
+        qsort(hap_probs, snps, sizeof (struct hap_prob), compare_hap_probs);
+        num_to_prune = (int) (prune_threshold * snps);
+        // mark pruned SNPs as such in pruned array
+        for (i = 0; i < num_to_prune; i++)
+            pruned[hap_probs[i].snp_ix] = 1;
+    } else {
+        // prune threshold is a posterior probability (this is the default)
+        for (i = 0; i < snps; i++) {
+            if (hap_probs[i].post_hap < log10(prune_threshold))
+                pruned[hap_probs[i].snp_ix] = 1;
+        }
     }
 
     free(hap_probs);
