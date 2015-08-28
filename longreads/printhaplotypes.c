@@ -46,9 +46,6 @@ int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
             //if (snpfrag[clist[i].offset+k].component == snpfrag[clist[i].offset].component)	fprintf(fp,"%d\t%c\t%c\t%s\t%d\t%s\t%s\t%s\n",t+1,'-','-',snpfrag[t].chromosome,snpfrag[t].position,snpfrag[t].allele0,snpfrag[t].allele1,snpfrag[t].genotypes); 
             //if (snpfrag[clist[i].offset+k].component == snpfrag[clist[i].offset].component)	
             {
-                if (pruned[i] == 4){
-                    fprintf(fp, "******** \nBLOCK: prematurely split sub-block\n");
-                }
                 if (h1[t] == '0') c = '1';
                 else if (h1[t] == '1') c = '0';
                 delta = snpfrag[t].L00 - snpfrag[t].L01;

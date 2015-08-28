@@ -113,7 +113,6 @@ struct hap_prob {
     float post_hapf; // posterior probability of flipped phasing
     float post_11; //posterior probability of homozygous 11
     float post_00; //posterior probability of homozygous 00
-    float post_sw; // posterior probability of switch error
 };
 
 #endif

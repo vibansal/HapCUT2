@@ -23,7 +23,7 @@ int mecscore(struct fragment* Flist, int fragments, char* h, float* ll, float* c
 float compute_fragscore(struct fragment* Flist, int f, char* h, float* ll);
 void update_fragscore(struct fragment* Flist, int f, char* h);
 void calculate_fragscore(struct fragment* Flist, int f, char* h, float* mec_ll, float* chimeric_ll);
-float simple_fragscore(struct fragment* Flist, int f, char* h, int homozygous,  int switch_ix);
+float simple_fragscore(struct fragment* Flist, int f, char* h, int homozygous);
 
 void frag_cluster_initialize(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* h1, int snps, struct BLOCK* clist, int comps);
 
