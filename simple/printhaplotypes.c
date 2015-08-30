@@ -1,4 +1,7 @@
 
+#include "common.h"
+
+
 // THIS FUNCTION PRINTS THE CURRENT HAPLOTYPE ASSEMBLY in a new file block by block 
 
 void print_hapcut_options() {
@@ -25,72 +28,57 @@ void print_hapcut_options() {
 
 }
 
-int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* fname, char* outfile, char* pruned) {
+void print_hapfile(struct component* clist, int components, int snps, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* fname, char* outfile, char* pruned) {
     // print a new file containing one block phasing and the corresponding fragments 
-    int i = 0, t = 0, k = 0, span = 0;
+    int i = 0, j=0, t = 0, numblocks=0, firstSNP = 1;
     char c, c1, c2;
-    //char fn[200]; sprintf(fn,"%s-%d.phase",fname,score); 
     FILE* fp;
     fp = fopen(outfile, "w");
-    float delta = 0;
-
-    for (i = 0; i < blocks; i++) {
-        span = snpfrag[clist[i].lastvar].position - snpfrag[clist[i].offset].position;
-        fprintf(fp, "BLOCK: offset: %d len: %d phased: %d ", clist[i].offset + 1, clist[i].length, clist[i].phased);
-        fprintf(fp, "SPAN: %d MECscore %2.2f fragments %d\n", span, clist[i].bestMEC, clist[i].frags);
-        for (k = 0; k < clist[i].phased; k++) {
-            t = clist[i].slist[k];
-            //fprintf(fp,"frags %d | ",snpfrag[t].frags); 
-            //if (clist[i].haplotype[k] =='-') fprintf(fp,"%s_%s_%d_%s_%s_%s\t%10c\t%10c\n",snpfrag[t].id,snpfrag[t].chromosome,snpfrag[t].position,snpfrag[t].allele0,snpfrag[t].allele1,snpfrag[t].genotypes,'-','-'); 
-            // changed code here to use the component
-            //if (snpfrag[clist[i].offset+k].component == snpfrag[clist[i].offset].component)	fprintf(fp,"%d\t%c\t%c\t%s\t%d\t%s\t%s\t%s\n",t+1,'-','-',snpfrag[t].chromosome,snpfrag[t].position,snpfrag[t].allele0,snpfrag[t].allele1,snpfrag[t].genotypes); 
-            //if (snpfrag[clist[i].offset+k].component == snpfrag[clist[i].offset].component)	
-            {
-                if (pruned[i] == 4){
-                    fprintf(fp, "******** \nBLOCK: prematurely split sub-block\n");
-                }
-                if (h1[t] == '0') c = '1';
-                else if (h1[t] == '1') c = '0';
-                delta = snpfrag[t].L00 - snpfrag[t].L01;
-                if (snpfrag[t].L11 - snpfrag[t].L01 > delta) delta = snpfrag[t].L11 - snpfrag[t].L01;
-                // print this line to keep consistency with old format
-                // if SNP was pruned then print '-'s
-                if (pruned[t] == 1)
-                    fprintf(fp, "%d\t-\t-\t", t + 1);
-                else if (pruned[t] == 2)
-                    fprintf(fp, "%d\t0\t0\t", t + 1);
-                else if (pruned[t] == 3)
-                    fprintf(fp, "%d\t1\t1\t", t + 1);
-                else {
-                    if (snpfrag[t].genotypes[0] == '2' || snpfrag[t].genotypes[2] == '2') {
-                        //fprintf(stderr,"tri-allelic variant %d:%d %s \n",t,snpfrag[t].position,snpfrag[t].genotypes);
-                        if (h1[t] == '0') {
-                            c1 = snpfrag[t].genotypes[0];
-                            c2 = snpfrag[t].genotypes[2];
-                        } else if (h1[t] == '1') {
-                            c2 = snpfrag[t].genotypes[0];
-                            c1 = snpfrag[t].genotypes[2];
-                        }
-                        fprintf(fp, "%d\t%c\t%c\t", t + 1, c1, c2); // two alleles that are phased in VCF like format
-                    } else {
-                        fprintf(fp, "%d\t%c\t%c\t", t + 1, h1[t], c);
-                    }
-                }
-                // changed 07/20/2015, last value is likelihood of current phase vs flip 0|1 -> 1|0 
-                fprintf(fp, "%s\t%d\t%s\t%s\t%s\t%d,%d:%0.1f,%0.1f,%0.1f:%0.1f:%0.1f:%0.2f", snpfrag[t].chromosome, snpfrag[t].position, snpfrag[t].allele0, snpfrag[t].allele1, snpfrag[t].genotypes, snpfrag[t].R0, snpfrag[t].R1, snpfrag[t].L00, snpfrag[t].L01, snpfrag[t].L11, delta, snpfrag[t].rMEC, snpfrag[t].L01 - snpfrag[t].L10);
-                if (delta >= 3 && snpfrag[t].rMEC >= 2) fprintf(fp, ":FV");
-
-                // print genotype read counts and likelihoods
-                if (snpfrag[t].G00 < 0 || snpfrag[t].G01 < 0 || snpfrag[t].G11 < 0) fprintf(fp, "\t%d,%d:%0.1f,%0.1f,%0.1f\n", snpfrag[t].A0, snpfrag[t].A1, snpfrag[t].G00, snpfrag[t].G01, snpfrag[t].G11);
-                else fprintf(fp, "\n");
-                //fprintf(fp,"%s_%s_%d_%s_%s_%s\t%10c\t%10c\tDELTA:%f\n",snpfrag[t].id,snpfrag[t].chromosome,snpfrag[t].position,snpfrag[t].allele0,snpfrag[t].allele1,snpfrag[t].genotypes,h1[t],c,snpfrag[t].deltaLL); 
-                //fprintf(fp,"%s\t%c\t%c \n",snpfrag[t].id,h1[t],c); 
+    
+    for (i = 0; i < components; i++) {
+        firstSNP = 1;
+        for (j = 0; j < clist[i].size; j++){
+            t = clist[i].slist[j];
+            if (h1[t] == '-') continue;
+            
+            if (firstSNP || pruned[t] == 4){
+                if (numblocks > 0) fprintf(fp, "******** \n");
+                fprintf(fp, "BLOCK: offset: %d\n", t+1);
+                numblocks++;
+                firstSNP = 0;
             }
+
+            if (h1[t] == '0') c = '1';
+            else if (h1[t] == '1') c = '0';
+
+
+            // print this line to keep consistency with old format
+            // if SNP was pruned then print '-'s
+            if (pruned[t] == 1)
+                fprintf(fp, "%d\t-\t-", t + 1);
+            else if (pruned[t] == 2)
+                fprintf(fp, "%d\t0\t0", t + 1);
+            else if (pruned[t] == 3)
+                fprintf(fp, "%d\t1\t1", t + 1);
+            else{
+                if (snpfrag[t].genotypes[0] == '2' || snpfrag[t].genotypes[2] == '2') {
+                    //fprintf(stderr,"tri-allelic variant %d:%d %s \n",t,snpfrag[t].position,snpfrag[t].genotypes);
+                    if (h1[t] == '0') {
+                        c1 = snpfrag[t].genotypes[0];
+                        c2 = snpfrag[t].genotypes[2];
+                    } else if (h1[t] == '1') {
+                        c2 = snpfrag[t].genotypes[0];
+                        c1 = snpfrag[t].genotypes[2];
+                    }
+                    fprintf(fp, "%d\t%c\t%c", t + 1, c1, c2); // two alleles that are phased in VCF like format
+                } else {
+                    fprintf(fp, "%d\t%c\t%c", t + 1, h1[t], c);
+                }
+            }
+            fprintf(fp, "\n");
         }
-        if (i < blocks - 1) fprintf(fp, "******** \n");
     }
     fclose(fp);
-    return 1;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

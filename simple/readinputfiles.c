@@ -12,7 +12,7 @@ int fragment_compare(const void *a, const void *b) {
 
 
 int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragments) {
-    int i = 0, j = 0, k = 0, t = 0, t1 = 0;
+    int i = 0, j = 0, k = 0, t = 0, t1 = 0, snp_ix;
     int blocks = 0, type = 0, l = 0, biter = 0, offset = 0;
     char buffer[MAXBUF];
     char blockseq[5000];
@@ -84,21 +84,18 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
                     Flist[i].calls += Flist[i].list[l].len;
                 }
             } else if (type == 3) {
+                
+                // set haplotype to be non-empty at this position
+
                 Flist[i].list[biter].hap = (char*) malloc(t + 1);
                 Flist[i].list[biter].qv = (char*) malloc(t + 1);
                 Flist[i].list[biter].len = t;
                 Flist[i].list[biter].pv = (float*) malloc(sizeof (float)*Flist[i].list[biter].len);
                 Flist[i].list[biter].p1 = (float*) malloc(sizeof (float)*Flist[i].list[biter].len);
 
-                for (l = 0; l < t; l++) Flist[i].list[biter].hap[l] = blockseq[l];
-                //for (l=0;l<t;l++) Flist[i].list[biter].pv[l] = 0.005; for (l=0;l<t;l++) Flist[i].list[biter].qv[l] = 'A';
-
-                //for (l=0;l<t;l+=2) Flist[i].list[biter].qv[l/2] = blockseq[l+1];
-                //for (l=0;l<t;l+=2) Flist[i].list[biter].pv[l/2] = pow(0.1,(float)(blockseq[l+1]-QVoffset)/10); 
-                //for (t1=0;t1<Flist[i].list[biter].len;t1++) Flist[i].list[biter].pv[t1] = 0.01;
-
-                //Flist[i].list[biter].post = (float*)malloc(sizeof(float)*Flist[i].list[biter].len); // how many times it matches 
-                //for (t1=0;t1<Flist[i].list[biter].len;t1++) Flist[i].list[biter].post[t1] =0;
+                for (l = 0; l < t; l++)
+                    Flist[i].list[biter].hap[l] = blockseq[l];
+                
                 type = 2;
                 biter++;
             }
@@ -107,9 +104,7 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
     }
     fclose(ff);
     qsort(Flist, fragments, sizeof (struct fragment), fragment_compare);
-    //for (i=0;i<fragments;i++)  fprintf(stdout,"fragment %d blocks %d offset %d\n",i,Flist[i].blocks,Flist[i].list[0].offset);
-    /****************************** READ FRAGMENT QUALITY FILE*************************************************/
-    //	ff = fopen(qualityfile,"r"); if (ff == NULL || QV == -1) fprintf(stderr,"couldn't open fragment QV file \n");
+
     return fragments;
 }
 
@@ -257,18 +252,5 @@ int read_vcffile(char* vcffile, struct SNPfrags* snpfrag, int snps) {
         var++;
     }
     fclose(fp);
-    return 1;
-}
-
-int count_variants(char* variantfile) {
-    int snps = 0;
-    char buffer[MAXBUF];
-    FILE* ff = fopen(variantfile, "r");
-    if (ff == NULL) {
-        fprintf(stderr, "couldn't open variant file %s\n", variantfile);
-        exit(0);
-    }
-    while (fgets(buffer, MAXBUF, ff) != NULL) snps++;
-    fclose(ff);
-    return snps;
+    return 0;
 }
