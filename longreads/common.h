@@ -10,6 +10,7 @@ extern int FOSMIDS;
 extern int SCORING_FUNCTION;
 #define MAXBUF 10000
 
+#define flip(allele) if (allele == '1') allele = '0'; else if (allele == '0') allele = '1';
 //fragment block
 
 struct block {
@@ -97,6 +98,8 @@ struct SNPfrags {
     float L00, L01, L10, L11, Lnovar; // change in likelihood if this SNP is made homozygous or removed
     float rMEC;
     int R0, R1; // counts of bases supporting allele0 and allele1
+    int prune_status;
+    char split;
 
     // added on april 24 2012 for singleton reads
     int A0, A1;

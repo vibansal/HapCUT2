@@ -1,4 +1,7 @@
 
+#include "common.h"
+
+
 // THIS FUNCTION PRINTS THE CURRENT HAPLOTYPE ASSEMBLY in a new file block by block 
 
 void print_hapcut_options() {
@@ -25,7 +28,7 @@ void print_hapcut_options() {
 
 }
 
-int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* fname, int score, char* outfile, char* pruned) {
+int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* fname, int score, char* outfile) {
     // print a new file containing one block phasing and the corresponding fragments 
     int i = 0, t = 0, k = 0, span = 0;
     char c, c1, c2;
@@ -39,7 +42,12 @@ int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
         fprintf(fp, "BLOCK: offset: %d len: %d phased: %d ", clist[i].offset + 1, clist[i].length, clist[i].phased);
         fprintf(fp, "SPAN: %d MECscore %2.2f fragments %d\n", span, clist[i].bestMEC, clist[i].frags);
         for (k = 0; k < clist[i].phased; k++) {
+
             t = clist[i].slist[k];
+            if (snpfrag[t].split == 1){
+                fprintf(fp, "******** \n");
+                fprintf(fp, "BLOCK: offset: %d\n", t+1);
+            }
             //fprintf(fp,"frags %d | ",snpfrag[t].frags); 
             //if (clist[i].haplotype[k] =='-') fprintf(fp,"%s_%s_%d_%s_%s_%s\t%10c\t%10c\n",snpfrag[t].id,snpfrag[t].chromosome,snpfrag[t].position,snpfrag[t].allele0,snpfrag[t].allele1,snpfrag[t].genotypes,'-','-'); 
             // changed code here to use the component
@@ -52,11 +60,11 @@ int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
                 if (snpfrag[t].L11 - snpfrag[t].L01 > delta) delta = snpfrag[t].L11 - snpfrag[t].L01;
                 // print this line to keep consistency with old format
                 // if SNP was pruned then print '-'s
-                if (pruned[t] == 1)
+                if (snpfrag[t].prune_status == 1)
                     fprintf(fp, "%d\t-\t-\t", t + 1);
-                else if (pruned[t] == 2)
+                else if (snpfrag[t].prune_status == 2)
                     fprintf(fp, "%d\t0\t0\t", t + 1);
-                else if (pruned[t] == 3)
+                else if (snpfrag[t].prune_status == 3)
                     fprintf(fp, "%d\t1\t1\t", t + 1);
                 else {
                     if (snpfrag[t].genotypes[0] == '2' || snpfrag[t].genotypes[2] == '2') {

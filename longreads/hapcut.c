@@ -27,6 +27,7 @@
 #include "removefalsehets.c"
 //#define MAXBUF 10000
 
+
 int RANDOM_START = 1;
 int MINCUTALGO = 1;
 int QVoffset = 33;
@@ -36,7 +37,7 @@ int MINQ = 0; // additional base quality filter in hapcut added april 18 2012
 int MAXCUT_ITER = 100; // maximum number of iterations for max-cut algorithm, if this is proportional to 'N' -> complexity is 'N^2', added march 13 2013
 int FOSMIDS = 1; // if this variable is 1, the data is fosmid long read data 
 int SCORING_FUNCTION = 0; // 0 = MEC score, 1 = switches
-int THRESHOLD_TYPE = 0;
+float THRESHOLD = 0.8;
 float HOMOZYGOUS_PRIOR = -80; // assumed to be really unlikely
 int PRINT_FRAGMENT_SCORES = 0; // output the MEC/switch error score of erroneous reads/fragments to a file for evaluation 
 int MAX_MEMORY = 8000;
@@ -45,9 +46,7 @@ int NEW_CODE = 0; // likelihood based, max-cut calculated using partial likeliho
 
 #include "find_maxcut.c"   // function compute_good_cut 
 
-/***********************************************************************************************************/
-
-int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* outputfile, int maxiter_hapcut, float prune_threshold, float homozygous_threshold) {
+int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* outputfile, int maxiter_hapcut) {
     // IMP NOTE: all SNPs start from 1 instead of 0 and all offsets are 1+
     fprintf(stderr, "calling MAXCUT based haplotype assembly algorithm\n");
     int fragments = 0, iter = 0, components = 0;
@@ -134,6 +133,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     else read_vcffile(variantfile, snpfrag, snps);
     
     /*****************************************************************************************************/
+    int count=0;
     if (RANDOM_START == 1) {
         fprintf(stdout, "starting from a completely random solution SOLUTION \n\n");
         for (i = 0; i < snps; i++) {
@@ -141,6 +141,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
                 HAP1[i] = '-';
                 HAP2[i] = '-';
             } else {
+                count++;
                 if (drand48() < 0.5) {
                     HAP1[i] = '0';
                     HAP2[i] = '1';
@@ -151,6 +152,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
             }
         }
     }
+
     for (i = 0; i < snps; i++) {
         besthap_mec[i] = HAP1[i];
     }
@@ -181,7 +183,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     //	annealing_haplotyping_full(Flist,fragments,snpfrag,snps,maxiter,HAP1,HAP2,0); return 1;
 
     int trueMEC = 0;
-    char* pruned = calloc(snps, sizeof (char)); // bit array that indicates pruned SNPs, initialize to 0 with calloc
+    
     /************************** RUN THE MAX_CUT ALGORITHM ITERATIVELY TO IMPROVE MEC SCORE*********************************/
     for (iter = 0; iter < maxiter_hapcut; iter++) {
         trueMEC = mecscore(Flist, fragments, HAP1, &ll, &calls, &miscalls);
@@ -200,7 +202,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
             fprintf(stdout, "OUTPUTTING HAPLOTYPE ASSEMBLY TO FILE %s\n", fn);
             //fprintf(stderr, "OUTPUTTING HAPLOTYPE ASSEMBLY TO FILE %s\n", fn);
             //if (VCFformat ==1) print_haplotypes_vcf(clist,components,HAP1,Flist,fragments,snpfrag,snps,fn);
-            print_hapfile(clist, components, HAP1, Flist, fragments, snpfrag, variantfile, miscalls, fn, pruned);
+            print_hapfile(clist, components, HAP1, Flist, fragments, snpfrag, variantfile, miscalls, fn);
 
             // do this only if some option is specified 
             if (PRINT_FRAGMENT_SCORES == 1) print_fragmentmatrix_MEC(Flist, fragments, HAP1, outputfile);
@@ -221,23 +223,19 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
         }
     }
     for (k = 0; k < components; k++) find_bestvariant_segment(Flist, fragments, snpfrag, clist, k, HAP1, HAP2);
-    sprintf(fn, "%s", outputfile); // newfile for every update to score....
+    //sprintf(fn, "%s", outputfile); // newfile for every update to score....
     fprintf(stdout, "OUTPUTTING HAPLOTYPE ASSEMBLY TO FILE %s\n", fn);
     //fprintf(stderr, "OUTPUTTING HAPLOTYPE ASSEMBLY TO FILE %s\n", fn);
-    print_hapfile(clist, components, HAP1, Flist, fragments, snpfrag, variantfile, miscalls, fn, pruned);
+    //print_hapfile(clist, components, HAP1, Flist, fragments, snpfrag, variantfile, miscalls, fn);
 
-    // POST-PROCESSING WORK: PRUNE SNPS AND REMOVE LIKELY HOMOZYGOUS VARIANTS
-    if (prune_threshold > 0) {
-        prune_snps(pruned, prune_threshold, homozygous_threshold, snps, Flist, snpfrag, HAP1);
-    }
-    char outputfile_pruned[1000];
-    strcpy(outputfile_pruned, outputfile);
-    strcat(outputfile_pruned, ".pruned");
-    fprintf(stdout, "OUTPUTTING PRUNED HAPLOTYPE ASSEMBLY TO FILE %s\n", outputfile_pruned);
+    // POST-PROCESSING WORK: TWEAK HAPLOTYPE, PRUNE SNPS AND REMOVE LIKELY HOMOZYGOUS VARIANTS
+    prune_snps(snps, Flist, snpfrag, HAP1);
+    //split_blocks(HAP1, clist, components, Flist, snpfrag);
+    
+    fprintf(stdout, "OUTPUTTING PRUNED HAPLOTYPE ASSEMBLY TO FILE %s\n", outputfile);
     //if (VCFformat ==1) print_haplotypes_vcf(clist,components,HAP1,Flist,fragments,snpfrag,snps,fn);
-    print_hapfile(clist, components, HAP1, Flist, fragments, snpfrag, variantfile, miscalls, outputfile_pruned, pruned);
+    print_hapfile(clist, components, HAP1, Flist, fragments, snpfrag, variantfile, miscalls, outputfile);
 
-    free(pruned);
     return 0;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -251,7 +249,6 @@ int main(int argc, char** argv) {
     if (MINCUTALGO == 2) RANDOM_START = 0;
     int i = 0, j = 0;
     int flag = 0;
-    float prune_threshold = 0.8, homozygous_threshold = 0.8;
     char fragfile[10000];
     char varfile[10000];
     char VCFfile[10000];
@@ -282,14 +279,9 @@ int main(int argc, char** argv) {
         } else if (strcmp(argv[i], "--output") == 0 || strcmp(argv[i], "--out") == 0) {
             strcpy(hapfile, argv[i + 1]);
             flag++;
-        } else if (strcmp(argv[i], "--prune_threshold") == 0 || strcmp(argv[i], "--pt") == 0) {
-            prune_threshold = atof(argv[i + 1]);
-        } else if (strcmp(argv[i], "--homozygous_threshold") == 0 || strcmp(argv[i], "--ht") == 0) {
-            homozygous_threshold = atof(argv[i + 1]);
-        } else if (strcmp(argv[i], "--threshold_type") == 0 || strcmp(argv[i], "--tt") == 0) // type of threshold (1 for fraction of SNPs to prune, 0 for posterior probability cutoff)
-        {
-            THRESHOLD_TYPE = atoi(argv[i + 1]);
-        } else if (strcmp(argv[i], "--maxiter") == 0) maxiter = atoi(argv[i + 1]);
+        } else if (strcmp(argv[i], "--threshold") == 0 || strcmp(argv[i], "--t") == 0) {
+            THRESHOLD = atof(argv[i + 1]);
+        }else if (strcmp(argv[i], "--maxiter") == 0) maxiter = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--longreads") == 0 || strcmp(argv[i], "--lr") == 0) // long reads pacbio 
         {
             FOSMIDS = atoi(argv[i + 1]);
@@ -319,10 +311,10 @@ int main(int argc, char** argv) {
     } else {
         if (VCFformat == 1) {
             fprintf(stderr, "\n\nfragment file: %s\nvariantfile (VCF format):%s\nhaplotypes will be output to file: %s\niterations of maxcut algorithm: %d\nQVoffset: %d\n\n", fragfile, VCFfile, hapfile, maxiter, QVoffset);
-            maxcut_haplotyping(fragfile, VCFfile, 0, hapfile, maxiter, prune_threshold, homozygous_threshold);
+            maxcut_haplotyping(fragfile, VCFfile, 0, hapfile, maxiter);
         } else {
             fprintf(stderr, "\n\nfragment file: %s\nvariantfile (variant format):%s\nhaplotypes will be output to file: %s\niterations of maxcut algorithm: %d\nQVoffset: %d\n\n", fragfile, varfile, hapfile, maxiter, QVoffset);
-            maxcut_haplotyping(fragfile, varfile, 0, hapfile, maxiter, prune_threshold, homozygous_threshold);
+            maxcut_haplotyping(fragfile, varfile, 0, hapfile, maxiter);
         }
     }
     return 1;
