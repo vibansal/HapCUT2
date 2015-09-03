@@ -198,6 +198,7 @@ void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snp
         snpfrag[i].ff = -1;
         snpfrag[i].split = 0;
         snpfrag[i].prune_status = 0;
+        snpfrag[i].post_notsw = 0;
     }
     for (i = 0; i < fragments; i++) {
         j = Flist[i].list[0].offset;

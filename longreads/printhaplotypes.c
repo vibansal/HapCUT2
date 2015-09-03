@@ -81,10 +81,11 @@ int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
                         fprintf(fp, "%d\t%c\t%c\t", t + 1, h1[t], c);
                     }
                 }
+                
                 // changed 07/20/2015, last value is likelihood of current phase vs flip 0|1 -> 1|0 
-                fprintf(fp, "%s\t%d\t%s\t%s\t%s\t%d,%d:%0.1f,%0.1f,%0.1f:%0.1f:%0.1f:%0.2f", snpfrag[t].chromosome, snpfrag[t].position, snpfrag[t].allele0, snpfrag[t].allele1, snpfrag[t].genotypes, snpfrag[t].R0, snpfrag[t].R1, snpfrag[t].L00, snpfrag[t].L01, snpfrag[t].L11, delta, snpfrag[t].rMEC, snpfrag[t].L01 - snpfrag[t].L10);
+                fprintf(fp, "%s\t%d\t%s\t%s\t%s\t%f\t%d,%d:%0.1f,%0.1f,%0.1f:%0.1f:%0.1f:%0.2f", snpfrag[t].chromosome, snpfrag[t].position, snpfrag[t].allele0, snpfrag[t].allele1, snpfrag[t].genotypes, pow(10,snpfrag[t].post_notsw), snpfrag[t].R0, snpfrag[t].R1, snpfrag[t].L00, snpfrag[t].L01, snpfrag[t].L11, delta, snpfrag[t].rMEC, snpfrag[t].L01 - snpfrag[t].L10);
                 if (delta >= 3 && snpfrag[t].rMEC >= 2) fprintf(fp, ":FV");
-
+                
                 // print genotype read counts and likelihoods
                 if (snpfrag[t].G00 < 0 || snpfrag[t].G01 < 0 || snpfrag[t].G11 < 0) fprintf(fp, "\t%d,%d:%0.1f,%0.1f,%0.1f\n", snpfrag[t].A0, snpfrag[t].A1, snpfrag[t].G00, snpfrag[t].G01, snpfrag[t].G11);
                 else fprintf(fp, "\n");

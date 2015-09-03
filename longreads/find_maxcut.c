@@ -4,6 +4,7 @@
 #include "maxcut_functions.c"
 #include "maxcut_lr.c"
 #include "common.h"
+#include <float.h>
 
 extern int MAX_ITER;
 extern int CONVERGE;
@@ -625,18 +626,23 @@ void improve_hap(char* HAP, struct BLOCK* clist, int components, int snps, int f
     }
 }
 
+// ideally we'd have a snpfrag field for which frags cross the snp, gaps or not.
+// then it would be valid to simply compute the posterior from those alone
+// and not the whole component.
 void split_blocks(char* HAP, struct BLOCK* clist, int components, struct fragment* Flist, struct SNPfrags* snpfrag) {
     int i, j, f, c, s, a, blocks_since_split=0;
     float P_data_H, P_data_Hsw, post_sw, post_sw_total;
     
     for (c = 0; c < components; c++) {
-        post_sw_total = 0;
+        //post_sw_total = FLT_MIN;
         blocks_since_split=0;
         for (s = 0; s < clist[c].phased; s++) {
             
             i = clist[c].slist[s]; // i is the current SNP index being considered
-            if (snpfrag[i].prune_status == 1 || HAP[i] == '-' || blocks_since_split < 4) continue;
-            // set probabilities to zero
+            if (snpfrag[i].prune_status == 1 || HAP[i] == '-' || blocks_since_split < 3){
+                blocks_since_split++;
+                continue;
+            }// set probabilities to zero
             P_data_H = 0;
             P_data_Hsw = 0; // switch at i
 
@@ -650,18 +656,18 @@ void split_blocks(char* HAP, struct BLOCK* clist, int components, struct fragmen
             }
             // posterior probability of no switch error
             post_sw = P_data_Hsw - addlogs(P_data_H, P_data_Hsw);
-            post_sw_total += post_sw;
+            //post_sw_total = addlogs(post_sw_total, post_sw);
+            snpfrag[i].post_notsw = subtractlogs(0,post_sw);
+            //snpfrag[i].post_notsw_total = subtractlogs(0,post_sw_total);
             // flip the haplotype at this position if necessary
-            if (subtractlogs(0,post_sw_total) < log10(THRESHOLD)) {
+            if (snpfrag[i].post_notsw < log10(THRESHOLD)) {
                 // block should be split here
                 snpfrag[i].split = 1;
                 blocks_since_split = 0;
-                post_sw_total = 0;
+                //post_sw_total = FLT_MIN;
             }else{
                 blocks_since_split++;
             }
-            
-            fprintf(stdout, "%f\n",pow(10,subtractlogs(0,post_sw_total)));
         }
     }
 }

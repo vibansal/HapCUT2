@@ -99,6 +99,7 @@ struct SNPfrags {
     float rMEC;
     int R0, R1; // counts of bases supporting allele0 and allele1
     int prune_status;
+    float post_notsw;
     char split;
 
     // added on april 24 2012 for singleton reads

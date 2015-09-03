@@ -41,7 +41,7 @@ float THRESHOLD = 0.8;
 float HOMOZYGOUS_PRIOR = -80; // assumed to be really unlikely
 int PRINT_FRAGMENT_SCORES = 0; // output the MEC/switch error score of erroneous reads/fragments to a file for evaluation 
 int MAX_MEMORY = 8000;
-int CONVERGE = 3; // stop iterations on a given component/block if exceed this many iterations since improvement
+int CONVERGE = 1; // stop iterations on a given component/block if exceed this many iterations since improvement
 int NEW_CODE = 0; // likelihood based, max-cut calculated using partial likelihoods
 
 #include "find_maxcut.c"   // function compute_good_cut 
