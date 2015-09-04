@@ -152,7 +152,10 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
             }
         }
     }
-
+    
+    frag_cluster_initialize(Flist, fragments, snpfrag, HAP1, snps, clist, components);
+    //improve_hap(HAP1,clist,components, snps, fragments, Flist, snpfrag);
+    
     for (i = 0; i < snps; i++) {
         besthap_mec[i] = HAP1[i];
     }

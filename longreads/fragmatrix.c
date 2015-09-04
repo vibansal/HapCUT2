@@ -204,7 +204,7 @@ void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snp
         j = Flist[i].list[0].offset;
         k = Flist[i].list[Flist[i].blocks - 1].len + Flist[i].list[Flist[i].blocks - 1].offset;
         // commented the line below since it slows program for long mate-pairs june 7 2012
-        //for (t=j;t<k;t++) { if (snpfrag[t].ff == -1) snpfrag[t].ff = i;  } 
+        for (t=j;t<k;t++) { if (snpfrag[t].ff == -1) snpfrag[t].ff = i;  } 
     } //for (i=0;i<snps;i++) { fprintf(stdout,"SNP %d firstfrag %d start snp %d \n",i,snpfrag[i].ff,i); } 
 
     for (i = 0; i < fragments; i++) {

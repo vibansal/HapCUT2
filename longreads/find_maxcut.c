@@ -577,9 +577,10 @@ void improve_hap(char* HAP, struct BLOCK* clist, int components, int snps, int f
                 P_data_H = 0; P_data_Hf = 0; P_data_Hsw = 0; // switch error at i
 
                 //looping over fragments overlapping i and sum up read probabilities
-                for (j = 0; j < snpfrag[i].frags; j++) {
+                for (j = 0; j < clist[c].frags; j++) {
 
-                    f = snpfrag[i].flist[j];
+                    //f = snpfrag[i].flist[j];
+                    f = clist[c].flist[j];
                     // normal haplotypes
                     P_data_H += fragment_ll(Flist, f, HAP, -1, -1);
                     // haplotype with switch error starting at i
