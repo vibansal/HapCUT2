@@ -26,6 +26,7 @@ extern float THRESHOLD;
 int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1, int iter);
 float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, struct BLOCK* component, struct fragment* Flist, int algo);
 void prune_snps(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1);
+void refhap_heuristic(int snps, int fragments, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1);
 void split_blocks(char* HAP, struct BLOCK* clist, int components, struct fragment* Flist, struct SNPfrags* snpfrag);
 void improve_hap(char* HAP, struct BLOCK* clist, int components, int snps, int fragments, struct fragment* Flist, struct SNPfrags* snpfrag);
 float addlogs(float a, float b);
@@ -527,6 +528,73 @@ void prune_snps(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char
         }else if (post_hap < log10(THRESHOLD))
             snpfrag[i].prune_status = 1; // remove the SNP entirely
     }
+}
+
+// the refhap heuristic for pruning SNPs
+void refhap_heuristic(int snps, int fragments, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1) {
+    int i, j, f, k, snp_ix, frag_assign;
+    float prob, prob1, prob2, p0, p1;
+    int* good = (int*) malloc(snps*sizeof(int)); // good[i] is the number of frag bases consistent with phasing at SNP i
+    int* bad  = (int*) malloc(snps*sizeof(int)); // bad [i] is the number of frag bases inconsistent with phasing at SNP i
+
+    // compute the optimal assignment of each fragment based on log likelihood
+    for (f = 0; f < fragments; f++){
+        p0 = 0; p1 = 0;
+        for (j = 0; j < Flist[f].blocks; j++) {
+            for (k = 0; k < Flist[f].list[j].len; k++) {
+                snp_ix = Flist[f].list[j].offset + k; // index of current position with respect to all SNPs
+
+                // conditions to skip this base
+                if (HAP1[snp_ix] == '-') continue;
+
+                prob = QVoffset - (int) Flist[f].list[j].qv[k];
+                prob /= 10;
+                prob1 = 1.0 - pow(10, prob);
+                prob2 = Flist[f].list[j].p1[k];
+                // this is likelihood based calculation
+                if (HAP1[snp_ix] == Flist[f].list[j].hap[k]) { 
+                    p0 += prob2;
+                    p1 += prob;
+                } else {
+                    p0 += prob;
+                    p1 += prob2;
+                }
+            }
+        }
+        
+        if (p0 > p1)
+            frag_assign = 1;
+        else if (p1 > p0)
+            frag_assign = 2;
+        else if (drand48() < 0.5)
+            frag_assign = 1;
+        else
+            frag_assign = 2;
+
+    
+        for (j = 0; j < Flist[f].blocks; j++) {
+            for (k = 0; k < Flist[f].list[j].len; k++) {
+                snp_ix = Flist[f].list[j].offset + k; // index of current position with respect to all SNPs
+
+                if (HAP1[snp_ix] == '-') continue;
+                
+                if ((frag_assign == 1 && HAP1[snp_ix] == Flist[f].list[j].hap[k])
+                  ||(frag_assign == 2 && HAP1[snp_ix] != Flist[f].list[j].hap[k]))
+                    good[snp_ix]++;
+                else
+                    bad[snp_ix]++;
+            }
+        }
+    }
+    
+    for (i = 0; i < snps; i++){
+        if (good[i] == bad[i])
+            snpfrag[i].prune_status = 1;
+        else
+            snpfrag[i].prune_status = 0;
+    }
+    
+    free(good); free(bad);
 }
 
 // create an array of a random permutation of integers 1..size

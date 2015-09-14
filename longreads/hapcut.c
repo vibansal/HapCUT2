@@ -153,7 +153,14 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
         }
     }
     
-    frag_cluster_initialize(Flist, fragments, snpfrag, HAP1, snps, clist, components);
+    float avg_depth, total = 0;
+    for (i=0; i < snps; i++){
+        total += snpfrag[i].frags;
+    }
+    avg_depth = total / ((float) snps);
+    fprintf(stdout, "Avg fragment depth: %f\n",avg_depth);
+    
+    //frag_cluster_initialize(Flist, fragments, snpfrag, HAP1, snps, clist, components);
     //improve_hap(HAP1,clist,components, snps, fragments, Flist, snpfrag);
     
     for (i = 0; i < snps; i++) {
@@ -232,7 +239,8 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     //print_hapfile(clist, components, HAP1, Flist, fragments, snpfrag, variantfile, miscalls, fn);
 
     // POST-PROCESSING WORK: TWEAK HAPLOTYPE, PRUNE SNPS AND REMOVE LIKELY HOMOZYGOUS VARIANTS
-    prune_snps(snps, Flist, snpfrag, HAP1);
+    //prune_snps(snps, Flist, snpfrag, HAP1);
+    refhap_heuristic(snps, fragments, Flist, snpfrag, HAP1);
     //split_blocks(HAP1, clist, components, Flist, snpfrag);
     
     fprintf(stdout, "OUTPUTTING PRUNED HAPLOTYPE ASSEMBLY TO FILE %s\n", outputfile);
