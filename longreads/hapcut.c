@@ -239,8 +239,8 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     //print_hapfile(clist, components, HAP1, Flist, fragments, snpfrag, variantfile, miscalls, fn);
 
     // POST-PROCESSING WORK: TWEAK HAPLOTYPE, PRUNE SNPS AND REMOVE LIKELY HOMOZYGOUS VARIANTS
-    //prune_snps(snps, Flist, snpfrag, HAP1);
-    refhap_heuristic(snps, fragments, Flist, snpfrag, HAP1);
+    prune_snps(snps, Flist, snpfrag, HAP1);
+    //refhap_heuristic(snps, fragments, Flist, snpfrag, HAP1);
     //split_blocks(HAP1, clist, components, Flist, snpfrag);
     
     fprintf(stdout, "OUTPUTTING PRUNED HAPLOTYPE ASSEMBLY TO FILE %s\n", outputfile);
