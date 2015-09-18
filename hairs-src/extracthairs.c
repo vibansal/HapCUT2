@@ -11,6 +11,7 @@
 #include<time.h>
 #include<math.h>
 #include<string.h>
+#include<limits.h>
 //#define _GNU_SOURCE
 
 #include "hashtable.h"
@@ -221,6 +222,7 @@ int main(int argc, char** argv) {
         } else if (strcmp(argv[i], "--sorted") == 0) readsorted = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--mbq") == 0) MINQ = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--mmq") == 0) MIN_MQ = atoi(argv[i + 1]);
+        else if (strcmp(argv[i], "--hiC") == 0) MAX_IS = INT_MAX;
         else if (strcmp(argv[i], "--maxIS") == 0) MAX_IS = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--minIS") == 0) MIN_IS = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--PEonly") == 0) PEONLY = 1; // discard single end mapped reads 
