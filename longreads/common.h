@@ -54,6 +54,8 @@ struct BLOCK {
     int* slist; // ordered list of variants in this connected component
     int lastvar; // index of the first and last variants in this connected component
     int iters_since_improvement;
+    int iters_since_split;
+    int split;
     // firstvariant is same as offset
 };
 

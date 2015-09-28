@@ -10,6 +10,8 @@ extern int MAX_ITER;
 extern int CONVERGE;
 extern float HOMOZYGOUS_PRIOR;
 extern float THRESHOLD;
+extern float SPLIT_THRESHOLD;
+extern int VERBOSE;
 /* edge weights 
    weight 334 373 hap 10 alleles 01 W 3.048192 
    weight 334 375 hap 11 alleles 00 W 3.523493 
@@ -28,6 +30,7 @@ float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, struct BL
 void prune_snps(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1);
 void refhap_heuristic(int snps, int fragments, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1);
 void split_blocks(char* HAP, struct BLOCK* clist, int components, struct fragment* Flist, struct SNPfrags* snpfrag);
+int maxcut_split_blocks(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1, int iter);
 void improve_hap(char* HAP, struct BLOCK* clist, int components, int snps, int fragments, struct fragment* Flist, struct SNPfrags* snpfrag);
 float addlogs(float a, float b);
 
@@ -171,8 +174,76 @@ int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, str
             clist[k].MEC += Flist[clist[k].flist[i]].currscore;
         }
     } else clist[k].bestMEC = clist[k].MEC; // update current haplotype
-    //}
-    if (iter > 0 && clist[k].MEC > 0) fprintf(stdout, "component %d offset %d length %d phased %d  calls %d MEC %0.1f cutvalue %f bestMEC %0.2f\n", k, clist[k].offset, clist[k].length, clist[k].phased, clist[k].calls, clist[k].MEC, cutvalue, clist[k].bestMEC);
+    if (VERBOSE && iter > 0 && clist[k].MEC > 0) fprintf(stdout, "component %d offset %d length %d phased %d  calls %d MEC %0.1f cutvalue %f bestMEC %0.2f\n", k, clist[k].offset, clist[k].length, clist[k].phased, clist[k].calls, clist[k].MEC, cutvalue, clist[k].bestMEC);
+
+    if (improved) {
+        clist[k].iters_since_improvement = 0;
+    } else {
+        clist[k].iters_since_improvement++;
+    }
+    // return 0 to specify that this component hasn't converged.
+    return 0;
+}
+
+
+int maxcut_split_blocks(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1, int iter) {
+    int improved = 1; // assume improvement
+    if (clist[k].iters_since_improvement > CONVERGE) {
+        return 1; // return 1 only if converged
+    }
+    int i = 0, t = 0;
+    float cutvalue;
+
+    for (t = 0; t < clist[k].phased; t++) slist[t] = clist[k].slist[t]; // new way to determine slist
+
+    clist[k].bestMEC = clist[k].MEC;
+    clist[k].MEC = 0;
+    for (i = 0; i < clist[k].frags; i++) {
+        update_fragscore(Flist, clist[k].flist[i], HAP1);
+        clist[k].MEC += Flist[clist[k].flist[i]].currscore;
+    }
+    
+    clist[k].bestMEC = clist[k].MEC;
+
+    cutvalue = 10;
+    if (clist[k].MEC > 0) cutvalue = compute_goodcut(snpfrag, HAP1, slist, &clist[k], Flist, MINCUTALGO);
+    // flip the subset of columns in slist with positive value 
+    for (i = 0; i < clist[k].phased; i++) {
+        if (slist[i] > 0 && HAP1[slist[i]] == '1') HAP1[slist[i]] = '0';
+        else if (slist[i] > 0 && HAP1[slist[i]] == '0') HAP1[slist[i]] = '1';
+    }
+    clist[k].bestMEC = clist[k].MEC;
+    clist[k].MEC = 0;
+    for (i = 0; i < clist[k].frags; i++) {
+        update_fragscore(Flist, clist[k].flist[i], HAP1);
+        clist[k].MEC += Flist[clist[k].flist[i]].currscore;
+    }
+
+    if (clist[k].MEC == clist[k].bestMEC)
+        improved = 0;
+    
+    fprintf(stderr, "split: %f\n", pow(10,(-1.0*clist[k].bestMEC)-(addlogs((-1.0*clist[k].bestMEC), (-1.0*clist[k].MEC)))));
+    if (log10(SPLIT_THRESHOLD) < (-1.0*clist[k].bestMEC)-(addlogs((-1.0*clist[k].bestMEC), (-1.0*clist[k].MEC)))){
+        // better to leave block intact, flip back haplotype
+        improved = 0;
+        for (i = 0; i < clist[k].phased; i++) {
+            if (slist[i] > 0 && HAP1[slist[i]] == '1') HAP1[slist[i]] = '0';
+            else if (slist[i] > 0 && HAP1[slist[i]] == '0') HAP1[slist[i]] = '1';
+        }
+        clist[k].MEC = 0;
+        for (i = 0; i < clist[k].frags; i++) {
+            update_fragscore(Flist, clist[k].flist[i], HAP1);
+            clist[k].MEC += Flist[clist[k].flist[i]].currscore;
+        }
+    }else{
+        // better to split the block, no need to flip back haplotype since it'll be disjoint anyway
+        improved = 1;
+
+        clist[k].split = 1;
+        for (t = 0; t < clist[k].phased; t++){
+            clist[k].slist[t] = slist[t]; // new way to determine slist
+        }
+    }
 
     if (improved) {
         clist[k].iters_since_improvement = 0;

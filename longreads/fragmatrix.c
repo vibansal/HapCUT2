@@ -4,6 +4,8 @@
 #include "MECscore.c"
 #define MAXBUF 10000
 
+extern int VERBOSE;
+
 //////////////////////////////////////// edge list is only used in the two functions below add_edges (Feb 4 2013) //////////////////////////////
 
 void label_node(struct SNPfrags* snpfrag, int node, int comp) // DFS search routine for connected component 
@@ -179,7 +181,7 @@ void generate_clist_structure(struct fragment* Flist, int fragments, struct SNPf
         clist[snpfrag[Flist[i].list[0].offset].bcomp].frags++;
     }
     for (i = 0; i < components; i++) {
-        fprintf(stdout, "comp %d first %d last %d phased %d fragments %d \n", i, clist[i].offset, clist[i].lastvar, clist[i].phased, clist[i].frags);
+        if (VERBOSE) fprintf(stdout, "comp %d first %d last %d phased %d fragments %d \n", i, clist[i].offset, clist[i].lastvar, clist[i].phased, clist[i].frags);
     }
 }
 
