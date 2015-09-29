@@ -1,4 +1,4 @@
-CC=gcc -D_GNU_SOURCE
+CC=gcc -g -O3 -D_GNU_SOURCE
 CFLAGS=-c -Wall
 
 HAPCUT: fragmatrix.o readinputfiles.o pointerheap.o hapcut.c find_maxcut.c

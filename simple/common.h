@@ -10,7 +10,6 @@ extern int FOSMIDS;
 extern int SCORING_FUNCTION;
 #define MAXBUF 10000
 
-#define flip(allele) if (allele == '1') allele = '0'; else if (allele == '0') allele = '1';
 //fragment block
 
 struct block {
@@ -54,8 +53,6 @@ struct BLOCK {
     int* slist; // ordered list of variants in this connected component
     int lastvar; // index of the first and last variants in this connected component
     int iters_since_improvement;
-    int iters_since_split;
-    int split;
     // firstvariant is same as offset
 };
 
@@ -100,9 +97,6 @@ struct SNPfrags {
     float L00, L01, L10, L11, Lnovar; // change in likelihood if this SNP is made homozygous or removed
     float rMEC;
     int R0, R1; // counts of bases supporting allele0 and allele1
-    int prune_status;
-    float post_notsw;
-    char split;
 
     // added on april 24 2012 for singleton reads
     int A0, A1;
@@ -114,11 +108,11 @@ struct SNPfrags {
 // hold onto posterior probabilities from pruning calculations for one SNP
 
 struct hap_prob {
-    int snp_ix; // index of SNP
     float post_hap; // posterior probability of our phasing
     float post_hapf; // posterior probability of flipped phasing
     float post_11; //posterior probability of homozygous 11
     float post_00; //posterior probability of homozygous 00
+    float post_sw; // posterior probability of switch error
 };
 
 #endif

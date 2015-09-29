@@ -158,40 +158,42 @@ int calculate_error_probs(struct fragment* Flist, int f, char* h, float perr[], 
 // return score as return value
 // homozygous: 0-based index of a homozygous position. -1 if no homozygous pos
 
-float simple_fragscore(struct fragment* Flist, int f, char* h, int homozygous) {
+// switch_ix: 0-based index of the switch error being tested, -1 if none
+float fragment_ll(struct fragment* Flist, int f, char* h, int homozygous, int switch_ix) {
     int j = 0, k = 0;
     float p0 = 0, p1 = 0, prob = 0, prob1 = 0, prob2 = 0;
     float good = 0, bad = 0, ll;
+    int snp_ix, switched;
 
     for (j = 0; j < Flist[f].blocks; j++) {
         for (k = 0; k < Flist[f].list[j].len; k++) {
-            if (h[Flist[f].list[j].offset + k] == '-') continue; // { fprintf(stdout,"fragment error"); continue;}
-            if ((int) Flist[f].list[j].qv[k] - QVoffset < MINQ) continue;
+            snp_ix = Flist[f].list[j].offset + k; // index of current position with respect to all SNPs
+
+            // conditions to skip this base
+            if (h[snp_ix] == '-') continue;
+
             prob = QVoffset - (int) Flist[f].list[j].qv[k];
             prob /= 10;
-            prob1 = 1.0 - pow(10, prob); //prob2 = log10(prob1);
+            prob1 = 1.0 - pow(10, prob);
             prob2 = Flist[f].list[j].p1[k];
 
             if (h[Flist[f].list[j].offset + k] == Flist[f].list[j].hap[k]) good += prob1;
             else bad += prob1;
 
-            // this is likelihood based calculation 
-            if (Flist[f].list[j].offset + k != homozygous) { // not homozygous
-                if (h[Flist[f].list[j].offset + k] == Flist[f].list[j].hap[k]) {
-                    p0 += prob2;
+            // this is likelihood based calculation
+            switched = (switch_ix != -1 && snp_ix >= switch_ix);
+            if ((h[snp_ix] == Flist[f].list[j].hap[k]) != switched) { // true if match, or not match but switched
+                p0 += prob2;
+                if (snp_ix != homozygous)
                     p1 += prob;
-                } else {
-                    p0 += prob;
+                else
                     p1 += prob2;
-                }
-            } else { // homozygous at this postion
-                if (h[Flist[f].list[j].offset + k] == Flist[f].list[j].hap[k]) {
-                    p0 += prob2; // both hap1 and hap2 match
+            } else {
+                p0 += prob;
+                if (snp_ix != homozygous)
                     p1 += prob2;
-                } else {
-                    p0 += prob;
+                else
                     p1 += prob;
-                }
             }
         }
     }

@@ -23,7 +23,7 @@ int mecscore(struct fragment* Flist, int fragments, char* h, float* ll, float* c
 float compute_fragscore(struct fragment* Flist, int f, char* h, float* ll);
 void update_fragscore(struct fragment* Flist, int f, char* h);
 void calculate_fragscore(struct fragment* Flist, int f, char* h, float* mec_ll, float* chimeric_ll);
-float fragment_ll(struct fragment* Flist, int f, char* h, int homozygous, int switch_ix);
+float simple_fragscore(struct fragment* Flist, int f, char* h, int homozygous,  int switch_ix);
 
 void frag_cluster_initialize(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* h1, int snps, struct BLOCK* clist, int comps);
 
@@ -34,7 +34,7 @@ void add_edges_fosmids(struct fragment* Flist, int fragments, struct SNPfrags* s
 void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int* components);
 void output_current_solution(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, char* hap, char* best);
 
-int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* fname, int score, char* outfile);
+int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* fname, char* outfile, char* pruned);
 void print_haplotypes_vcf(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, char* outfile);
 void print_hapcut_options();
 

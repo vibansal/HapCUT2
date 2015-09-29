@@ -1,12 +1,14 @@
 #include "fragmatrix.h"
 #include "printhaplotypes.c"
-#include "find_starting_haplotypes.c"
-#include "MECscore.c"
 #define MAXBUF 10000
 
-extern int VERBOSE;
-
 //////////////////////////////////////// edge list is only used in the two functions below add_edges (Feb 4 2013) //////////////////////////////
+
+int edge_compare(const void *a, const void *b) {
+    const struct edge *ia = (const struct edge*) a;
+    const struct edge *ib = (const struct edge*) b;
+    return ia->snp - ib->snp;
+}
 
 void label_node(struct SNPfrags* snpfrag, int node, int comp) // DFS search routine for connected component 
 {
@@ -20,8 +22,7 @@ void label_node(struct SNPfrags* snpfrag, int node, int comp) // DFS search rout
 }
 
 void add_edges_fosmids(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int* components) {
-    int i = 0, j = 0, t = 0, k = 0, iter = 0, maxdeg = 0, avgdeg = 0, mdelta = 0, t1 = 0, t2 = 0, l = 0;
-    char allele;
+    int i = 0, j = 0, k = 0, maxdeg = 0, avgdeg = 0, t1 = 0, t2 = 0;
     int csnps = 0;
     for (i = 0; i < snps; i++) snpfrag[i].edges = 0;
 
@@ -80,7 +81,6 @@ void add_edges_fosmids(struct fragment* Flist, int fragments, struct SNPfrags* s
         //else if (snpfrag[i].component ==i || snpfrag[i].edges ==0) singletons++;
     }
     fprintf(stdout, "Number of non-trivial connected components %d max-Degree %d connected variants %d coverage-per-variant %f \n", *components, maxdeg, nodes_in_graph, (double) avgdeg / (double) csnps);
-    //fprintf(stderr, "Number of non-trivial connected components %d max-Degree %d connected variants %d coverage-per-variant %f \n", *components, maxdeg, nodes_in_graph, (double) avgdeg / (double) csnps);
 }
 
 // for each fragment: add all pairwise edges between all variants in it, complexity = O(k^2) for 'k' length fragment
@@ -133,7 +133,6 @@ void add_edges(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, 
         //else if (snpfrag[i].component ==i || snpfrag[i].edges ==0) singletons++;
     }
     fprintf(stdout, "\nno of non-trivial connected components %d max-Degree %d connected variants %d coverage-per-variant %f \n", *components, maxdeg, nodes_in_graph, (double) avgdeg / (double) csnps);
-    fprintf(stderr, "\nno of non-trivial connected components %d max-Degree %d connected variants %d coverage-per-variant %f \n", *components, maxdeg, nodes_in_graph, (double) avgdeg / (double) csnps);
 }
 //////////////////////////////////////// edge list is only used in the two functions below //////////////////////////////
 
@@ -143,7 +142,7 @@ void generate_clist_structure(struct fragment* Flist, int fragments, struct SNPf
     // bcomp maps the SNP to the component number in clist since components << snps  
     // note that the previous invariant about the first SNP (ordered by position) being the root of the component is no longer true !! 
     // should we still require it ?? 
-    int i = 0, j = 0, component = 0;
+    int i = 0, component = 0;
     for (i = 0; i < snps; i++) snpfrag[i].bcomp = -1;
     for (i = 0; i < snps; i++) {
         if (snpfrag[i].component == i && snpfrag[i].csize > 1) // root node of component
@@ -181,7 +180,7 @@ void generate_clist_structure(struct fragment* Flist, int fragments, struct SNPf
         clist[snpfrag[Flist[i].list[0].offset].bcomp].frags++;
     }
     for (i = 0; i < components; i++) {
-        if (VERBOSE) fprintf(stdout, "comp %d first %d last %d phased %d fragments %d \n", i, clist[i].offset, clist[i].lastvar, clist[i].phased, clist[i].frags);
+        fprintf(stdout, "comp %d first %d last %d phased %d fragments %d \n", i, clist[i].offset, clist[i].lastvar, clist[i].phased, clist[i].frags);
     }
 }
 
@@ -192,21 +191,18 @@ void generate_clist_structure(struct fragment* Flist, int fragments, struct SNPf
 // // it generates a list of fragments (flist) that affect each SNP 
 
 void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int* components) {
-    int i = 0, j = 0, t = 0, k = 0, iter = 0, calls = 0; //maxdeg=0,avgdeg=0;
+    int i = 0, j = 0, k = 0, calls = 0; //maxdeg=0,avgdeg=0;
 
     // find the first fragment whose endpoint lies at snp 'i' or beyond
     for (i = 0; i < snps; i++) {
         snpfrag[i].frags = 0;
         snpfrag[i].ff = -1;
-        snpfrag[i].split = 0;
-        snpfrag[i].prune_status = 0;
-        snpfrag[i].post_notsw = 0;
     }
     for (i = 0; i < fragments; i++) {
         j = Flist[i].list[0].offset;
         k = Flist[i].list[Flist[i].blocks - 1].len + Flist[i].list[Flist[i].blocks - 1].offset;
         // commented the line below since it slows program for long mate-pairs june 7 2012
-        for (t=j;t<k;t++) { if (snpfrag[t].ff == -1) snpfrag[t].ff = i;  } 
+        //for (t=j;t<k;t++) { if (snpfrag[t].ff == -1) snpfrag[t].ff = i;  } 
     } //for (i=0;i<snps;i++) { fprintf(stdout,"SNP %d firstfrag %d start snp %d \n",i,snpfrag[i].ff,i); } 
 
     for (i = 0; i < fragments; i++) {

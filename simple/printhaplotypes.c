@@ -1,7 +1,4 @@
 
-#include "common.h"
-
-
 // THIS FUNCTION PRINTS THE CURRENT HAPLOTYPE ASSEMBLY in a new file block by block 
 
 void print_hapcut_options() {
@@ -13,13 +10,6 @@ void print_hapcut_options() {
     fprintf(stderr, "--VCF <FILENAME>: variant file in VCF format ((same file as used for running the extracthairs program)\n");
     fprintf(stderr, "--output <FILENAME> : file to which phased haplotype segments/blocks will be output | the program will write best current haplotypes to this file after every 10 iterations\n");
     fprintf(stderr, "--maxiter <int> : maximum number of global iterations for HAPCUT, default is 100\n");
-    fprintf(stderr, "--converge <int>: cut off iterations for a block if no improvement after this many iterations\n");
-    fprintf(stderr, "--threshold, --t <float>: posterior probability cutoff for pruning SNPs (closer to 1 prunes a lot, closer to 0.5 prunes few. default: 0.8)\n");
-    fprintf(stderr, "--split_threshold, --st <float>: posterior probability cutoff for splitting blocks (closer to 1 splits many blocks, closer to 0.5 splits few. default: 0.99)\n");
-    fprintf(stderr, "--splitblocks <0/1>: split blocks using simple log-likelihood score to reduce switch errors\n");
-    fprintf(stderr, "--splitblocks_maxcut <0/1>: split blocks using extra maxcut computations (not recommended)\n");
-    fprintf(stderr, "--verbose, --v <0/1>: Verbose mode: print extra information to stdout and stderr.\n");
-    fprintf(stderr, "--MEC <0/1>: Use old MEC-based method rather than Log-likelihood based (not recommended).\n");
     fprintf(stderr, "--qvoffset <33/48/64> : quality value offset for base quality scores, default is 33 (use same value as for extracthairs)\n");
     fprintf(stderr, "--maxcutiter <int> : maximum number of iterations to find max cut for each haplotype block in a given iteration, default value is 100 | if this is set to -1, the number of iterations = N/10 where N is the number of nodes in the block\n");
     fprintf(stderr, "--longreads <0/1> : set to 1 for phasing long read data if program uses too much memory, default is 0\n");
@@ -35,7 +25,7 @@ void print_hapcut_options() {
 
 }
 
-int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* fname, int score, char* outfile) {
+int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* fname, char* outfile, char* pruned) {
     // print a new file containing one block phasing and the corresponding fragments 
     int i = 0, t = 0, k = 0, span = 0;
     char c, c1, c2;
@@ -49,29 +39,27 @@ int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
         fprintf(fp, "BLOCK: offset: %d len: %d phased: %d ", clist[i].offset + 1, clist[i].length, clist[i].phased);
         fprintf(fp, "SPAN: %d MECscore %2.2f fragments %d\n", span, clist[i].bestMEC, clist[i].frags);
         for (k = 0; k < clist[i].phased; k++) {
-
             t = clist[i].slist[k];
-            if (snpfrag[t].split == 1){
-                fprintf(fp, "******** \n");
-                fprintf(fp, "BLOCK: offset: %d\n", t+1);
-            }
             //fprintf(fp,"frags %d | ",snpfrag[t].frags); 
             //if (clist[i].haplotype[k] =='-') fprintf(fp,"%s_%s_%d_%s_%s_%s\t%10c\t%10c\n",snpfrag[t].id,snpfrag[t].chromosome,snpfrag[t].position,snpfrag[t].allele0,snpfrag[t].allele1,snpfrag[t].genotypes,'-','-'); 
             // changed code here to use the component
             //if (snpfrag[clist[i].offset+k].component == snpfrag[clist[i].offset].component)	fprintf(fp,"%d\t%c\t%c\t%s\t%d\t%s\t%s\t%s\n",t+1,'-','-',snpfrag[t].chromosome,snpfrag[t].position,snpfrag[t].allele0,snpfrag[t].allele1,snpfrag[t].genotypes); 
             //if (snpfrag[clist[i].offset+k].component == snpfrag[clist[i].offset].component)	
             {
+                if (pruned[i] == 4){
+                    fprintf(fp, "******** \nBLOCK: prematurely split sub-block\n");
+                }
                 if (h1[t] == '0') c = '1';
                 else if (h1[t] == '1') c = '0';
                 delta = snpfrag[t].L00 - snpfrag[t].L01;
                 if (snpfrag[t].L11 - snpfrag[t].L01 > delta) delta = snpfrag[t].L11 - snpfrag[t].L01;
                 // print this line to keep consistency with old format
                 // if SNP was pruned then print '-'s
-                if (snpfrag[t].prune_status == 1)
+                if (pruned[t] == 1)
                     fprintf(fp, "%d\t-\t-\t", t + 1);
-                else if (snpfrag[t].prune_status == 2)
+                else if (pruned[t] == 2)
                     fprintf(fp, "%d\t0\t0\t", t + 1);
-                else if (snpfrag[t].prune_status == 3)
+                else if (pruned[t] == 3)
                     fprintf(fp, "%d\t1\t1\t", t + 1);
                 else {
                     if (snpfrag[t].genotypes[0] == '2' || snpfrag[t].genotypes[2] == '2') {
@@ -88,11 +76,10 @@ int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
                         fprintf(fp, "%d\t%c\t%c\t", t + 1, h1[t], c);
                     }
                 }
-                
                 // changed 07/20/2015, last value is likelihood of current phase vs flip 0|1 -> 1|0 
-                fprintf(fp, "%s\t%d\t%s\t%s\t%s\t%f\t%d,%d:%0.1f,%0.1f,%0.1f:%0.1f:%0.1f:%0.2f", snpfrag[t].chromosome, snpfrag[t].position, snpfrag[t].allele0, snpfrag[t].allele1, snpfrag[t].genotypes, pow(10,snpfrag[t].post_notsw), snpfrag[t].R0, snpfrag[t].R1, snpfrag[t].L00, snpfrag[t].L01, snpfrag[t].L11, delta, snpfrag[t].rMEC, snpfrag[t].L01 - snpfrag[t].L10);
+                fprintf(fp, "%s\t%d\t%s\t%s\t%s\t%d,%d:%0.1f,%0.1f,%0.1f:%0.1f:%0.1f:%0.2f", snpfrag[t].chromosome, snpfrag[t].position, snpfrag[t].allele0, snpfrag[t].allele1, snpfrag[t].genotypes, snpfrag[t].R0, snpfrag[t].R1, snpfrag[t].L00, snpfrag[t].L01, snpfrag[t].L11, delta, snpfrag[t].rMEC, snpfrag[t].L01 - snpfrag[t].L10);
                 if (delta >= 3 && snpfrag[t].rMEC >= 2) fprintf(fp, ":FV");
-                
+
                 // print genotype read counts and likelihoods
                 if (snpfrag[t].G00 < 0 || snpfrag[t].G01 < 0 || snpfrag[t].G11 < 0) fprintf(fp, "\t%d,%d:%0.1f,%0.1f,%0.1f\n", snpfrag[t].A0, snpfrag[t].A1, snpfrag[t].G00, snpfrag[t].G01, snpfrag[t].G11);
                 else fprintf(fp, "\n");
