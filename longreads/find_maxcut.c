@@ -161,6 +161,11 @@ int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, str
     if (clist[k].MEC > clist[k].bestMEC) // new haplotype is not better than current haplotype, revert to old haplotype
     {
         improved = 0;
+        
+        // block splitting scheme
+        
+        
+        
         for (i = 0; i < clist[k].phased; i++) {
             if (slist[i] > 0 && HAP1[slist[i]] == '1') HAP1[slist[i]] = '0';
             else if (slist[i] > 0 && HAP1[slist[i]] == '0') HAP1[slist[i]] = '1';
