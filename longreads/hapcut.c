@@ -42,11 +42,12 @@ float SPLIT_THRESHOLD = 0.99;
 float HOMOZYGOUS_PRIOR = -80; // in log form. assumed to be really unlikely
 int PRINT_FRAGMENT_SCORES = 0; // output the MEC/switch error score of erroneous reads/fragments to a file for evaluation 
 int MAX_MEMORY = 8000;
-int CONVERGE = 3; // stop iterations on a given component/block if exceed this many iterations since improvement
+int CONVERGE = 1; // stop iterations on a given component/block if exceed this many iterations since improvement
 int NEW_CODE = 1; // likelihood based, max-cut calculated using partial likelihoods
 int VERBOSE = 0;
 int SPLIT_BLOCKS = 0;
 int SPLIT_BLOCKS_MAXCUT = 0;
+int REFHAP_HEURISTIC = 0;
 
 #include "find_maxcut.c"   // function compute_good_cut 
 
@@ -325,9 +326,15 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     //print_hapfile(clist, components, HAP1, Flist, fragments, snpfrag, variantfile, miscalls, fn);
     
     // POST-PROCESSING WORK: TWEAK HAPLOTYPE, PRUNE SNPS AND REMOVE LIKELY HOMOZYGOUS VARIANTS
-    prune_snps(snps, Flist, snpfrag, HAP1);
-
-    //refhap_heuristic(snps, fragments, Flist, snpfrag, HAP1);
+    if (REFHAP_HEURISTIC){
+        // prune SNPs using refhap heuristic
+        // only prune a snp if its number of bases consistent and inconsistent with optimal fragment-haplotype assignment is equal
+        refhap_heuristic(snps, fragments, Flist, snpfrag, HAP1);
+    }else{
+        // prune SNPs using our log-likelihood based strategy
+        prune_snps(snps, Flist, snpfrag, HAP1);
+    }
+    
     if (SPLIT_BLOCKS) 
         split_blocks(HAP1, clist, components, Flist, snpfrag);
     
@@ -410,7 +417,7 @@ int main(int argc, char** argv) {
         else if (strcmp(argv[i], "--splitblocks") == 0) SPLIT_BLOCKS = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--splitblocks_maxcut") == 0) SPLIT_BLOCKS_MAXCUT = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--verbose") == 0 || strcmp(argv[i], "--v") == 0) VERBOSE = atoi(argv[i + 1]);
-
+        else if (strcmp(argv[i], "--refhap_heuristic") == 0 || strcmp(argv[i], "--rh") == 0) REFHAP_HEURISTIC = atoi(argv[i + 1]);
     }
     if (flag != 3) // three essential arguments are not supplied 
     {
