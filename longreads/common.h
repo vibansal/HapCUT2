@@ -2,6 +2,7 @@
 #ifndef _COMMON_H
 #define _COMMON_H
 #include <stdint.h>
+
 //Tue May 29 23:13:29 PDT 2007
 extern int QVoffset;
 extern int VCFformat;
@@ -102,6 +103,8 @@ struct SNPfrags {
     int R0, R1; // counts of bases supporting allele0 and allele1
     int prune_status;
     float post_notsw;
+    float post_hap;
+    int pruned_refhap_heuristic; // for error analysis mode
     char split;
 
     // added on april 24 2012 for singleton reads
@@ -111,14 +114,5 @@ struct SNPfrags {
     float homozygous_prior; // prior probability of homozygousity. Based on GQ field of VCF.
 };
 
-// hold onto posterior probabilities from pruning calculations for one SNP
-
-struct hap_prob {
-    int snp_ix; // index of SNP
-    float post_hap; // posterior probability of our phasing
-    float post_hapf; // posterior probability of flipped phasing
-    float post_11; //posterior probability of homozygous 11
-    float post_00; //posterior probability of homozygous 00
-};
 
 #endif

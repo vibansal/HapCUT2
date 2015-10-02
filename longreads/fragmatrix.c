@@ -1,5 +1,5 @@
 #include "fragmatrix.h"
-#include "printhaplotypes.c"
+//#include "printhaplotypes.c"
 #include "find_starting_haplotypes.c"
 #include "MECscore.c"
 #define MAXBUF 10000
@@ -201,6 +201,8 @@ void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snp
         snpfrag[i].split = 0;
         snpfrag[i].prune_status = 0;
         snpfrag[i].post_notsw = 0;
+        snpfrag[i].post_hap = 0;
+        snpfrag[i].pruned_refhap_heuristic = 0;
     }
     for (i = 0; i < fragments; i++) {
         j = Flist[i].list[0].offset;

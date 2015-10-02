@@ -12,6 +12,7 @@ extern float HOMOZYGOUS_PRIOR;
 extern float THRESHOLD;
 extern float SPLIT_THRESHOLD;
 extern int VERBOSE;
+extern int ERROR_ANALYSIS_MODE;
 /* edge weights 
    weight 334 373 hap 10 alleles 01 W 3.048192 
    weight 334 375 hap 11 alleles 00 W 3.523493 
@@ -507,13 +508,6 @@ float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, struct BL
 // compare pruned snps by the log-likelihood of the dataset with them removed.
 // this is so we can sort them and prune the worst ones.
 
-int compare_hap_probs(const void *a, const void *b) {
-    const struct hap_prob *ia = (const struct hap_prob*) a;
-    const struct hap_prob *ib = (const struct hap_prob*) b;
-
-    return ia->post_hap - ib->post_hap;
-}
-
 // given a=log10(x) and b=log10(y),
 // returns log10(x+y)
 float addlogs(float a, float b) {
@@ -590,14 +584,20 @@ void prune_snps(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char
         post_11 = log_hom_prior + P_data_H11 - total;
         
         // change the status of SNPs that are above/below threshold
-        if (post_00 > log10(THRESHOLD))
+        if (post_00 > log10(THRESHOLD)){
             snpfrag[i].prune_status = 2; // 2 specifies 00 homozygous
-        else if (post_11 > log10(THRESHOLD)) 
+            snpfrag[i].post_hap = post_00;
+        }else if (post_11 > log10(THRESHOLD)){
             snpfrag[i].prune_status = 3; // 3 specifies 11 homozygous
-        else if (post_hapf > log10(THRESHOLD)){
+            snpfrag[i].post_hap = post_11;
+        }else if (post_hapf > log10(THRESHOLD)){
             flip(HAP1[i]);                // SNP should be flipped
-        }else if (post_hap < log10(THRESHOLD))
-            snpfrag[i].prune_status = 1; // remove the SNP entirely
+            snpfrag[i].post_hap = post_hapf;
+        }else if (post_hap < log10(THRESHOLD)){
+            if (!ERROR_ANALYSIS_MODE)
+                snpfrag[i].prune_status = 1; // remove the SNP entirely
+            snpfrag[i].post_hap = post_hap;
+        }
     }
 }
 
@@ -660,7 +660,10 @@ void refhap_heuristic(int snps, int fragments, struct fragment* Flist, struct SN
     
     for (i = 0; i < snps; i++){
         if (good[i] == bad[i])
-            snpfrag[i].prune_status = 1;
+            if (!ERROR_ANALYSIS_MODE)
+                snpfrag[i].prune_status = 1;
+            else
+                snpfrag[i].pruned_refhap_heuristic = 1; // this isn't used to prune, just recorded.
         else
             snpfrag[i].prune_status = 0;
     }
@@ -800,13 +803,15 @@ void split_blocks(char* HAP, struct BLOCK* clist, int components, struct fragmen
             snpfrag[i].post_notsw = subtractlogs(0,post_sw);
             //snpfrag[i].post_notsw_total = subtractlogs(0,post_sw_total);
             // flip the haplotype at this position if necessary
-            if (snpfrag[i].post_notsw < log10(SPLIT_THRESHOLD)) {
-                // block should be split here
-                snpfrag[i].split = 1;
-                blocks_since_split = 0;
-                //post_sw_total = FLT_MIN;
-            }else{
-                blocks_since_split++;
+            if (!ERROR_ANALYSIS_MODE){
+                if (snpfrag[i].post_notsw < log10(SPLIT_THRESHOLD)) {
+                    // block should be split here
+                    snpfrag[i].split = 1;
+                    blocks_since_split = 0;
+                    //post_sw_total = FLT_MIN;
+                }else{
+                    blocks_since_split++;
+                }
             }
         }
     }

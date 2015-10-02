@@ -1,7 +1,7 @@
 
 #include "common.h"
 
-
+extern int ERROR_ANALYSIS_MODE;
 // THIS FUNCTION PRINTS THE CURRENT HAPLOTYPE ASSEMBLY in a new file block by block 
 
 void print_hapcut_options() {
@@ -20,6 +20,7 @@ void print_hapcut_options() {
     fprintf(stderr, "--splitblocks_maxcut <0/1>: split blocks using extra maxcut computations (not recommended)\n");
     fprintf(stderr, "--refhap_heuristic, --rh <0/1>: use refhap's discrete heuristic to prune SNPs rather than HapCUT's log-likelihood based strategy (not recommended unless read quality scores are very inaccurate)\n");
     fprintf(stderr, "--verbose, --v <0/1>: Verbose mode: print extra information to stdout and stderr.\n");
+    fprintf(stderr, "--error_analysis_mode, --ea <0/1>: for analyzing switch errors/mismatches. print posterior probability of errors to file but don't split blocks or prune. (needless slowdown)\n");
     fprintf(stderr, "--MEC <0/1>: Use old MEC-based method rather than Log-likelihood based (not recommended).\n");
     fprintf(stderr, "--qvoffset <33/48/64> : quality value offset for base quality scores, default is 33 (use same value as for extracthairs)\n");
     fprintf(stderr, "--maxcutiter <int> : maximum number of iterations to find max cut for each haplotype block in a given iteration, default value is 100 | if this is set to -1, the number of iterations = N/10 where N is the number of nodes in the block\n");
@@ -91,7 +92,9 @@ int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
                 }
                 
                 // changed 07/20/2015, last value is likelihood of current phase vs flip 0|1 -> 1|0 
-                fprintf(fp, "%s\t%d\t%s\t%s\t%s\t%f\t%d,%d:%0.1f,%0.1f,%0.1f:%0.1f:%0.1f:%0.2f", snpfrag[t].chromosome, snpfrag[t].position, snpfrag[t].allele0, snpfrag[t].allele1, snpfrag[t].genotypes, pow(10,snpfrag[t].post_notsw), snpfrag[t].R0, snpfrag[t].R1, snpfrag[t].L00, snpfrag[t].L01, snpfrag[t].L11, delta, snpfrag[t].rMEC, snpfrag[t].L01 - snpfrag[t].L10);
+                fprintf(fp, "%s\t%d\t%s\t%s\t%s\t%d,%d:%0.1f,%0.1f,%0.1f:%0.1f:%0.1f:%0.2f", snpfrag[t].chromosome, snpfrag[t].position, snpfrag[t].allele0, snpfrag[t].allele1, snpfrag[t].genotypes, snpfrag[t].R0, snpfrag[t].R1, snpfrag[t].L00, snpfrag[t].L01, snpfrag[t].L11, delta, snpfrag[t].rMEC, snpfrag[t].L01 - snpfrag[t].L10);
+                if (ERROR_ANALYSIS_MODE)
+                    fprintf(fp, "%d\t%f\t%f", snpfrag[t].pruned_refhap_heuristic, snpfrag[t].post_notsw, snpfrag[t].post_hap);
                 if (delta >= 3 && snpfrag[t].rMEC >= 2) fprintf(fp, ":FV");
                 
                 // print genotype read counts and likelihoods

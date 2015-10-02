@@ -25,6 +25,7 @@
 //#include "annealing.h"
 #include "readinputfiles.h"
 #include "removefalsehets.c"
+#include "printhaplotypes.c"
 //#define MAXBUF 10000
 
 
@@ -48,6 +49,7 @@ int VERBOSE = 0;
 int SPLIT_BLOCKS = 0;
 int SPLIT_BLOCKS_MAXCUT = 0;
 int REFHAP_HEURISTIC = 0;
+int ERROR_ANALYSIS_MODE = 0;
 
 #include "find_maxcut.c"   // function compute_good_cut 
 
@@ -326,11 +328,17 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     //print_hapfile(clist, components, HAP1, Flist, fragments, snpfrag, variantfile, miscalls, fn);
     
     // POST-PROCESSING WORK: TWEAK HAPLOTYPE, PRUNE SNPS AND REMOVE LIKELY HOMOZYGOUS VARIANTS
-    if (REFHAP_HEURISTIC){
+    if (ERROR_ANALYSIS_MODE){
+        // for analysizing errors, we want to calculate our posterior probs and labels for refhap-style
+        // pruning (so this can be inspected) but we don't actually want to perform the pruning because we want to see all errors.
+        refhap_heuristic(snps, fragments, Flist, snpfrag, HAP1);
+        prune_snps(snps, Flist, snpfrag, HAP1);
+    }else if (REFHAP_HEURISTIC){
         // prune SNPs using refhap heuristic
         // only prune a snp if its number of bases consistent and inconsistent with optimal fragment-haplotype assignment is equal
         refhap_heuristic(snps, fragments, Flist, snpfrag, HAP1);
     }else{
+        // DEFAULT
         // prune SNPs using our log-likelihood based strategy
         prune_snps(snps, Flist, snpfrag, HAP1);
     }
@@ -385,12 +393,8 @@ int main(int argc, char** argv) {
         } else if (strcmp(argv[i], "--output") == 0 || strcmp(argv[i], "--out") == 0) {
             strcpy(hapfile, argv[i + 1]);
             flag++;
-        } else if (strcmp(argv[i], "--threshold") == 0 || strcmp(argv[i], "--t") == 0) {
-            THRESHOLD = atof(argv[i + 1]);
-        } else if (strcmp(argv[i], "--split_threshold") == 0 || strcmp(argv[i], "--st") == 0) {
-            THRESHOLD = atof(argv[i + 1]);
-        }
-        
+        } else if (strcmp(argv[i], "--threshold") == 0 || strcmp(argv[i], "--t") == 0) THRESHOLD = atof(argv[i + 1]);
+        else if (strcmp(argv[i], "--split_threshold") == 0 || strcmp(argv[i], "--st") == 0) SPLIT_THRESHOLD = atof(argv[i + 1]);
         else if (strcmp(argv[i], "--maxiter") == 0) maxiter = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--longreads") == 0 || strcmp(argv[i], "--lr") == 0) // long reads pacbio 
         {
@@ -403,21 +407,20 @@ int main(int argc, char** argv) {
                 SCORING_FUNCTION = 0; // for new code, scoring function is likelihood based and mec of fragment = -1*LL
                 //fprintf(stderr, "SCORING FUNCTION var set to 0\n", NEW_CODE);
             }
-        } else if (strcmp(argv[i], "--fosmid") == 0 || strcmp(argv[i], "--fosmids") == 0) {
-            FOSMIDS = atoi(argv[i + 1]);
-            //if (FOSMIDS ==1) SCORING_FUNCTION = 1;  // unless explicitly specified, for fosmids use switch error based function...
-        } else if (strcmp(argv[i], "--sf") == 0 || strcmp(argv[i], "--switches") == 0) SCORING_FUNCTION = atoi(argv[i + 1]);
+        }else if (strcmp(argv[i], "--fosmid") == 0 || strcmp(argv[i], "--fosmids") == 0) FOSMIDS = atoi(argv[i + 1]);
+        else if (strcmp(argv[i], "--sf") == 0 || strcmp(argv[i], "--switches") == 0) SCORING_FUNCTION = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--printscores") == 0 || strcmp(argv[i], "--scores") == 0) PRINT_FRAGMENT_SCORES = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--maxcutiter") == 0) {
             MAXCUT_ITER = atoi(argv[i + 1]);
             fprintf(stderr, "max iterations for max-cut calculations is %d \n", MAXCUT_ITER);
-        } else if (strcmp(argv[i], "--QVoffset") == 0 || strcmp(argv[i], "--qvoffset") == 0) QVoffset = atoi(argv[i + 1]);
+        }else if (strcmp(argv[i], "--QVoffset") == 0 || strcmp(argv[i], "--qvoffset") == 0) QVoffset = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--maxmem") == 0) MAX_MEMORY = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--mbq") == 0) MINQ = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--splitblocks") == 0) SPLIT_BLOCKS = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--splitblocks_maxcut") == 0) SPLIT_BLOCKS_MAXCUT = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--verbose") == 0 || strcmp(argv[i], "--v") == 0) VERBOSE = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--refhap_heuristic") == 0 || strcmp(argv[i], "--rh") == 0) REFHAP_HEURISTIC = atoi(argv[i + 1]);
+        else if (strcmp(argv[i], "--error_analysis_mode") == 0 || strcmp(argv[i], "--ea") == 0) ERROR_ANALYSIS_MODE = atoi(argv[i + 1]);
     }
     if (flag != 3) // three essential arguments are not supplied 
     {
