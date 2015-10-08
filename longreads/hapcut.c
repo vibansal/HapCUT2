@@ -39,7 +39,7 @@ int MAXCUT_ITER = 100; // maximum number of iterations for max-cut algorithm, if
 int FOSMIDS = 1; // if this variable is 1, the data is fosmid long read data 
 int SCORING_FUNCTION = 5; // 0 = MEC score, 1 = switches
 float THRESHOLD = 0.8;
-float SPLIT_THRESHOLD = 0.9;
+float SPLIT_THRESHOLD = 0.8;
 float HOMOZYGOUS_PRIOR = -80; // in log form. assumed to be really unlikely
 int PRINT_FRAGMENT_SCORES = 0; // output the MEC/switch error score of erroneous reads/fragments to a file for evaluation 
 int MAX_MEMORY = 8000;
