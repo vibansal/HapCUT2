@@ -39,7 +39,7 @@ int MAXCUT_ITER = 100; // maximum number of iterations for max-cut algorithm, if
 int FOSMIDS = 1; // if this variable is 1, the data is fosmid long read data 
 int SCORING_FUNCTION = 5; // 0 = MEC score, 1 = switches
 float THRESHOLD = 0.8;
-float SPLIT_THRESHOLD = 0.99;
+float SPLIT_THRESHOLD = 0.7;
 float HOMOZYGOUS_PRIOR = -80; // in log form. assumed to be really unlikely
 int PRINT_FRAGMENT_SCORES = 0; // output the MEC/switch error score of erroneous reads/fragments to a file for evaluation 
 int MAX_MEMORY = 8000;
@@ -282,6 +282,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
             }
             new_components = components;
             for (k = 0; k < components; k++){
+                fprintf(stderr, "component: %d\n", k);
                 if (clist[k].phased <= 1) continue;
                 if (clist[k].split == 1){
                     first_in = -1;  // first element in the cut
@@ -291,22 +292,33 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
                     for (j = 0; j < clist[k].phased; j++){
 
                         if (clist[k].slist[j] > 0){
+                            fprintf(stderr,"j is in cut\n");
                             // j is in the cut
-                            if (first_in == -1)
+                            if (first_in == -1){
                                 first_in = clist[k].slist[j];
-
-                            snpfrag[clist[k].slist[j]].parent = first_in;
+                                snpfrag[first_in].csize = 0;
+                            }
+                            snpfrag[clist[k].slist[j]].component = first_in;
+                            snpfrag[first_in].csize ++;
                             count1++;
                         }else{
-                            snp_ix = -1*(1+clist[k].slist[j]);
+                            clist[k].slist[j] = -1*(1+clist[k].slist[j]);
+                            fprintf(stderr,"j is NOT in cut\n");
                             // j is not in the cut
-                            if (first_out == -1)
-                                first_out = snp_ix;
-
-                            snpfrag[snp_ix].parent = first_out;
+                            if (first_out == -1){
+                                first_out = clist[k].slist[j];
+                                snpfrag[first_out].csize = 0;
+                            }
+                            snpfrag[clist[k].slist[j]].component = first_out;
+                            snpfrag[first_out].csize ++;
                             count2++;
                         }
                     }
+                    
+                    for (j = 0; j < clist[k].phased; j++){
+                        snpfrag[clist[k].slist[j]].csize = snpfrag[snpfrag[clist[k].slist[j]].component].csize;
+                    }
+                    
                     if (count1 > 1 && count2 > 1)
                         new_components++;
                     else if (count1 == 1 && count2 == 1)
@@ -317,6 +329,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
             // regenerate the new clist
             components = new_components;    
             free(clist);
+            fprintf(stderr,"re-creating clist structure\n");
             clist = (struct BLOCK*) malloc(sizeof (struct BLOCK)*components);
             generate_clist_structure(Flist, fragments, snpfrag, snps, components, clist);        
         }
