@@ -62,7 +62,6 @@ int fragment_compare(const void *a, const void *b);
 int determine_connected_components(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps);
 void generate_clist_structure(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int components, struct BLOCK* clist);
 
-
 #endif
 
 

@@ -12,6 +12,10 @@ extern float HOMOZYGOUS_PRIOR;
 extern float THRESHOLD;
 extern float SPLIT_THRESHOLD;
 extern int VERBOSE;
+extern int SPLIT_BLOCKS;
+extern int SPLIT_BLOCKS_MAXCUT;
+extern int* iters_since_improvement;
+extern int* iters_since_split;
 extern int ERROR_ANALYSIS_MODE;
 /* edge weights 
    weight 334 373 hap 10 alleles 01 W 3.048192 
@@ -25,13 +29,13 @@ extern int ERROR_ANALYSIS_MODE;
 //int NEW_CODE = 1; // likelihood based, max-cut calculated using partial likelihoods
 
 /****** CODE TO FIND MAX CUT FOR EACH COMPONENT *************/
-
-int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1, int iter);
+int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1, int iter, int* components_ptr);
 float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, struct BLOCK* component, struct fragment* Flist, int algo);
 void prune_snps(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1);
 void refhap_heuristic(int snps, int fragments, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1);
-void split_blocks(char* HAP, struct BLOCK* clist, int components, struct fragment* Flist, struct SNPfrags* snpfrag);
-int maxcut_split_blocks(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1, int iter);
+int split_block(char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, struct SNPfrags* snpfrag, int* components_ptr);
+void split_blocks_old(char* HAP, struct BLOCK* clist, int components, struct fragment* Flist, struct SNPfrags* snpfrag);
+//int maxcut_split_blocks(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1, int iter);
 void improve_hap(char* HAP, struct BLOCK* clist, int components, int snps, int fragments, struct fragment* Flist, struct SNPfrags* snpfrag);
 float addlogs(float a, float b);
 
@@ -105,14 +109,16 @@ void single_variant_flips(struct fragment* Flist, struct SNPfrags* snpfrag, stru
 
 // function called from hapcut.c for each component...
 
-int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1, int iter) {
+int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1, int iter, int* components_ptr) {
     int improved = 1; // assume improvement
-    if (clist[k].iters_since_improvement > CONVERGE) {
+    clist[k].split = 0;
+    
+    if (iters_since_improvement[clist[k].offset] > CONVERGE && (!SPLIT_BLOCKS_MAXCUT || iters_since_split[clist[k].offset] > CONVERGE)) {
         return 1; // return 1 only if converged
     }
-    int i = 0, j = 0, t = 0;
-    int f = 0;
-    float cutvalue;
+            
+    int i = 0, j = 0, t = 0, first_in, first_out, count1, count2;
+    float cutvalue, post;
     /*
        i=0;for (j=clist[k].offset;j<clist[k].offset+clist[k].length;j++) 
        {
@@ -156,100 +162,82 @@ int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, str
         update_fragscore(Flist, clist[k].flist[i], HAP1);
         clist[k].MEC += Flist[clist[k].flist[i]].currscore;
     }
-    // this is to test whether cutting off haplotypes that are still changing but stuck at a log-likelihood is effective
-    // my suspicion is that haps are getting stuck at LLs where they twiddle between equivalent solutions.
-    if (clist[k].MEC == clist[k].bestMEC)
-        improved = 0;
     
-    
-    if (clist[k].MEC > clist[k].bestMEC) // new haplotype is not better than current haplotype, revert to old haplotype
+    // posterior probability of our haplotype vs flipped hap
+
+    if (clist[k].MEC >= clist[k].bestMEC) // new haplotype is not better than current haplotype, revert to old haplotype
     {
-        improved = 0;
-        for (i = 0; i < clist[k].phased; i++) {
-            if (slist[i] > 0 && HAP1[slist[i]] == '1') HAP1[slist[i]] = '0';
-            else if (slist[i] > 0 && HAP1[slist[i]] == '0') HAP1[slist[i]] = '1';
-        }
-        clist[k].MEC = 0;
-        for (i = 0; i < clist[k].frags; i++) {
-            update_fragscore(Flist, clist[k].flist[i], HAP1);
-            clist[k].MEC += Flist[clist[k].flist[i]].currscore;
-        }
-    } else clist[k].bestMEC = clist[k].MEC; // update current haplotype
-    if (VERBOSE && iter > 0 && clist[k].MEC > 0) fprintf(stdout, "component %d offset %d length %d phased %d  calls %d MEC %0.1f cutvalue %f bestMEC %0.2f\n", k, clist[k].offset, clist[k].length, clist[k].phased, clist[k].calls, clist[k].MEC, cutvalue, clist[k].bestMEC);
+        post = (-1.0*clist[k].bestMEC)-(addlogs((-1.0*clist[k].bestMEC), (-1.0*clist[k].MEC)));
+        if (SPLIT_BLOCKS_MAXCUT && iters_since_improvement[clist[k].offset] > CONVERGE && post < log10(SPLIT_THRESHOLD)){
+            // solution has converged so we are trying to split blocks
+            // this cut is under the threshold so we cut it out as a separate block
+            clist[k].split = 1;
+            iters_since_split[clist[k].offset] = 0;
+            // recursive hapcut after splits, not sold on this idea yet...
+            iters_since_improvement[clist[k].offset] = 0;
 
-    if (improved) {
-        clist[k].iters_since_improvement = 0;
-    } else {
-        clist[k].iters_since_improvement++;
-    }
-    // return 0 to specify that this component hasn't converged.
-    return 0;
-}
+            first_in = -1;  // first element in the cut
+            first_out = -1; // first element not in the cut
+            count1 = 0; count2 = 0; // counts for size of each side of cut
 
+            for (j = 0; j < clist[k].phased; j++){
 
-int maxcut_split_blocks(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1, int iter) {
-    int improved = 1; // assume improvement
-    if (clist[k].iters_since_improvement > CONVERGE) {
-        return 1; // return 1 only if converged
-    }
-    int i = 0, t = 0;
-    float cutvalue;
+                if (slist[j] > 0){
+                    // j is in the cut
+                    if (first_in == -1){
+                        first_in = slist[j];
+                        snpfrag[first_in].csize = 0;
+                    }
+                    snpfrag[slist[j]].component = first_in;
+                    snpfrag[first_in].csize ++;
+                    count1++;
+                }else{
+                    // j is not in the cut
+                    if (first_out == -1){
+                        first_out = clist[k].slist[j];
+                        snpfrag[first_out].csize = 0;
+                    }
+                    snpfrag[clist[k].slist[j]].component = first_out;
+                    snpfrag[first_out].csize ++;
+                    count2++;
+                }
+            }
 
-    for (t = 0; t < clist[k].phased; t++) slist[t] = clist[k].slist[t]; // new way to determine slist
+            for (j = 0; j < clist[k].phased; j++){
+                snpfrag[clist[k].slist[j]].csize = snpfrag[snpfrag[clist[k].slist[j]].component].csize;
+                if (snpfrag[clist[k].slist[j]].csize <= 1){
+                    snpfrag[clist[k].slist[j]].component = -1;
+                }
+            }
 
-    clist[k].bestMEC = clist[k].MEC;
-    clist[k].MEC = 0;
-    for (i = 0; i < clist[k].frags; i++) {
-        update_fragscore(Flist, clist[k].flist[i], HAP1);
-        clist[k].MEC += Flist[clist[k].flist[i]].currscore;
-    }
-    
-    clist[k].bestMEC = clist[k].MEC;
+            if (count1 > 1 && count2 > 1)
+                (*components_ptr)++;
+            else if (count1 == 1 && count2 == 1)
+                (*components_ptr)--;
 
-    cutvalue = 10;
-    if (clist[k].MEC > 0) cutvalue = compute_goodcut(snpfrag, HAP1, slist, &clist[k], Flist, MINCUTALGO);
-    // flip the subset of columns in slist with positive value 
-    for (i = 0; i < clist[k].phased; i++) {
-        if (slist[i] > 0 && HAP1[slist[i]] == '1') HAP1[slist[i]] = '0';
-        else if (slist[i] > 0 && HAP1[slist[i]] == '0') HAP1[slist[i]] = '1';
-    }
-    clist[k].bestMEC = clist[k].MEC;
-    clist[k].MEC = 0;
-    for (i = 0; i < clist[k].frags; i++) {
-        update_fragscore(Flist, clist[k].flist[i], HAP1);
-        clist[k].MEC += Flist[clist[k].flist[i]].currscore;
-    }
-
-    float post = (-1.0*clist[k].bestMEC)-(addlogs((-1.0*clist[k].bestMEC), (-1.0*clist[k].MEC)));
-    fprintf(stderr, "split: %f\n", pow(10,post));
-    if (log10(SPLIT_THRESHOLD) < post){
-        // better to leave block intact, flip back haplotype
-        improved = 0;
-        clist[k].split = 0;
-        for (i = 0; i < clist[k].phased; i++) {
-            if (slist[i] > 0 && HAP1[slist[i]] == '1') HAP1[slist[i]] = '0';
-            else if (slist[i] > 0 && HAP1[slist[i]] == '0') HAP1[slist[i]] = '1';
-        }
-        clist[k].MEC = 0;
-        for (i = 0; i < clist[k].frags; i++) {
-            update_fragscore(Flist, clist[k].flist[i], HAP1);
-            clist[k].MEC += Flist[clist[k].flist[i]].currscore;
+        }else{
+            // we aren't splitting blocks, or cut is above threshold
+            // flip back the SNPs in the cut
+            iters_since_improvement[clist[k].offset]++;
+            for (i = 0; i < clist[k].phased; i++) {
+                if (slist[i] > 0 && HAP1[slist[i]] == '1') HAP1[slist[i]] = '0';
+                else if (slist[i] > 0 && HAP1[slist[i]] == '0') HAP1[slist[i]] = '1';
+            }
+            clist[k].MEC = 0;
+            for (i = 0; i < clist[k].frags; i++) {
+                update_fragscore(Flist, clist[k].flist[i], HAP1);
+                clist[k].MEC += Flist[clist[k].flist[i]].currscore;
+            }
         }
     }else{
-        // better to split the block, no need to flip back haplotype since it'll be disjoint anyway
-        improved = 1;
-
-        clist[k].split = 1;
-        for (t = 0; t < clist[k].phased; t++){
-            clist[k].slist[t] = slist[t]; // new way to determine slist
-        }
+        clist[k].bestMEC = clist[k].MEC; // update current haplotype
+        iters_since_improvement[clist[k].offset] = 0;
     }
+    if (VERBOSE && iter > 0 && clist[k].MEC > 0) fprintf(stdout, "component %d offset %d length %d phased %d  calls %d MEC %0.1f cutvalue %f bestMEC %0.2f\n", k, clist[k].offset, clist[k].length, clist[k].phased, clist[k].calls, clist[k].MEC, cutvalue, clist[k].bestMEC);
 
-    if (improved) {
-        clist[k].iters_since_improvement = 0;
-    } else {
-        clist[k].iters_since_improvement++;
-    }
+    if (SPLIT_BLOCKS_MAXCUT && iters_since_improvement[clist[k].offset] > CONVERGE && !clist[k].split)
+        iters_since_split[clist[k].offset]++;
+    
     // return 0 to specify that this component hasn't converged.
     return 0;
 }
@@ -772,7 +760,7 @@ void improve_hap(char* HAP, struct BLOCK* clist, int components, int snps, int f
 // ideally we'd have a snpfrag field for which frags cross the snp, gaps or not.
 // then it would be valid to simply compute the posterior from those alone
 // and not the whole component.
-void split_blocks(char* HAP, struct BLOCK* clist, int components, struct fragment* Flist, struct SNPfrags* snpfrag) {
+void split_blocks_old(char* HAP, struct BLOCK* clist, int components, struct fragment* Flist, struct SNPfrags* snpfrag) {
     int i, j, f, c, s, a, blocks_since_split=0;
     float P_data_H, P_data_Hsw, post_sw, post_sw_total;
     
@@ -815,4 +803,66 @@ void split_blocks(char* HAP, struct BLOCK* clist, int components, struct fragmen
             }
         }
     }
+}
+
+int split_block(char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, struct SNPfrags* snpfrag, int* components_ptr) {
+    int i, j, f, s, snps_since_split=0;
+    float P_data_H, P_data_Hsw, post_sw;
+    int split_occured = 0;
+    for (s = 0; s < clist[k].phased; s++)
+        snpfrag[clist[k].slist[s]].csize = 0;
+
+    snps_since_split=0;
+    int curr_component = clist[k].slist[0];
+    for (s = 1; s < clist[k].phased; s++) {
+        i = clist[k].slist[s]; // i is the current SNP index being considered
+        
+        // set probabilities to zero
+        P_data_H = 0;
+        P_data_Hsw = 0; // switch at i
+
+        //looping over fragments in component c and sum up read probabilities
+        for (j = 0; j < clist[k].frags; j++) {
+            // normal haplotype
+            f = clist[k].flist[j];
+            P_data_H += fragment_ll(Flist, f, HAP, -1, -1);
+            // haplotype with switch error starting at i
+            P_data_Hsw += fragment_ll(Flist, f, HAP, -1, i);
+        }
+        // posterior probability of no switch error
+        post_sw = P_data_Hsw - addlogs(P_data_H, P_data_Hsw);
+        //post_sw_total = addlogs(post_sw_total, post_sw);
+        snpfrag[i].post_notsw = subtractlogs(0,post_sw);
+        //snpfrag[i].post_notsw_total = subtractlogs(0,post_sw_total);
+        // flip the haplotype at this position if necessary
+        if (!ERROR_ANALYSIS_MODE){
+            if (snpfrag[i].post_notsw < log10(SPLIT_THRESHOLD)) {
+                // block should be split here
+                curr_component = clist[k].slist[s];
+                snps_since_split = 0;
+                split_occured = 1;
+                //post_sw_total = FLT_MIN;
+            }else{
+                snps_since_split++;
+            }
+        }
+        
+        snpfrag[i].component = curr_component;
+        snpfrag[curr_component].csize++;
+    }
+    
+    // subtract the component we started with, which may or may not exist anymore
+    (*components_ptr)--;
+    for (s = 0; s < clist[k].phased; s++) {
+        i = clist[k].slist[s]; // i is the current SNP index being considered
+        if (snpfrag[i].csize > 1){
+            // this is the head SNP of a component size 2 or greater
+            (*components_ptr)++;
+        }else{
+            snpfrag[i].csize = snpfrag[snpfrag[i].component].csize;
+            if (snpfrag[i].csize <= 1) snpfrag[i].component = -1;
+        }
+    }
+    
+    return split_occured;
 }
