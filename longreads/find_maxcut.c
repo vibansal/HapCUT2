@@ -162,77 +162,75 @@ int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, str
         update_fragscore(Flist, clist[k].flist[i], HAP1);
         clist[k].MEC += Flist[clist[k].flist[i]].currscore;
     }
+
+    post = (-1.0*clist[k].bestMEC)-(addlogs((-1.0*clist[k].bestMEC), (-1.0*clist[k].MEC)));
     
-    // posterior probability of our haplotype vs flipped hap
+    if ((iters_since_improvement[clist[k].offset] <= CONVERGE && clist[k].MEC >= clist[k].bestMEC)
+        ||(SPLIT_BLOCKS_MAXCUT && post >= log10(SPLIT_THRESHOLD))){// revert to old haplotype
+        // we aren't splitting blocks, or cut is above threshold
+        // flip back the SNPs in the cut
+        iters_since_improvement[clist[k].offset]++;
+        for (i = 0; i < clist[k].phased; i++) {
+            if (slist[i] > 0 && HAP1[slist[i]] == '1') HAP1[slist[i]] = '0';
+            else if (slist[i] > 0 && HAP1[slist[i]] == '0') HAP1[slist[i]] = '1';
+        }
+        clist[k].MEC = 0;
+        for (i = 0; i < clist[k].frags; i++) {
+            update_fragscore(Flist, clist[k].flist[i], HAP1);
+            clist[k].MEC += Flist[clist[k].flist[i]].currscore;
+        }
+    }else if (SPLIT_BLOCKS_MAXCUT && iters_since_improvement[clist[k].offset] > CONVERGE && post < log10(SPLIT_THRESHOLD)){
+        // solution has converged so we are trying to split blocks
+        // this cut is under the threshold so we cut it out as a separate block
+        clist[k].split = 1;
+        iters_since_split[clist[k].offset] = 0;
+        // recursive hapcut after splits, not sold on this idea yet...
+        iters_since_improvement[clist[k].offset] = 0;
 
-    if (clist[k].MEC >= clist[k].bestMEC) // new haplotype is not better than current haplotype, revert to old haplotype
-    {
-        post = (-1.0*clist[k].bestMEC)-(addlogs((-1.0*clist[k].bestMEC), (-1.0*clist[k].MEC)));
-        if (SPLIT_BLOCKS_MAXCUT && iters_since_improvement[clist[k].offset] > CONVERGE && post < log10(SPLIT_THRESHOLD)){
-            // solution has converged so we are trying to split blocks
-            // this cut is under the threshold so we cut it out as a separate block
-            clist[k].split = 1;
-            iters_since_split[clist[k].offset] = 0;
-            // recursive hapcut after splits, not sold on this idea yet...
-            iters_since_improvement[clist[k].offset] = 0;
+        first_in = -1;  // first element in the cut
+        first_out = -1; // first element not in the cut
+        count1 = 0; count2 = 0; // counts for size of each side of cut
 
-            first_in = -1;  // first element in the cut
-            first_out = -1; // first element not in the cut
-            count1 = 0; count2 = 0; // counts for size of each side of cut
+        for (j = 0; j < clist[k].phased; j++){
 
-            for (j = 0; j < clist[k].phased; j++){
-
-                if (slist[j] > 0){
-                    // j is in the cut
-                    if (first_in == -1){
-                        first_in = slist[j];
-                        snpfrag[first_in].csize = 0;
-                    }
-                    snpfrag[slist[j]].component = first_in;
-                    snpfrag[first_in].csize ++;
-                    count1++;
-                }else{
-                    // j is not in the cut
-                    if (first_out == -1){
-                        first_out = clist[k].slist[j];
-                        snpfrag[first_out].csize = 0;
-                    }
-                    snpfrag[clist[k].slist[j]].component = first_out;
-                    snpfrag[first_out].csize ++;
-                    count2++;
+            if (slist[j] > 0){
+                // j is in the cut
+                if (first_in == -1){
+                    first_in = slist[j];
+                    snpfrag[first_in].csize = 0;
                 }
-            }
-
-            for (j = 0; j < clist[k].phased; j++){
-                snpfrag[clist[k].slist[j]].csize = snpfrag[snpfrag[clist[k].slist[j]].component].csize;
-                if (snpfrag[clist[k].slist[j]].csize <= 1){
-                    snpfrag[clist[k].slist[j]].component = -1;
+                snpfrag[slist[j]].component = first_in;
+                snpfrag[first_in].csize ++;
+                count1++;
+            }else{
+                // j is not in the cut
+                if (first_out == -1){
+                    first_out = clist[k].slist[j];
+                    snpfrag[first_out].csize = 0;
                 }
-            }
-
-            if (count1 > 1 && count2 > 1)
-                (*components_ptr)++;
-            else if (count1 == 1 && count2 == 1)
-                (*components_ptr)--;
-
-        }else{
-            // we aren't splitting blocks, or cut is above threshold
-            // flip back the SNPs in the cut
-            iters_since_improvement[clist[k].offset]++;
-            for (i = 0; i < clist[k].phased; i++) {
-                if (slist[i] > 0 && HAP1[slist[i]] == '1') HAP1[slist[i]] = '0';
-                else if (slist[i] > 0 && HAP1[slist[i]] == '0') HAP1[slist[i]] = '1';
-            }
-            clist[k].MEC = 0;
-            for (i = 0; i < clist[k].frags; i++) {
-                update_fragscore(Flist, clist[k].flist[i], HAP1);
-                clist[k].MEC += Flist[clist[k].flist[i]].currscore;
+                snpfrag[clist[k].slist[j]].component = first_out;
+                snpfrag[first_out].csize ++;
+                count2++;
             }
         }
+
+        for (j = 0; j < clist[k].phased; j++){
+            snpfrag[clist[k].slist[j]].csize = snpfrag[snpfrag[clist[k].slist[j]].component].csize;
+            if (snpfrag[clist[k].slist[j]].csize <= 1){
+                snpfrag[clist[k].slist[j]].component = -1;
+            }
+        }
+
+        if (count1 > 1 && count2 > 1)
+            (*components_ptr)++;
+        else if (count1 == 1 && count2 == 1)
+            (*components_ptr)--;
+
     }else{
         clist[k].bestMEC = clist[k].MEC; // update current haplotype
         iters_since_improvement[clist[k].offset] = 0;
     }
+
     if (VERBOSE && iter > 0 && clist[k].MEC > 0) fprintf(stdout, "component %d offset %d length %d phased %d  calls %d MEC %0.1f cutvalue %f bestMEC %0.2f\n", k, clist[k].offset, clist[k].length, clist[k].phased, clist[k].calls, clist[k].MEC, cutvalue, clist[k].bestMEC);
 
     if (SPLIT_BLOCKS_MAXCUT && iters_since_improvement[clist[k].offset] > CONVERGE && !clist[k].split)
