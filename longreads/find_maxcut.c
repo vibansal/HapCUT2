@@ -110,7 +110,6 @@ void single_variant_flips(struct fragment* Flist, struct SNPfrags* snpfrag, stru
 // function called from hapcut.c for each component...
 
 int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1, int iter, int* components_ptr) {
-    int improved = 1; // assume improvement
     clist[k].split = 0;
     
     if (iters_since_improvement[clist[k].offset] > CONVERGE && (!SPLIT_BLOCKS_MAXCUT || iters_since_split[clist[k].offset] > CONVERGE)) {
@@ -184,8 +183,6 @@ int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, str
         // this cut is under the threshold so we cut it out as a separate block
         clist[k].split = 1;
         iters_since_split[clist[k].offset] = 0;
-        // recursive hapcut after splits, not sold on this idea yet...
-        iters_since_improvement[clist[k].offset] = 0;
 
         first_in = -1;  // first element in the cut
         first_out = -1; // first element not in the cut
