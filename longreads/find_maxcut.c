@@ -183,7 +183,7 @@ int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, str
         // this cut is under the threshold so we cut it out as a separate block
         clist[k].split = 1;
         iters_since_split[clist[k].offset] = 0;
-
+        
         first_in = -1;  // first element in the cut
         first_out = -1; // first element not in the cut
         count1 = 0; count2 = 0; // counts for size of each side of cut
@@ -209,8 +209,11 @@ int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, str
                 snpfrag[first_out].csize ++;
                 count2++;
             }
-        }
+        }        
 
+        iters_since_improvement[first_in] = CONVERGE+1;        
+        iters_since_improvement[first_out] = CONVERGE+1;
+        
         for (j = 0; j < clist[k].phased; j++){
             snpfrag[clist[k].slist[j]].csize = snpfrag[snpfrag[clist[k].slist[j]].component].csize;
             if (snpfrag[clist[k].slist[j]].csize <= 1){
