@@ -275,21 +275,8 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
 
     for (k = 0; k < components; k++) find_bestvariant_segment(Flist, fragments, snpfrag, clist, k, HAP1, HAP2);
 
-    // POST-PROCESSING WORK: TWEAK HAPLOTYPE, PRUNE SNPS AND REMOVE LIKELY HOMOZYGOUS VARIANTS
-    if (ERROR_ANALYSIS_MODE){
-        // for analysizing errors, we want to calculate our posterior probs and labels for refhap-style
-        // pruning (so this can be inspected) but we don't actually want to perform the pruning because we want to see all errors.
-        refhap_heuristic(snps, fragments, Flist, snpfrag, HAP1);
-        prune_snps(snps, Flist, snpfrag, HAP1);
-    }else if (REFHAP_HEURISTIC){
-        // prune SNPs using refhap heuristic
-        // only prune a snp if its number of bases consistent and inconsistent with optimal fragment-haplotype assignment is equal
-        refhap_heuristic(snps, fragments, Flist, snpfrag, HAP1);
-    }else{
-        // DEFAULT
-        // prune SNPs using our log-likelihood based strategy
-        prune_snps(snps, Flist, snpfrag, HAP1);
-    }
+    refhap_heuristic(snps, fragments, Flist, snpfrag, HAP1);
+    prune_snps(snps, Flist, snpfrag, HAP1);
     
     fprintf(stdout, "OUTPUTTING PRUNED HAPLOTYPE ASSEMBLY TO FILE %s\n", outputfile);
     //if (VCFformat ==1) print_haplotypes_vcf(clist,components,HAP1,Flist,fragments,snpfrag,snps,fn);

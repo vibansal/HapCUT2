@@ -16,6 +16,7 @@ extern int SPLIT_BLOCKS;
 extern int SPLIT_BLOCKS_MAXCUT;
 extern int* iters_since_improvement;
 extern int* iters_since_split;
+extern int REFHAP_HEURISTIC;
 extern int ERROR_ANALYSIS_MODE;
 /* edge weights 
    weight 334 373 hap 10 alleles 01 W 3.048192 
@@ -582,7 +583,7 @@ void prune_snps(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char
             flip(HAP1[i]);                // SNP should be flipped
             snpfrag[i].post_hap = post_hapf;
         }else if (post_hap < log10(THRESHOLD)){
-            if (!ERROR_ANALYSIS_MODE)
+            if (!REFHAP_HEURISTIC && !ERROR_ANALYSIS_MODE)
                 snpfrag[i].prune_status = 1; // remove the SNP entirely
             snpfrag[i].post_hap = post_hap;
         }
@@ -647,13 +648,14 @@ void refhap_heuristic(int snps, int fragments, struct fragment* Flist, struct SN
     }
     
     for (i = 0; i < snps; i++){
-        if (good[i] == bad[i])
-            if (!ERROR_ANALYSIS_MODE)
+        snpfrag[i].prune_status = 0;
+
+        if (good[i] == bad[i]){
+            snpfrag[i].pruned_refhap_heuristic = 1; // this isn't used to prune, just recorded.
+
+            if (REFHAP_HEURISTIC)
                 snpfrag[i].prune_status = 1;
-            else
-                snpfrag[i].pruned_refhap_heuristic = 1; // this isn't used to prune, just recorded.
-        else
-            snpfrag[i].prune_status = 0;
+        }
     }
     
     free(good); free(bad);

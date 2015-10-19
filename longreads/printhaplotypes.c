@@ -1,7 +1,5 @@
 
 #include "common.h"
-
-extern int ERROR_ANALYSIS_MODE;
 // THIS FUNCTION PRINTS THE CURRENT HAPLOTYPE ASSEMBLY in a new file block by block 
 
 void print_hapcut_options() {
@@ -53,10 +51,6 @@ int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
         for (k = 0; k < clist[i].phased; k++) {
 
             t = clist[i].slist[k];
-            if (snpfrag[t].split == 1){
-                fprintf(fp, "******** \n");
-                fprintf(fp, "BLOCK: offset: %d\n", t+1);
-            }
             //fprintf(fp,"frags %d | ",snpfrag[t].frags); 
             //if (clist[i].haplotype[k] =='-') fprintf(fp,"%s_%s_%d_%s_%s_%s\t%10c\t%10c\n",snpfrag[t].id,snpfrag[t].chromosome,snpfrag[t].position,snpfrag[t].allele0,snpfrag[t].allele1,snpfrag[t].genotypes,'-','-'); 
             // changed code here to use the component
@@ -92,16 +86,17 @@ int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
                 }
                 
                 // changed 07/20/2015, last value is likelihood of current phase vs flip 0|1 -> 1|0 
-                fprintf(fp, "%s\t%d\t%s\t%s\t%s\t%d,%d:%0.1f,%0.1f,%0.1f:%0.1f:%0.1f:%0.2f", snpfrag[t].chromosome, snpfrag[t].position, snpfrag[t].allele0, snpfrag[t].allele1, snpfrag[t].genotypes, snpfrag[t].R0, snpfrag[t].R1, snpfrag[t].L00, snpfrag[t].L01, snpfrag[t].L11, delta, snpfrag[t].rMEC, snpfrag[t].L01 - snpfrag[t].L10);
+                //fprintf(fp, "%s\t%d\t%s\t%s\t%s\t%d,%d:%0.1f,%0.1f,%0.1f:%0.1f:%0.1f:%0.2f", snpfrag[t].chromosome, snpfrag[t].position, snpfrag[t].allele0, snpfrag[t].allele1, snpfrag[t].genotypes, snpfrag[t].R0, snpfrag[t].R1, snpfrag[t].L00, snpfrag[t].L01, snpfrag[t].L11, delta, snpfrag[t].rMEC, snpfrag[t].L01 - snpfrag[t].L10);
+                fprintf(fp, "%s\t%d\t%s\t%s\t%s\t", snpfrag[t].chromosome, snpfrag[t].position, snpfrag[t].allele0, snpfrag[t].allele1, snpfrag[t].genotypes);
+                //if (delta >= 3 && snpfrag[t].rMEC >= 2) fprintf(fp, ":FV");
 
-                if (delta >= 3 && snpfrag[t].rMEC >= 2) fprintf(fp, ":FV");
-
-                if (ERROR_ANALYSIS_MODE)
-                    fprintf(fp, "%d\t%f\t%f", snpfrag[t].pruned_refhap_heuristic, snpfrag[t].post_notsw, snpfrag[t].post_hap);
+                //if (ERROR_ANALYSIS_MODE)
+                fprintf(fp, "%d\t%0.6f\t%0.6f", snpfrag[t].pruned_refhap_heuristic, pow(10,snpfrag[t].post_notsw), pow(10,snpfrag[t].post_hap));
                 
                 // print genotype read counts and likelihoods
-                if (snpfrag[t].G00 < 0 || snpfrag[t].G01 < 0 || snpfrag[t].G11 < 0) fprintf(fp, "\t%d,%d:%0.1f,%0.1f,%0.1f\n", snpfrag[t].A0, snpfrag[t].A1, snpfrag[t].G00, snpfrag[t].G01, snpfrag[t].G11);
-                else fprintf(fp, "\n");
+                //if (snpfrag[t].G00 < 0 || snpfrag[t].G01 < 0 || snpfrag[t].G11 < 0) fprintf(fp, "\t%d,%d:%0.1f,%0.1f,%0.1f\n", snpfrag[t].A0, snpfrag[t].A1, snpfrag[t].G00, snpfrag[t].G01, snpfrag[t].G11);
+                //else
+                fprintf(fp, "\n");
                 //fprintf(fp,"%s_%s_%d_%s_%s_%s\t%10c\t%10c\tDELTA:%f\n",snpfrag[t].id,snpfrag[t].chromosome,snpfrag[t].position,snpfrag[t].allele0,snpfrag[t].allele1,snpfrag[t].genotypes,h1[t],c,snpfrag[t].deltaLL); 
                 //fprintf(fp,"%s\t%c\t%c \n",snpfrag[t].id,h1[t],c); 
             }
