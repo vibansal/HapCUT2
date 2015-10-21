@@ -270,6 +270,11 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
             clist = (struct BLOCK*) malloc(sizeof (struct BLOCK)*new_components);
             generate_clist_structure(Flist, fragments, snpfrag, snps, new_components, clist);
         }
+    }else if(ERROR_ANALYSIS_MODE){
+        for (k=0; k<components; k++){
+            // run split_block but don't actually split, just get posterior probabilities
+            split_block(HAP1, clist, k, Flist, snpfrag, &new_components);
+        }
     }
     components = new_components;
 

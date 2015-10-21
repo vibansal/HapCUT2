@@ -806,13 +806,13 @@ void split_blocks_old(char* HAP, struct BLOCK* clist, int components, struct fra
 }
 
 int split_block(char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, struct SNPfrags* snpfrag, int* components_ptr) {
-    int i, j, f, s, snps_since_split=0;
+    int i, j, f, s;
     float P_data_H, P_data_Hsw, post_sw;
     int split_occured = 0;
-    for (s = 0; s < clist[k].phased; s++)
-        snpfrag[clist[k].slist[s]].csize = 0;
-
-    snps_since_split=0;
+    if (!ERROR_ANALYSIS_MODE){
+        for (s = 0; s < clist[k].phased; s++)
+            snpfrag[clist[k].slist[s]].csize = 0;
+    }
     int curr_component = clist[k].slist[0];
     for (s = 1; s < clist[k].phased; s++) {
         i = clist[k].slist[s]; // i is the current SNP index being considered
@@ -836,31 +836,31 @@ int split_block(char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, s
         //snpfrag[i].post_notsw_total = subtractlogs(0,post_sw_total);
         // flip the haplotype at this position if necessary
         if (!ERROR_ANALYSIS_MODE){
+            
             if (snpfrag[i].post_notsw < log10(SPLIT_THRESHOLD)) {
                 // block should be split here
                 curr_component = clist[k].slist[s];
-                snps_since_split = 0;
                 split_occured = 1;
                 //post_sw_total = FLT_MIN;
-            }else{
-                snps_since_split++;
             }
-        }
         
-        snpfrag[i].component = curr_component;
-        snpfrag[curr_component].csize++;
+            snpfrag[i].component = curr_component;
+            snpfrag[curr_component].csize++;
+        }
     }
-    
-    // subtract the component we started with, which may or may not exist anymore
-    (*components_ptr)--;
-    for (s = 0; s < clist[k].phased; s++) {
-        i = clist[k].slist[s]; // i is the current SNP index being considered
-        if (snpfrag[i].csize > 1){
-            // this is the head SNP of a component size 2 or greater
-            (*components_ptr)++;
-        }else{
-            snpfrag[i].csize = snpfrag[snpfrag[i].component].csize;
-            if (snpfrag[i].csize <= 1) snpfrag[i].component = -1;
+            
+    if (!ERROR_ANALYSIS_MODE){
+        // subtract the component we started with, which may or may not exist anymore
+        (*components_ptr)--;
+        for (s = 0; s < clist[k].phased; s++) {
+            i = clist[k].slist[s]; // i is the current SNP index being considered
+            if (snpfrag[i].csize > 1){
+                // this is the head SNP of a component size 2 or greater
+                (*components_ptr)++;
+            }else{
+                snpfrag[i].csize = snpfrag[snpfrag[i].component].csize;
+                if (snpfrag[i].csize <= 1) snpfrag[i].component = -1;
+            }
         }
     }
     
