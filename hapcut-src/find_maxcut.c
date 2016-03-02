@@ -1,36 +1,85 @@
 
+#define DEBUG 0
+
+#include "maxcut_functions.c"
+#include "maxcut_lr.c"
+#include "common.h"
+#include <float.h>
+
+extern int MAX_ITER;
+extern int CONVERGE;
+extern float HOMOZYGOUS_PRIOR;
+extern float THRESHOLD;
+extern float SPLIT_THRESHOLD;
+extern int VERBOSE;
+extern int SPLIT_BLOCKS;
+extern int SPLIT_BLOCKS_MAXCUT;
+extern int* iters_since_improvement;
+extern int* iters_since_split;
+extern int REFHAP_HEURISTIC;
+extern int ERROR_ANALYSIS_MODE;
+/* edge weights 
+   weight 334 373 hap 10 alleles 01 W 3.048192 
+   weight 334 375 hap 11 alleles 00 W 3.523493 
+   weight 335 298 hap 00 alleles 01 W -2.702092 
+   weight 335 301 hap 00 alleles 01 W -3.098797 
+   we are trying to find negative weight cuts, lower the better....
+
+ */
+
+//int NEW_CODE = 1; // likelihood based, max-cut calculated using partial likelihoods
 
 /****** CODE TO FIND MAX CUT FOR EACH COMPONENT *************/
+int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1, int iter, int* components_ptr);
+float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, struct BLOCK* component, struct fragment* Flist, int algo);
+void prune_snps(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1);
+void refhap_heuristic(int snps, int fragments, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1);
+int split_block(char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, struct SNPfrags* snpfrag, int* components_ptr);
+void split_blocks_old(char* HAP, struct BLOCK* clist, int components, struct fragment* Flist, struct SNPfrags* snpfrag);
+//int maxcut_split_blocks(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1, int iter);
+void improve_hap(char* HAP, struct BLOCK* clist, int components, int snps, int fragments, struct fragment* Flist, struct SNPfrags* snpfrag);
+float addlogs(float a, float b);
 
-void evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1, int iter);
-float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, int N, struct fragment* Flist, int algo);
+void single_variant_flips_LL(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1) {
+    int t = 0, i = 0, f = 0;
+    double delta = 0;
+    float mec_ll;
+    float chim_ll;
 
-/**************** DETERMINISTIC MAX_CUT MEC IMPLEMENTATION *********************************************************//////
+    for (t = 0; t < clist[k].phased; t++) {
+        for (i = 0; i < snpfrag[slist[t]].frags; i++) {
+            f = snpfrag[slist[t]].flist[i];
+            calculate_fragscore(Flist, f, HAP1, &mec_ll, &chim_ll);
+            delta += mec_ll;
+        }
 
-void evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1, int iter) {
-    int i = 0, t = 0;
-    int f = 0;
-    float cutvalue;
-    float newscore;
-    /*
-    i=0;for (j=clist[k].offset;j<clist[k].offset+clist[k].length;j++) 
-    {
-            if (snpfrag[clist[k].offset].component == snpfrag[j].component) { slist[i] = j; i++; } 
-    }*/
-    // slist is copied from clist[k].slist
-    for (t = 0; t < clist[k].phased; t++) slist[t] = clist[k].slist[t]; // new way to determine slist
+        // flip the single SNP allele between the two haplotypes 
+        if (HAP1[slist[t]] == '1') HAP1[slist[t]] = '0';
+        else if (HAP1[slist[t]] == '0') HAP1[slist[t]] = '1';
 
-    // not required but we do it to avoid errors
-    clist[k].MEC = 0;
-    for (i = 0; i < clist[k].frags; i++) {
-        update_fragscore(Flist, clist[k].flist[i], HAP1);
-        clist[k].MEC += Flist[clist[k].flist[i]].currscore;
+        for (i = 0; i < snpfrag[slist[t]].frags; i++) {
+            f = snpfrag[slist[t]].flist[i];
+            calculate_fragscore(Flist, f, HAP1, &mec_ll, &chim_ll);
+            delta -= mec_ll;
+        }
+
+        if (delta > 0) // newMEC is not better than original MEC so we need to revert back to oldMEC for each fragment 
+        {
+            if (HAP1[slist[t]] == '1') HAP1[slist[t]] = '0';
+            else if (HAP1[slist[t]] == '0') HAP1[slist[t]] = '1';
+        } else {
+            clist[k].MEC += delta;
+        }
     }
+}
 
-    clist[k].bestMEC = clist[k].MEC;
-    newscore = clist[k].MEC;
-    // evaluate the impact of flipping of each SNP on MEC score
-    // this loop is essentially a N^2 time hog, do we need it, april 17 2012
+
+// MEC for likelihood function is -1*LL -> preserves comparisons 
+
+void single_variant_flips(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1) {
+    int t = 0, i = 0, f = 0;
+    float newscore = clist[k].bestMEC;
+
     for (t = 0; t < clist[k].phased; t++) {
         if (HAP1[slist[t]] == '1') HAP1[slist[t]] = '0';
         else if (HAP1[slist[t]] == '0') HAP1[slist[t]] = '1';
@@ -41,29 +90,56 @@ void evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, st
             update_fragscore(Flist, f, HAP1);
             newscore += Flist[f].currscore;
         }
-        /*
-        fprintf(stdout,"%f ",clist[k].MEC);
-        fprintf(stdout,"flist %d %d %f %f \n",slist[t],snpfrag[slist[t]].frags,newscore,clist[k].MEC);
-         */
 
         if (newscore > clist[k].bestMEC) // newMEC is not better than original MEC so we need to revert back to oldMEC for each fragment 
         {
             if (HAP1[slist[t]] == '1') HAP1[slist[t]] = '0';
             else if (HAP1[slist[t]] == '0') HAP1[slist[t]] = '1';
-            //clist[k].MEC = clist[k].bestMEC; 
             for (i = 0; i < snpfrag[slist[t]].frags; i++) {
                 f = snpfrag[slist[t]].flist[i];
-                newscore -= Flist[f].currscore;
                 update_fragscore(Flist, f, HAP1);
-                newscore += Flist[f].currscore;
             }
         } else {
             clist[k].MEC = newscore;
             clist[k].bestMEC = newscore;
         }
     }
+}
 
-    newscore = clist[k].MEC;
+/**************** DETERMINISTIC MAX_CUT MEC IMPLEMENTATION *********************************************************//////
+
+// function called from hapcut.c for each component...
+
+int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1, int iter, int* components_ptr) {
+    clist[k].split = 0;
+    
+    if (iters_since_improvement[clist[k].offset] > CONVERGE && (!SPLIT_BLOCKS_MAXCUT || iters_since_split[clist[k].offset] > CONVERGE)) {
+        return 1; // return 1 only if converged
+    }
+            
+    int i = 0, j = 0, t = 0, first_in, first_out, count1, count2;
+    float cutvalue, post;
+    /*
+       i=0;for (j=clist[k].offset;j<clist[k].offset+clist[k].length;j++) 
+       {
+       if (snpfrag[clist[k].offset].component == snpfrag[j].component) { slist[i] = j; i++; } 
+       }*/
+    // slist is copied from clist[k].slist
+    for (t = 0; t < clist[k].phased; t++) slist[t] = clist[k].slist[t]; // new way to determine slist
+
+    // not required but we do it to avoid errors
+    clist[k].MEC = 0;
+    clist[k].LL = 0;
+    for (i = 0; i < clist[k].frags; i++) {
+        update_fragscore(Flist, clist[k].flist[i], HAP1);
+        clist[k].MEC += Flist[clist[k].flist[i]].currscore;
+        clist[k].LL += Flist[clist[k].flist[i]].ll;
+    }
+
+    clist[k].bestMEC = clist[k].MEC;
+    // evaluate the impact of flipping of each SNP on MEC score, loop needed to improve MEC score
+    single_variant_flips(Flist, snpfrag, clist, k, slist, HAP1);
+
     clist[k].MEC = 0;
     for (i = 0; i < clist[k].frags; i++) {
         update_fragscore(Flist, clist[k].flist[i], HAP1);
@@ -73,56 +149,106 @@ void evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, st
     //if (fabsf(newscore-clist[k].MEC) >= 0.001) fprintf(stdout,"old %f %f MECcheck\n",newscore,clist[k].MEC);
 
     cutvalue = 10;
-    if (clist[k].MEC > 0) cutvalue = compute_goodcut(snpfrag, HAP1, slist, clist[k].phased, Flist, MINCUTALGO);
+    if (clist[k].MEC > 0) cutvalue = compute_goodcut(snpfrag, HAP1, slist, &clist[k], Flist, MINCUTALGO);
     // flip the subset of columns in slist with positive value 
-    if (cutvalue <= 3 || MINCUTALGO == 2) { //getchar();
-        //printf("code reached here \n");
+    //if (cutvalue <= 3 || MINCUTALGO == 2) { //getchar();
+    for (i = 0; i < clist[k].phased; i++) {
+        if (slist[i] > 0 && HAP1[slist[i]] == '1') HAP1[slist[i]] = '0';
+        else if (slist[i] > 0 && HAP1[slist[i]] == '0') HAP1[slist[i]] = '1';
+    }
+    clist[k].bestMEC = clist[k].MEC;
+    clist[k].MEC = 0;
+    for (i = 0; i < clist[k].frags; i++) {
+        update_fragscore(Flist, clist[k].flist[i], HAP1);
+        clist[k].MEC += Flist[clist[k].flist[i]].currscore;
+    }
+
+    post = (-1.0*clist[k].bestMEC)-(addlogs((-1.0*clist[k].bestMEC), (-1.0*clist[k].MEC)));
+    
+    if ((iters_since_improvement[clist[k].offset] <= CONVERGE && clist[k].MEC >= clist[k].bestMEC)
+        ||(SPLIT_BLOCKS_MAXCUT && post >= log10(SPLIT_THRESHOLD))){// revert to old haplotype
+        // we aren't splitting blocks, or cut is above threshold
+        // flip back the SNPs in the cut
+        iters_since_improvement[clist[k].offset]++;
         for (i = 0; i < clist[k].phased; i++) {
             if (slist[i] > 0 && HAP1[slist[i]] == '1') HAP1[slist[i]] = '0';
             else if (slist[i] > 0 && HAP1[slist[i]] == '0') HAP1[slist[i]] = '1';
         }
-        clist[k].bestMEC = clist[k].MEC;
         clist[k].MEC = 0;
         for (i = 0; i < clist[k].frags; i++) {
             update_fragscore(Flist, clist[k].flist[i], HAP1);
             clist[k].MEC += Flist[clist[k].flist[i]].currscore;
         }
-        if (clist[k].MEC > clist[k].bestMEC) {
-            for (i = 0; i < clist[k].phased; i++) {
-                if (slist[i] > 0 && HAP1[slist[i]] == '1') HAP1[slist[i]] = '0';
-                else if (slist[i] > 0 && HAP1[slist[i]] == '0') HAP1[slist[i]] = '1';
-            }
-            clist[k].MEC = 0;
-            for (i = 0; i < clist[k].frags; i++) {
-                update_fragscore(Flist, clist[k].flist[i], HAP1);
-                clist[k].MEC += Flist[clist[k].flist[i]].currscore;
-            }
-        } else clist[k].bestMEC = clist[k].MEC;
-    }
-    if (iter > 0 && clist[k].MEC > 0) fprintf(stdout, "component %d offset %d length %d phased %d  calls %d MEC %0.1f cutvalue %f bestMEC %0.2f\n", k, clist[k].offset, clist[k].length, clist[k].phased, clist[k].calls, clist[k].MEC, cutvalue, clist[k].bestMEC);
+    }else if (SPLIT_BLOCKS_MAXCUT && iters_since_improvement[clist[k].offset] > CONVERGE && post < log10(SPLIT_THRESHOLD)){
+        // solution has converged so we are trying to split blocks
+        // this cut is under the threshold so we cut it out as a separate block
+        clist[k].split = 1;
+        iters_since_split[clist[k].offset] = 0;
+        
+        first_in = -1;  // first element in the cut
+        first_out = -1; // first element not in the cut
+        count1 = 0; count2 = 0; // counts for size of each side of cut
 
-    // print out cut information
-    if (iter >= 2 && clist[k].MEC > clist[k].lastMEC && iter % 2 == 0 && clist[k].phased < 50 && clist[k].MEC > 0) {
-        /*
-        for (i=0;i<clist[k].length;i++) 
-        { 
-                if (snpfrag[clist[k].offset+i].component == snpfrag[clist[k].offset].component) fprintf(stdout,"%c",HAP1[clist[k].offset+i]); else fprintf(stdout,"-"); 
-        } fprintf(stdout,"\n");
-        for (i=0;i<clist[k].length;i++) 
-        { 
-                if (snpfrag[clist[k].offset+i].component == snpfrag[clist[k].offset].component && slist[i] > 0) fprintf(stdout,"c"); else fprintf(stdout,"-"); 
-        } fprintf(stdout,"\n");
-         */
+        for (j = 0; j < clist[k].phased; j++){
+
+            if (slist[j] > 0){
+                // j is in the cut
+                if (first_in == -1){
+                    first_in = slist[j];
+                    snpfrag[first_in].csize = 0;
+                }
+                snpfrag[slist[j]].component = first_in;
+                snpfrag[first_in].csize ++;
+                count1++;
+            }else{
+                // j is not in the cut
+                if (first_out == -1){
+                    first_out = clist[k].slist[j];
+                    snpfrag[first_out].csize = 0;
+                }
+                snpfrag[clist[k].slist[j]].component = first_out;
+                snpfrag[first_out].csize ++;
+                count2++;
+            }
+        }        
+
+        iters_since_improvement[first_in] = CONVERGE+1;        
+        iters_since_improvement[first_out] = CONVERGE+1;
+        
+        for (j = 0; j < clist[k].phased; j++){
+            snpfrag[clist[k].slist[j]].csize = snpfrag[snpfrag[clist[k].slist[j]].component].csize;
+            if (snpfrag[clist[k].slist[j]].csize <= 1){
+                snpfrag[clist[k].slist[j]].component = -1;
+            }
+        }
+
+        if (count1 > 1 && count2 > 1)
+            (*components_ptr)++;
+        else if (count1 == 1 && count2 == 1)
+            (*components_ptr)--;
+
+    }else{
+        clist[k].bestMEC = clist[k].MEC; // update current haplotype
+        iters_since_improvement[clist[k].offset] = 0;
     }
+
+    if (VERBOSE && iter > 0 && clist[k].MEC > 0) fprintf(stdout, "component %d offset %d length %d phased %d  calls %d MEC %0.1f cutvalue %f bestMEC %0.2f\n", k, clist[k].offset, clist[k].length, clist[k].phased, clist[k].calls, clist[k].MEC, cutvalue, clist[k].bestMEC);
+
+    if (SPLIT_BLOCKS_MAXCUT && iters_since_improvement[clist[k].offset] > CONVERGE && !clist[k].split)
+        iters_since_split[clist[k].offset]++;
+    
+    // return 0 to specify that this component hasn't converged.
+    return 0;
 }
 
 /********* THIS IS THE MAIN FUNCTION FOR HAPLOTYPE ASSEMBLY USING ITERATIVE MAX CUT computations **************/
 
-float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, int N, struct fragment* Flist, int algo) {
+float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, struct BLOCK* component, struct fragment* Flist, int algo) {
     // given a haplotype 'hap' and a fragment matrix, find a cut with positive score 
-    int totaledges = 0, i = 0, j = 0, k = 0, l = 0;
+    int totaledges = 0, i = 0, j = 0, k = 0, l = 0, f = 0;
     int wf = 0; //if (drand48() < 0.5) wf=1;
     float W = 0;
+    int N = component->phased;
 
     /* CODE TO set up the read-haplotype consistency graph */
     for (i = 0; i < N; i++) {
@@ -155,9 +281,7 @@ float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, int N, st
             }
         }
     }
-    /* CODE TO set up the read-haplotype consistency graph */
-
-    /* CODE TO find 'K' biggest edges in MEC graph  */
+    /* CODE TO find 'K' biggest edges in MEC graph, negative weight edges in graph  */
     int K = 5;
     int smallest = 0;
     float smallw = 1000;
@@ -193,7 +317,9 @@ float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, int N, st
             }
         }
     }
-    /* CODE TO find 'K' biggest edges in MEC graph  */
+
+    /* CODE TO set up the read-haplotype consistency graph */
+
 
     // edge contraction algorithm: merge vertices until only two nodes left or total edge weight of graph is negative  
     int startnode = (int) (drand48() * N);
@@ -225,26 +351,37 @@ float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, int N, st
     for (i = 0; i < N; i++) bestmincut[i] = '0';
     //for (iter=0;iter<totaledges*(int)(log2(totaledges));iter++)
     for (iter = 0; iter < maxiter + K; iter++) {
+        pheap.length = N - 2;
+        V = N - 2;
         if (iter < K) {
             startnode = edgelist[iter].s;
             secondnode = edgelist[iter].t;
-        }// first K edges are not random but rather the top 'K' edges by weight
-        else {
-            i = (int) (drand48() * totaledges - 0.0001);
-            j = 0;
-            while (i >= snpfrag[slist[j]].tedges) {
-                i -= snpfrag[slist[j]].tedges;
-                j++;
+            if (DEBUG) fprintf(stdout, " edge sel %d %d %f \n", startnode, secondnode, edgelist[iter].w);
+        } else {
+            if (NEW_CODE == 0 || (NEW_CODE == 1 && drand48() < 0.5)) {
+                i = (int) (drand48() * totaledges - 0.0001);
+                j = 0;
+                while (i >= snpfrag[slist[j]].tedges) {
+                    i -= snpfrag[slist[j]].tedges;
+                    j++;
+                }
+                startnode = slist[j];
+                secondnode = snpfrag[slist[j]].telist[i].snp;
+                if (snpfrag[slist[j]].telist[i].w >= 1) continue;
+            } else {
+                // find node with high MEC score, initialize as startnode 
+                j = (int) (drand48() * N);
+                if (j >= N) j = N - 1;
+                startnode = slist[j];
+                secondnode = -1;
+                pheap.length = N - 1;
+                V = N - 1;
             }
-            startnode = slist[j];
-            secondnode = snpfrag[slist[j]].telist[i].snp;
-            if (snpfrag[slist[j]].telist[i].w >= 1) continue;
         }
-        for (i = 0; i < N; i++) snpfrag[slist[i]].parent = slist[i];
 
+        for (i = 0; i < N; i++) snpfrag[slist[i]].parent = slist[i];
         // new code added for heap based calculation
         for (i = 0; i < N; i++) snpfrag[slist[i]].score = 0;
-        pheap.length = N - 2;
         j = 0; // heap only has N-2 elements (startnode and secondnode are not there) 
         for (i = 0; i < N; i++) {
             if (slist[i] != startnode && slist[i] != secondnode) {
@@ -255,58 +392,57 @@ float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, int N, st
         }
         //		for (i=0;i<N;i++) fprintf(stdout,"heaploc %d %d %d-%d\n",slist[i],snpfrag[slist[i]].heaploc,startnode,secondnode);
 
-        // for all vertices linked to startnode -> update score of the neighbors, can be done using list of fragments for snpfrag[startnode]
-        for (j = 0; j < snpfrag[startnode].tedges; j++) {
-            k = snpfrag[snpfrag[startnode].telist[j].snp].revmap;
-            snpfrag[slist[k]].score += snpfrag[startnode].telist[j].w;
-            //if (slist[k] == startnode) fprintf(stdout,"self edge %d %d\n",slist[k],startnode);
+        for (i = 0; i < component->frags; i++) {
+            f = component->flist[i];
+            Flist[f].scores[0] = 0.0;
+            Flist[f].scores[1] = 0.0;
+            Flist[f].scores[2] = 0.0;
+            Flist[f].scores[3] = 0.0;
+            Flist[f].init = '1';
         }
-        for (j = 0; j < snpfrag[secondnode].tedges; j++) {
-            k = snpfrag[snpfrag[secondnode].telist[j].snp].revmap;
-            snpfrag[slist[k]].score -= snpfrag[secondnode].telist[j].w;
-            //if (slist[k] == secondnode) fprintf(stdout,"self edge %d %d\n",slist[k],secondnode);
+        if (NEW_CODE == 1) // long reads, likelihood based
+        {
+            init_fragment_scores(snpfrag, Flist, hap, startnode, secondnode);
+        } else {
+            init_neighbor_scores(snpfrag, startnode, Flist, hap, 1);
+            init_neighbor_scores(snpfrag, secondnode, Flist, hap, -1);
         }
 
         pbuildmaxheap(&pheap, snpfrag, slist);
-        V = N;
-        while (V > 2) // more than two clusters, this loop is O(N^2) and makes the program slow
+        //V = N-2; 
+        while (V > 0) // more than two clusters, this loop is O(N^2) 
         {
-            // need to replace the code below by a pointer-based heap that stores 'k' at each node which -> slist[k] -> snpfrag[slist[k]].score 
             snp_add = pheap.elements[0];
             premovemax(&pheap, snpfrag, slist);
             fixheap = 0;
             //if (N < 30) fprintf(stdout,"standard best score %f snp %d %d V %d\n",snpfrag[slist[snp_add]].score,snp_add,slist[snp_add],V);
             if (snpfrag[slist[snp_add]].score > 0) snpfrag[slist[snp_add]].parent = startnode;
-            else if (snpfrag[slist[snp_add]].score < 0) snpfrag[slist[snp_add]].parent = secondnode;
-            else if (drand48() < 0.5) snpfrag[slist[snp_add]].parent = startnode;
-            else snpfrag[slist[snp_add]].parent = secondnode;
-            V--;
-            for (j = 0; j < snpfrag[slist[snp_add]].tedges; j++) {
-                k = snpfrag[snpfrag[slist[snp_add]].telist[j].snp].revmap;
-                if (slist[k] == startnode || slist[k] == secondnode) continue;
-                // serious bug identified here from wheat data, we should discard edges from snp_add to startnode/secondnode since these nodes are nott in the heap 
-                if (snpfrag[slist[snp_add]].parent == startnode) {
-                    oldscore = snpfrag[slist[k]].score;
-                    snpfrag[slist[k]].score += snpfrag[slist[snp_add]].telist[j].w;
-                } else if (snpfrag[slist[snp_add]].parent == secondnode) {
-                    oldscore = snpfrag[slist[k]].score;
-                    snpfrag[slist[k]].score -= snpfrag[slist[snp_add]].telist[j].w;
+            else if (snpfrag[slist[snp_add]].score < 0) {
+                if (secondnode < 0) {
+                    secondnode = slist[snp_add];
+                    //fprintf(stderr,"secondnode found %d %f V %d N %d\n",secondnode,snpfrag[slist[snp_add]].score,V,N);
                 }
-                if (fabsf(oldscore) > fabsf(snpfrag[slist[k]].score)) // score decreased 
-                {
-                    //fixheap = 1;
-                    //fprintf(stdout,"maxheapify iter %d %d slist %d %d %d\n",iter,V,slist[k],snpfrag[slist[k]].heaploc,slist[snp_add]);
-                    pmaxHeapify(&pheap, snpfrag[slist[k]].heaploc, snpfrag, slist);
-                } else // absolute score of node increased 
-                {
-                    //fprintf(stdout,"bubble iter %d %d slist %d %d %d\n",iter,V,slist[k],snpfrag[slist[k]].heaploc,slist[snp_add]);
-                    pbubbleUp(&pheap, snpfrag[slist[k]].heaploc, snpfrag, slist);
-                    //fixheap = 1;
-                }
+
+                snpfrag[slist[snp_add]].parent = secondnode;
+            } else if (secondnode < 0) secondnode = slist[snp_add];
+            else // score is 0 
+            {
+                if (drand48() < 0.5) snpfrag[slist[snp_add]].parent = startnode;
+                else snpfrag[slist[snp_add]].parent = secondnode;
             }
+            V--;
+
+            if (NEW_CODE == 1) {
+                update_fragment_scores(snpfrag, Flist, hap, startnode, secondnode, slist[snp_add], &pheap, slist);
+                for (i = 0; i < N; i++) {
+                    if (DEBUG) fprintf(stdout, "score %d %f hap %c \n", slist[i], snpfrag[slist[i]].score, hap[slist[i]]);
+                }
+                if (DEBUG) fprintf(stdout, "init frag-scores %d...%d new node added %d parent %d\n\n", startnode, secondnode, slist[snp_add], snpfrag[slist[snp_add]].parent);
+            } else update_neighbor_scores(snpfrag, slist[snp_add], startnode, secondnode, Flist, hap, &pheap, slist);
+
             if (fixheap == 1) pbuildmaxheap(&pheap, snpfrag, slist);
         }
-
+        if (secondnode == -1) continue; // cut is empty, so we should ignore this cut 
 
         // compute score of the cut computed above 
         for (i = 0; i < N; i++) {
@@ -319,57 +455,414 @@ float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, int N, st
             if (snpfrag[slist[i]].parent == 0) c1++;
             else c2++;
         }
-        curr_cut = 0;
-        for (i = 0; i < N; i++) {
-            for (j = 0; j < snpfrag[slist[i]].tedges; j++) {
-                if (snpfrag[snpfrag[slist[i]].telist[j].snp].parent != snpfrag[slist[i]].parent) curr_cut += snpfrag[slist[i]].telist[j].w / 2;
-            }
-        }
-        moved = 1;
-        while (moved > 0) // any improvement in score of cut  
-        {
-            moved = 0;
-            for (i = 0; i < N; i++) {
-                snpfrag[slist[i]].score = 0;
-                for (j = 0; j < snpfrag[slist[i]].tedges; j++) {
-                    if (snpfrag[snpfrag[slist[i]].telist[j].snp].parent == 0) snpfrag[slist[i]].score += snpfrag[slist[i]].telist[j].w;
-                    if (snpfrag[snpfrag[slist[i]].telist[j].snp].parent == 1) snpfrag[slist[i]].score -= snpfrag[slist[i]].telist[j].w;
-                }
-                if (snpfrag[slist[i]].parent == 0 && snpfrag[slist[i]].score < 0 && c1 > 1) {
-                    snpfrag[slist[i]].parent = 1;
-                    curr_cut += snpfrag[slist[i]].score;
-                    moved++;
-                    c1--;
-                    c2++;
-                }
-                if (snpfrag[slist[i]].parent == 1 && snpfrag[slist[i]].score > 0 && c2 > 1) {
-                    snpfrag[slist[i]].parent = 0;
-                    curr_cut -= snpfrag[slist[i]].score;
-                    moved++;
-                    c2--;
-                    c1++;
-                }
-            }
-        }
+        //curr_cut = -1*cut_MEC(snpfrag,Flist,hap,slist,N,component);
+        //fprintf(stderr,"component %d MEC %f\n",N,curr_cut); //fprintf(stderr,"component %d cut value%f\n",N,curr_cut);
         if (c1 == 0 || c2 == 0) {
             fprintf(stdout, " cut size is 0 red \n");
             exit(0);
         }
-        if (curr_cut < best_cut) {
+
+        if (NEW_CODE == 1) {
+            curr_cut = cut_score(Flist, snpfrag, component, hap);
+            // cut score returns difference between likelihood of current haplotype and new haplotype => smaller it is, better the cut
+            if (DEBUG) fprintf(stdout, "cut size %d %d %f best %f\n", c1, c2, curr_cut, best_cut);
+        } else {
+            curr_cut = find_cutvalue(snpfrag, Flist, hap, slist, N);
+            if (DEBUG) fprintf(stdout, "cut size %d %d %f best %f\n", c1, c2, curr_cut, best_cut);
+        }
+
+        // for new likelihood based cut score, the score of the cut should always be less than 0 since it is difference of the log-likelihoods of old and new haplotypes
+        if (curr_cut < best_cut) // negative weight cut is better...
+        {
             best_cut = curr_cut;
             for (i = 0; i < N; i++) {
                 if (snpfrag[slist[i]].parent == 1) bestmincut[i] = '1';
                 else bestmincut[i] = '0';
             }
         }
-        //																								if (best_cut < -5) iter = maxiter; 
+        //exit(0);		
+
     }
     for (i = 0; i < N; i++) {
         if (bestmincut[i] == '1') slist[i] = -1 * slist[i] - 1;
     }
     free(bestmincut);
-    free(edgelist);
     free(pheap.elements);
+    free(edgelist);
     return best_cut;
 }
 
+// compare pruned snps by the log-likelihood of the dataset with them removed.
+// this is so we can sort them and prune the worst ones.
+
+// given a=log10(x) and b=log10(y),
+// returns log10(x+y)
+float addlogs(float a, float b) {
+    if (a > b) return (a + log10(1 + pow(10, b - a)));
+    else return (b + log10(1 + pow(10, a - b)));
+}
+
+// given a=log10(x) and b=log10(y),
+// returns log10(x-y)
+float subtractlogs(float a, float b) {
+    if (a > b) return (a + log10(1 - pow(10, b - a)));
+    else return (b + log10(1 - pow(10, a - b)));
+}
+
+// sets snpfrag[i].prune_status:
+// 0 indicates not pruned
+// 1 indicates pruned (leave unphased in output)
+// 2 indicates called homozygous 00
+// 3 indicates called homozygous 11
+// the posterior probability cutoff is defined by THRESHOLD
+
+void prune_snps(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1) {
+    int i, j, f;
+    char temp1;
+    float P_data_H, P_data_Hf, P_data_H00, P_data_H11, total, log_hom_prior, log_het_prior;
+    float post_hap, post_hapf, post_00, post_11;
+    
+    for (i = 0; i < snps; i++) {
+        
+        // get prior probabilities for homozygous and heterozygous genotypes
+        log_hom_prior = snpfrag[i].homozygous_prior;
+        log_het_prior = subtractlogs(log10(0.5), log_hom_prior);
+        
+        // we only care about positions that are haplotyped
+        if (!(HAP1[i] == '1' || HAP1[i] == '0')) continue;
+
+        // hold on to original haplotype values
+        temp1 = HAP1[i];
+        // set probabilities to zero
+        P_data_H = 0;
+        P_data_Hf = 0;
+        P_data_H00 = 0;
+        P_data_H11 = 0;
+
+        //looping over fragments overlapping i and sum up read probabilities
+        for (j = 0; j < snpfrag[i].frags; j++) {
+
+            f = snpfrag[i].flist[j];
+            // normal haplotypes
+
+            P_data_H += fragment_ll(Flist, f, HAP1, -1, -1);
+            // haplotypes with i flipped
+            flip(HAP1[i]);
+            P_data_Hf += fragment_ll(Flist, f, HAP1, -1, -1);
+            // haplotypes with i homozygous 00
+            HAP1[i] = '0';
+            P_data_H00 += fragment_ll(Flist, f, HAP1, i, -1);
+            // haplotypes with i homozygous 11
+            HAP1[i] = '1';
+            P_data_H11 += fragment_ll(Flist, f, HAP1, i, -1);
+            //return haplotype to original value
+            HAP1[i] = temp1;
+        }
+
+        // denominator of posterior probabilities;
+        // sum of all 4 data probabilities times their priors
+        total = addlogs(
+                addlogs((log_het_prior + P_data_H), (log_het_prior + P_data_Hf)),
+                addlogs((log_hom_prior + P_data_H00), (log_hom_prior + P_data_H11)));
+
+        post_hap = log_het_prior + P_data_H - total;
+        post_hapf = log_het_prior + P_data_Hf - total;
+        post_00 = log_hom_prior + P_data_H00 - total;
+        post_11 = log_hom_prior + P_data_H11 - total;
+        
+        // change the status of SNPs that are above/below threshold
+        if (post_00 > log10(THRESHOLD)){
+            snpfrag[i].prune_status = 2; // 2 specifies 00 homozygous
+            snpfrag[i].post_hap = post_00;
+        }else if (post_11 > log10(THRESHOLD)){
+            snpfrag[i].prune_status = 3; // 3 specifies 11 homozygous
+            snpfrag[i].post_hap = post_11;
+        }else if (post_hapf > log10(THRESHOLD)){
+            flip(HAP1[i]);                // SNP should be flipped
+            snpfrag[i].post_hap = post_hapf;
+        }else if (post_hap < log10(THRESHOLD)){
+            if (!REFHAP_HEURISTIC && !ERROR_ANALYSIS_MODE)
+                snpfrag[i].prune_status = 1; // remove the SNP entirely
+            snpfrag[i].post_hap = post_hap;
+        }
+    }
+}
+
+// the refhap heuristic for pruning SNPs
+void refhap_heuristic(int snps, int fragments, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1) {
+    int i, j, f, k, snp_ix, frag_assign;
+    float prob, prob1, prob2, p0, p1;
+    int* good = (int*) malloc(snps*sizeof(int)); // good[i] is the number of frag bases consistent with phasing at SNP i
+    int* bad  = (int*) malloc(snps*sizeof(int)); // bad [i] is the number of frag bases inconsistent with phasing at SNP i
+
+    // compute the optimal assignment of each fragment based on log likelihood
+    for (f = 0; f < fragments; f++){
+        p0 = 0; p1 = 0;
+        for (j = 0; j < Flist[f].blocks; j++) {
+            for (k = 0; k < Flist[f].list[j].len; k++) {
+                snp_ix = Flist[f].list[j].offset + k; // index of current position with respect to all SNPs
+
+                // conditions to skip this base
+                if (HAP1[snp_ix] == '-') continue;
+
+                prob = QVoffset - (int) Flist[f].list[j].qv[k];
+                prob /= 10;
+                prob1 = 1.0 - pow(10, prob);
+                prob2 = Flist[f].list[j].p1[k];
+                // this is likelihood based calculation
+                if (HAP1[snp_ix] == Flist[f].list[j].hap[k]) { 
+                    p0 += prob2;
+                    p1 += prob;
+                } else {
+                    p0 += prob;
+                    p1 += prob2;
+                }
+            }
+        }
+        
+        if (p0 > p1)
+            frag_assign = 1;
+        else if (p1 > p0)
+            frag_assign = 2;
+        else if (drand48() < 0.5)
+            frag_assign = 1;
+        else
+            frag_assign = 2;
+
+    
+        for (j = 0; j < Flist[f].blocks; j++) {
+            for (k = 0; k < Flist[f].list[j].len; k++) {
+                snp_ix = Flist[f].list[j].offset + k; // index of current position with respect to all SNPs
+
+                if (HAP1[snp_ix] == '-') continue;
+                
+                if ((frag_assign == 1 && HAP1[snp_ix] == Flist[f].list[j].hap[k])
+                  ||(frag_assign == 2 && HAP1[snp_ix] != Flist[f].list[j].hap[k]))
+                    good[snp_ix]++;
+                else
+                    bad[snp_ix]++;
+            }
+        }
+    }
+    
+    for (i = 0; i < snps; i++){
+        snpfrag[i].prune_status = 0;
+
+        if (good[i] == bad[i]){
+            snpfrag[i].pruned_refhap_heuristic = 1; // this isn't used to prune, just recorded.
+
+            if (REFHAP_HEURISTIC)
+                snpfrag[i].prune_status = 1;
+        }
+    }
+    
+    free(good); free(bad);
+}
+
+// create an array of a random permutation of integers 1..size
+int* create_randperm(int size){
+    int* array = (int*) malloc(size * sizeof(int));
+    int i, swap_ix, temp;
+    for (i = 0; i < size; i++){
+        array[i] = i;
+    }
+    for (i = size-1; i > 0; i--){
+        swap_ix = (int)((double)rand() / ((double)RAND_MAX + 1) * i); //credit to http://c-faq.com/lib/randrange.html
+        temp = array[i];
+        array[i] = array[swap_ix];
+        array[swap_ix] = temp;
+    }
+    return array;
+}
+
+void improve_hap(char* HAP, struct BLOCK* clist, int components, int snps, int fragments, struct fragment* Flist, struct SNPfrags* snpfrag) {
+
+    int iter;
+    int i, j, f, c, s, a;
+    char temp1;
+    float P_data_H, P_data_Hf, P_data_Hsw, new_ll, old_ll;
+    int* randperm;
+    // get initial log likelihood
+    new_ll = 0;
+    for (i = 0; i < fragments; i++) {
+        new_ll += fragment_ll(Flist, i, HAP, -1, -1);
+    }
+    // iterate until convergence or 100 iters
+    for (iter = 0; iter < 100; iter++) {
+
+        for (c = 0; c < components; c++) {
+            // we want to consider snps in random order
+            randperm = create_randperm(clist[c].phased);
+            for (s = 0; s < clist[c].phased; s++) {
+                i = clist[c].slist[randperm[s]]; // i is the current SNP index being considered.
+
+                // skip ahead if positions aren't haplotyped
+                if (!(HAP[i] == '1' || HAP[i] == '0')) {
+                    continue;
+                }
+
+                // hold on to original haplotype values
+                temp1 = HAP[i];
+                // set probabilities to zero
+                P_data_H = 0; P_data_Hf = 0; P_data_Hsw = 0; // switch error at i
+
+                //looping over fragments overlapping i and sum up read probabilities
+                for (j = 0; j < clist[c].frags; j++) {
+
+                    //f = snpfrag[i].flist[j];
+                    f = clist[c].flist[j];
+                    // normal haplotypes
+                    P_data_H += fragment_ll(Flist, f, HAP, -1, -1);
+                    // haplotype with switch error starting at i
+                    P_data_Hsw += fragment_ll(Flist, f, HAP, -1, i);
+                    // haplotype with i flipped
+                    flip(HAP[i]);
+                    P_data_Hf += fragment_ll(Flist, f, HAP, -1, -1);
+                    //return haplotype to original value
+                    HAP[i] = temp1;
+                }
+
+                // flip the haplotype at this position if necessary
+                if (P_data_Hsw > P_data_H) {
+                    // block should be switched here
+                    if (randperm[s] > clist[c].phased/2){
+                        // it is less work to move forward and flip SNPs (starting with s)
+                        for (a = randperm[s]; a < clist[c].phased; a++) {
+                            j = clist[c].slist[a];
+                            // need to switch this position
+                            flip(HAP[i]);
+                        }
+                    }else{
+                        // it is less work to move backwards and flip all previous SNPs in block
+                        for (a = randperm[s]-1; a >= 0; a--) {
+                            j = clist[c].slist[a];
+                            // need to switch this position
+                            flip(HAP[i]);
+                        }                       
+                    }
+                }else if (P_data_Hf > P_data_H) {
+                    flip(HAP[i]);
+                }
+            }
+            free(randperm);
+        }
+
+        old_ll = new_ll;
+        new_ll = 0;
+        for (i = 0; i < fragments; i++) {
+            new_ll += fragment_ll(Flist, i, HAP, -1, -1);
+        }
+
+        if (new_ll <= old_ll) break;
+    }
+}
+
+// ideally we'd have a snpfrag field for which frags cross the snp, gaps or not.
+// then it would be valid to simply compute the posterior from those alone
+// and not the whole component.
+void split_blocks_old(char* HAP, struct BLOCK* clist, int components, struct fragment* Flist, struct SNPfrags* snpfrag) {
+    int i, j, f, c, s, a, blocks_since_split=0;
+    float P_data_H, P_data_Hsw, post_sw, post_sw_total;
+    
+    for (c = 0; c < components; c++) {
+        //post_sw_total = FLT_MIN;
+        blocks_since_split=0;
+        for (s = 0; s < clist[c].phased; s++) {
+            
+            i = clist[c].slist[s]; // i is the current SNP index being considered
+            if (snpfrag[i].prune_status == 1 || HAP[i] == '-' || blocks_since_split < 3){
+                blocks_since_split++;
+                continue;
+            }// set probabilities to zero
+            P_data_H = 0;
+            P_data_Hsw = 0; // switch at i
+
+            //looping over fragments in component c and sum up read probabilities
+            for (j = 0; j < clist[c].frags; j++) {
+                // normal haplotype
+                f = clist[c].flist[j];
+                P_data_H += fragment_ll(Flist, f, HAP, -1, -1);
+                // haplotype with switch error starting at i
+                P_data_Hsw += fragment_ll(Flist, f, HAP, -1, i);
+            }
+            // posterior probability of no switch error
+            post_sw = P_data_Hsw - addlogs(P_data_H, P_data_Hsw);
+            //post_sw_total = addlogs(post_sw_total, post_sw);
+            snpfrag[i].post_notsw = subtractlogs(0,post_sw);
+            //snpfrag[i].post_notsw_total = subtractlogs(0,post_sw_total);
+            // flip the haplotype at this position if necessary
+            if (!ERROR_ANALYSIS_MODE){
+                if (snpfrag[i].post_notsw < log10(SPLIT_THRESHOLD)) {
+                    // block should be split here
+                    snpfrag[i].split = 1;
+                    blocks_since_split = 0;
+                    //post_sw_total = FLT_MIN;
+                }else{
+                    blocks_since_split++;
+                }
+            }
+        }
+    }
+}
+
+int split_block(char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, struct SNPfrags* snpfrag, int* components_ptr) {
+    int i, j, f, s;
+    float P_data_H, P_data_Hsw, post_sw;
+    int split_occured = 0;
+    if (!ERROR_ANALYSIS_MODE){
+        for (s = 0; s < clist[k].phased; s++)
+            snpfrag[clist[k].slist[s]].csize = 0;
+    }
+    int curr_component = clist[k].slist[0];
+    for (s = 1; s < clist[k].phased; s++) {
+        i = clist[k].slist[s]; // i is the current SNP index being considered
+        
+        // set probabilities to zero
+        P_data_H = 0;
+        P_data_Hsw = 0; // switch at i
+
+        //looping over fragments in component c and sum up read probabilities
+        for (j = 0; j < clist[k].frags; j++) {
+            // normal haplotype
+            f = clist[k].flist[j];
+            P_data_H += fragment_ll(Flist, f, HAP, -1, -1);
+            // haplotype with switch error starting at i
+            P_data_Hsw += fragment_ll(Flist, f, HAP, -1, i);
+        }
+        // posterior probability of no switch error
+        post_sw = P_data_Hsw - addlogs(P_data_H, P_data_Hsw);
+        //post_sw_total = addlogs(post_sw_total, post_sw);
+        snpfrag[i].post_notsw = subtractlogs(0,post_sw);
+        //snpfrag[i].post_notsw_total = subtractlogs(0,post_sw_total);
+        // flip the haplotype at this position if necessary
+        if (!ERROR_ANALYSIS_MODE){
+            
+            if (snpfrag[i].post_notsw < log10(SPLIT_THRESHOLD)) {
+                // block should be split here
+                curr_component = clist[k].slist[s];
+                split_occured = 1;
+                //post_sw_total = FLT_MIN;
+            }
+        
+            snpfrag[i].component = curr_component;
+            snpfrag[curr_component].csize++;
+        }
+    }
+            
+    if (!ERROR_ANALYSIS_MODE){
+        // subtract the component we started with, which may or may not exist anymore
+        (*components_ptr)--;
+        for (s = 0; s < clist[k].phased; s++) {
+            i = clist[k].slist[s]; // i is the current SNP index being considered
+            if (snpfrag[i].csize > 1){
+                // this is the head SNP of a component size 2 or greater
+                (*components_ptr)++;
+            }else{
+                snpfrag[i].csize = snpfrag[snpfrag[i].component].csize;
+                if (snpfrag[i].csize <= 1) snpfrag[i].component = -1;
+            }
+        }
+    }
+    
+    return split_occured;
+}

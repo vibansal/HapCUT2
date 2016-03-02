@@ -1,4 +1,5 @@
 #include "readinputfiles.h"
+extern int HOMOZYGOUS_PRIOR;
 
 int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragments) {
     int i = 0, j = 0, k = 0, t = 0, t1 = 0;
@@ -68,6 +69,7 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
                     for (t1 = 0; t1 < Flist[i].list[l].len; t1++) Flist[i].list[l].pv[t1] = pow(0.1, (float) (blockseq[offset + t1] - QVoffset) / 10);
                     //for (t1=0;t1<Flist[i].list[l].len;t1++) printf("qv %f %d ",pow(0.1,(float)(blockseq[offset+t1]-QVoffset)/10),blockseq[offset+t1]-33);
                     for (t1 = 0; t1 < Flist[i].list[l].len; t1++) Flist[i].list[l].qv[t1] = blockseq[offset + t1];
+                    for (t1 = 0; t1 < Flist[i].list[l].len; t1++) Flist[i].list[l].p1[t1] = log10(1.0 - Flist[i].list[l].pv[t1]); // added 03/03/15
                     offset += Flist[i].list[l].len;
                     Flist[i].calls += Flist[i].list[l].len;
                 }
@@ -76,6 +78,7 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
                 Flist[i].list[biter].qv = (char*) malloc(t + 1);
                 Flist[i].list[biter].len = t;
                 Flist[i].list[biter].pv = (float*) malloc(sizeof (float)*Flist[i].list[biter].len);
+                Flist[i].list[biter].p1 = (float*) malloc(sizeof (float)*Flist[i].list[biter].len);
 
                 for (l = 0; l < t; l++) Flist[i].list[biter].hap[l] = blockseq[l];
                 //for (l=0;l<t;l++) Flist[i].list[biter].pv[l] = 0.005; for (l=0;l<t;l++) Flist[i].list[biter].qv[l] = 'A';
@@ -130,7 +133,9 @@ int count_variants_vcf(char* vcffile) {
 int read_vcffile(char* vcffile, struct SNPfrags* snpfrag, int snps) {
     char buffer[100000];
     char temp[1000];
-    int i = 0, j = 0, s = 0, e = 0, var = 0;
+    char GQ[5];
+    char* gen;
+    int i = 0, j = 0, k=0, len=0, s = 0, e = 0, var = 0, GQ_ix, format_ix;
     FILE* fp = fopen(vcffile, "r");
     while (fgets(buffer, 100000, fp)) {
         if (buffer[0] == '#') continue;
@@ -195,8 +200,18 @@ int read_vcffile(char* vcffile, struct SNPfrags* snpfrag, int snps) {
         s = i;
         while (buffer[i] != ' ' && buffer[i] != '\t') i++;
         e = i;
-        //variant->format = (char*)malloc(e-s+1); for (j=s;j<e;j++) variant->format[j-s] = buffer[j]; variant->format[j-s] = '\0';
-
+        
+        // check format string for presence of GQ
+        format_ix = 0;
+        GQ_ix = -1; // the index of format field for GQ
+        for (j=s;j<e;j++){
+            if (buffer[j] == ':')
+                format_ix++;
+            else if((j+1 < e) && buffer[j] == 'G' && buffer[j+1] == 'Q'){
+                GQ_ix = format_ix;
+            }
+        }
+        
         while (buffer[i] == ' ' || buffer[i] == '\t') i++;
         s = i;
         while (buffer[i] != ' ' && buffer[i] != '\t' && buffer[i] != '\n') i++;
@@ -204,6 +219,31 @@ int read_vcffile(char* vcffile, struct SNPfrags* snpfrag, int snps) {
         snpfrag[var].genotypes = (char*) malloc(e - s + 1);
         for (j = s; j < e; j++) snpfrag[var].genotypes[j - s] = buffer[j];
         snpfrag[var].genotypes[j - s] = '\0';
+        len = j-s;
+        gen = snpfrag[var].genotypes; //  for convenience
+        if (GQ_ix != -1) {
+            // get to the index where GQ is located.
+            k = 0; // where we are in gen
+            for (j=0; j<GQ_ix; j++){
+                while(gen[k] != ':')
+                    k++;
+                k++; // step past the ':'
+            }
+            // reached GQ field. read it in.
+            
+            j=0;
+            while (k<len && gen[k] != ':') {
+                GQ[j] = gen[k];
+                k++;
+                j++;
+            }
+            GQ[j] = '\0';
+
+            snpfrag[var].homozygous_prior = atof(GQ) / -10; // log prior probability of homozygousity
+        } else{
+            snpfrag[var].homozygous_prior = HOMOZYGOUS_PRIOR;
+        }
+        
         var++;
     }
     fclose(fp);
@@ -308,4 +348,59 @@ int read_haplotypefile(char* hapfile, struct SNPfrags* snpfrag, int snps, char* 
     return 1;
     /***************************** READ HAPLOTYPE SOLUTION*************************************************/
 }
+
+int count_htrans_bins(char* htrans_file) {
+    int bins = 0;
+    char buffer[MAXBUF];
+    FILE* ff = fopen(htrans_file, "r");
+    if (ff == NULL) {
+        fprintf(stderr, "couldn't open htrans file %s\n", htrans_file);
+        exit(0);
+    }
+    while (fgets(buffer, MAXBUF, ff) != NULL) bins++;
+    fclose(ff);
+    return bins;
+}
+
+int read_htrans_file(char* htrans_file, int* bins, float* htrans_probs, int num_bins) {
+    int i = 0, j = 0, k = 0, t = 0, t1 = 0;
+    int blocks = 0, type = 0, l = 0, biter = 0, offset = 0;
+    char buffer[MAXBUF];
+    char blockseq[5000];
+    char ch;
+
+    FILE* ff = fopen(htrans_file, "r");
+    if (ff == NULL) {
+        fprintf(stderr, "couldn't open htrans file \n");
+        return -1;
+    }
+    
+    for (i = 0; i < num_bins; i++) {
+
+        // read bin size into bins
+        j = 0;
+        ch = fgetc(ff);
+        while (ch != '\t') {
+            buffer[j] = ch;
+            j++;
+            ch = fgetc(ff);
+        }
+        buffer[j] = '\0';
+        bins[i] = atoi(buffer);
+        
+        // read htrans probability into htrans_probs
+        j = 0;
+        while (ch != '\n') {
+            buffer[j] = ch;
+            j++;
+            ch = fgetc(ff);
+        }
+        buffer[j] = '\0';
+        htrans_probs[i] = atof(buffer);
+
+    }
+
+    return 0;
+}
+
 

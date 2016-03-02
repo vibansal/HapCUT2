@@ -1,6 +1,6 @@
 
 // code written april 6 2012 //
-// for each connected component, calculate the likelihood increase by removing a variant and if good, do it
+// for each connected component, calculate the likelihood change for each variant 
 
 void find_bestvariant_segment(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, char* HAP1, char* HAP2);
 int removevariants(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int maxiter, char* HAP1, char* HAP2, struct BLOCK* clist, int components);
@@ -9,16 +9,16 @@ float evaluate_variant(struct fragment* Flist, int fragments, struct SNPfrags* s
 // phase each component individually
 
 void find_bestvariant_segment(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, char* HAP1, char* HAP2) {
-    int i=0,t=0;
+    int i = 0, j = 0, t = 0;
+    float delta = 0;
     //	fprintf(stdout,"\ncomponent offset: %d length %d delta scores MEC %f\n",clist[k].offset+1,clist[k].length,clist[k].bestMEC);
-    for (i=0;i<clist[k].phased;i++)
-    {
-            //fprintf(stderr,"flipping variant %d ll %f \n",i,ll);
-            t = clist[k].slist[i]; 
-            evaluate_variant(Flist,fragments,snpfrag,t,HAP1);
-            //fprintf(stdout,"%s_%d_%s_%s_%s ",snpfrag[t].chromosome,snpfrag[t].position,snpfrag[t].allele0,snpfrag[t].allele1,snpfrag[t].genotypes);
-            //fprintf(stdout," R0 %d %d SNP %d \n",snpfrag[t].R0,snpfrag[t].R1,t);
-            //fprintf(stdout,"DELTA %f %f %f %f %f\n",delta,likelihoods[0],likelihoods[1],likelihoods[2],likelihoods[3]);
+    for (i = 0; i < clist[k].phased; i++) {
+        //fprintf(stderr,"flipping variant %d ll %f \n",i,ll);
+        t = clist[k].slist[i];
+        delta = evaluate_variant(Flist, fragments, snpfrag, t, HAP1);
+        //fprintf(stdout,"%s_%d_%s_%s_%s ",snpfrag[t].chromosome,snpfrag[t].position,snpfrag[t].allele0,snpfrag[t].allele1,snpfrag[t].genotypes);
+        //fprintf(stdout," R0 %d %d SNP %d \n",snpfrag[t].R0,snpfrag[t].R1,t);
+        //fprintf(stdout,"DELTA %f %f %f %f %f\n",delta,likelihoods[0],likelihoods[1],likelihoods[2],likelihoods[3]);
     }
 }
 
@@ -61,8 +61,10 @@ float evaluate_variant(struct fragment* Flist, int fragments, struct SNPfrags* s
     int i = 0, j = 0, t = 0, t1 = 0, t2 = 0;
     float Forig1 = 0, Forig2 = 0, Fnew1 = 0, Fnew2 = 0, delta = 0;
     float Fnew3 = 0, Fnew4 = 0, Fnew5 = 0, Fnew6 = 0;
+
+    float LL_flip0 = 0, LL_flip1 = 0; // flip variant from 0|1 to 1|0
     float prob = 0.0, prob1 = 0.0;
-    float L01 = 0, L00 = 0, L11 = 0, Lnovar = 0;
+    float L01 = 0, L00 = 0, L11 = 0, L10 = 0, Lnovar = 0;
     int R0 = 0, R1 = 0;
     snpfrag[v].rMEC = 0; // reduction in MEC score if we remove this variant altogether
     snpfrag[v].G00 = 0;
@@ -102,7 +104,7 @@ float evaluate_variant(struct fragment* Flist, int fragments, struct SNPfrags* s
 
         snpfrag[v].rMEC += calculate_reduction_mecscore(Flist, j, HAP1, v);
 
-        Forig1 = 0, Forig2 = 0, Fnew1 = 0, Fnew2 = 0, Fnew3 = 0, Fnew4 = 0, Fnew5 = 0, Fnew6 = 0;
+        Forig1 = 0, Forig2 = 0, Fnew1 = 0, Fnew2 = 0, Fnew3 = 0, Fnew4 = 0, Fnew5 = 0, Fnew6 = 0, LL_flip0 = 0, LL_flip1 = 0;
         for (t1 = 0; t1 < Flist[j].blocks; t1++) {
             for (t2 = 0; t2 < Flist[j].list[t1].len; t2++) {
                 t = Flist[j].list[t1].offset + t2;
@@ -117,10 +119,15 @@ float evaluate_variant(struct fragment* Flist, int fragments, struct SNPfrags* s
                     if (Flist[j].list[t1].hap[t2] == HAP1[t]) {
                         Forig1 += prob1;
                         Forig2 += prob;
+                        LL_flip0 += prob;
+                        LL_flip1 += prob1;
                     } else {
                         Forig1 += prob;
                         Forig2 += prob1;
+                        LL_flip0 += prob1;
+                        LL_flip1 += prob;
                     }
+
                     if (Flist[j].list[t1].hap[t2] == '0') {
                         Fnew1 += prob1;
                         Fnew2 += prob1;
@@ -144,6 +151,8 @@ float evaluate_variant(struct fragment* Flist, int fragments, struct SNPfrags* s
                         Fnew4 += prob;
                         Fnew5 += prob1;
                         Fnew6 += prob;
+                        LL_flip0 += prob1;
+                        LL_flip1 += prob;
                     } else {
                         Forig1 += prob;
                         Forig2 += prob1;
@@ -153,6 +162,8 @@ float evaluate_variant(struct fragment* Flist, int fragments, struct SNPfrags* s
                         Fnew4 += prob1;
                         Fnew5 += prob;
                         Fnew6 += prob1;
+                        LL_flip0 += prob;
+                        LL_flip1 += prob1;
                     }
                 }
             }
@@ -165,11 +176,14 @@ float evaluate_variant(struct fragment* Flist, int fragments, struct SNPfrags* s
         else Lnovar += Fnew6 + log10(1.0 + pow(10, Fnew5 - Fnew6));
         if (Forig1 > Forig2) L01 += Forig1 + log10(1.0 + pow(10, Forig2 - Forig1));
         else L01 += Forig2 + log10(1.0 + pow(10, Forig1 - Forig2));
+        if (LL_flip0 > LL_flip1) L10 += LL_flip0 + log10(1.0 + pow(10, LL_flip1 - LL_flip0));
+        else L10 += LL_flip1 + log10(1.0 + pow(10, LL_flip0 - LL_flip1));
     }
     snpfrag[v].L00 = L00;
     snpfrag[v].L01 = L01;
     snpfrag[v].L11 = L11;
     snpfrag[v].Lnovar = Lnovar;
+    snpfrag[v].L10 = L10;
     snpfrag[v].R0 = R0;
     snpfrag[v].R1 = R1;
     delta = L00 - L01;
@@ -182,7 +196,7 @@ float evaluate_variant(struct fragment* Flist, int fragments, struct SNPfrags* s
 
 int removevariants(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int maxiter, char* HAP1, char* HAP2, struct BLOCK* clist, int components) {
     int iter = 0, k = 0;
-    double calls = 0, miscalls = 0, ll = 0, bestll = 0;
+    float calls = 0, miscalls = 0, ll = 0, bestll = 0;
     //int switches =0; int prev = 0;
     /*****************************************************************************************************/
     //for (i=0;i<snps;i++) fprintf(stdout,"first fragment for SNP %d %d \n",i,snpfrag[i].ff);

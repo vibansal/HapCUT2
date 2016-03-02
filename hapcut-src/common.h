@@ -2,6 +2,7 @@
 #ifndef _COMMON_H
 #define _COMMON_H
 #include <stdint.h>
+
 //Tue May 29 23:13:29 PDT 2007
 extern int QVoffset;
 extern int VCFformat;
@@ -10,15 +11,17 @@ extern int FOSMIDS;
 extern int SCORING_FUNCTION;
 #define MAXBUF 10000
 
+#define flip(allele) if (allele == '1') allele = '0'; else if (allele == '0') allele = '1';
 //fragment block
 
 struct block {
     int offset;
-    char* hap;    
+    char* hap;
     short len;
     float* pv;
     char* qv;
     float* post;
+    float* p1;
 };
 
 struct fragment {
@@ -30,7 +33,10 @@ struct fragment {
     float currscore;
     int calls;
     float ll;
+    int vbits;
     char sb; // single base fragment not useful for phasing 
+    float scores[4]; // added 03/02/15
+    char init;
 };
 
 // haplotype block
@@ -43,11 +49,12 @@ struct BLOCK {
     int* flist;
     int frags;
     //struct NODE* tree; int nodes; // nodes is the number of nodes in tree  
-    float LL, bestLL; // log likelihood scores
-    int iters_since_improvement; // how many iterations of maxcut since improvement was seen 
+    float MEC, bestMEC, lastMEC;
+    float LL, bestLL; // log likellihood scores 
     int calls;
     int* slist; // ordered list of variants in this connected component
     int lastvar; // index of the first and last variants in this connected component
+    int split;
     // firstvariant is same as offset
 };
 
@@ -92,11 +99,18 @@ struct SNPfrags {
     float L00, L01, L10, L11, Lnovar; // change in likelihood if this SNP is made homozygous or removed
     float rMEC;
     int R0, R1; // counts of bases supporting allele0 and allele1
+    int prune_status;
+    float post_notsw;
+    float post_hap;
+    int pruned_refhap_heuristic; // for error analysis mode
+    char split;
 
     // added on april 24 2012 for singleton reads
     int A0, A1;
     float G00, G01, G11; // allele counts and genotype likelihoods using singleton reads that cover only one variant
     int rank; // rank of tree at this node
+    float homozygous_prior; // prior probability of homozygousity. Based on GQ field of VCF.
 };
+
 
 #endif

@@ -1,12 +1,12 @@
 #ifndef READINPUTFILES_H
 #define READINPUTFILES_H
 
-#include<stdio.h>
+#include <stdio.h>
 #include <math.h>
-#include<stdlib.h>
-#include<time.h>
-#include<string.h>
-#include<ctype.h>
+#include <stdlib.h>
+#include <time.h>
+#include <string.h>
+#include <ctype.h>
 #include "common.h"
 #include "fragmatrix.h"
 

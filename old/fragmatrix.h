@@ -8,6 +8,7 @@
 #include<string.h>
 #include<ctype.h>
 #include "common.h"
+#include <assert.h>
 
 //#define _GNU_SOURCE
 
@@ -19,22 +20,19 @@ int compare_haps(struct BLOCK* clist, int components, char* orig, char* h1, stru
 int compare_Flist_hap(struct SNPfrags* snpfrag, int snps, struct fragment* Flist, int fragments, char* h, int Z, int QV);
 int mutate_Flist(struct fragment* Flist, int fragments, double errrate);
 int correct_fragment(struct fragment* Flist, int f, char* h);
-int mecscore(struct fragment* Flist, int fragments, char* h, float* ll, float* calls, float* miscalls);
+int mecscore(struct fragment* Flist, int fragments, char* h, double* ll, double* calls, double* miscalls);
 float compute_fragscore(struct fragment* Flist, int f, char* h, float* ll);
 void update_fragscore(struct fragment* Flist, int f, char* h);
-void calculate_fragscore(struct fragment* Flist, int f, char* h, float* mec_ll, float* chimeric_ll);
-float simple_fragscore(struct fragment* Flist, int f, char* h, int homozygous,  int switch_ix);
-
 void frag_cluster_initialize(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* h1, int snps, struct BLOCK* clist, int comps);
 
 void label_node(struct SNPfrags* snpfrag, int node, int comp);
 void add_edges(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int* components);
 void add_edges_fosmids(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int* components);
 
-void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int* components);
+void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps);
 void output_current_solution(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, char* hap, char* best);
 
-int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* fname, char* outfile, char* pruned);
+int print_hapfile(struct BLOCK* clist, int blocks, char* h1, char* h2, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* fname, char* outfile);
 void print_haplotypes_vcf(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, char* outfile);
 void print_hapcut_options();
 
@@ -61,7 +59,6 @@ int fragment_compare(const void *a, const void *b);
 
 int determine_connected_components(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps);
 void generate_clist_structure(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int components, struct BLOCK* clist);
-
 
 #endif
 

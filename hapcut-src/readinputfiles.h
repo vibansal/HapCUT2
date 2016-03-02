@@ -1,12 +1,12 @@
 #ifndef READINPUTFILES_H
 #define READINPUTFILES_H
 
-#include <stdio.h>
+#include<stdio.h>
 #include <math.h>
-#include <stdlib.h>
-#include <time.h>
-#include <string.h>
-#include <ctype.h>
+#include<stdlib.h>
+#include<time.h>
+#include<string.h>
+#include<ctype.h>
 #include "common.h"
 #include "fragmatrix.h"
 
@@ -22,5 +22,9 @@ int count_variants(char* variantfile);
 int read_variantfile(char* variantfile, struct SNPfrags* snpfrag, int snps);
 
 int read_haplotypefile(char* hapfile, struct SNPfrags* snpfrag, int snps, char* HAP1, char* initHAP, int* bn);
+
+int count_htrans_bins(char* htrans_file);
+
+int read_htrans_file(char* htrans_file, int* bins, float* htrans_probs, int num_bins);
 
 #endif

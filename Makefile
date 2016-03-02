@@ -18,12 +18,6 @@ CUNIT=/usr/include/CUnit
 
 all: $(B)/extractHAIRS $(B)/extractFOSMID $(B)/HAPCUT
 
-# TEST
-# requires Cunit
-tests:
-	$(CC) $(T)/test.c -o $(B)/test -lcunit -I $(CUNIT)
-	./$(B)/test
-
 # if samtools makefile not present, then submodules have not yet been downloaded (init & updated)
 # first check if git present, else print error message
 # credit to lhunath for the one-line check for git below http://stackoverflow.com/questions/592620/check-if-a-program-exists-from-a-bash-script
@@ -73,15 +67,19 @@ $(B)/bamread.o: $(H)/bamread.h $(H)/bamread.c $(H)/readfasta.h $(H)/readfasta.c 
 $(B)/hashtable.o: $(H)/hashtable.h $(H)/hashtable.c | $(B)
 	$(CC) -c $(H)/hashtable.c -o $(B)/hashtable.o
 
-$(B)/readfasta.o: $(H)/readfasta.c $(H)/readfasta.h | $(B) 
+$(B)/readfasta.o: $(H)/readfasta.c $(H)/readfasta.h | $(B)
 	$(CC) -c $(H)/readfasta.c -o $(B)/readfasta.o
 
 # BUILD HAPCUT
 
-$(B)/HAPCUT: $(B)/fragmatrix.o $(B)/readinputfiles.o $(B)/pointerheap.o $(B)/likelihood_functions.o $(X)/hapcut.c | $(B) 
-	$(CC) -pg $(B)/fragmatrix.o $(B)/readinputfiles.o $(B)/pointerheap.o $(B)/likelihood_functions.o -o $(B)/HAPCUT -lm $(X)/hapcut.c
+$(B)/HAPCUT: | $(B)
+	echo "Building HapCUT2..."
+	make -C $(X)
 
-$(B)/fragmatrix.o: $(X)/fragmatrix.h $(X)/fragmatrix.c $(X)/common.h $(X)/printhaplotypes.c $(X)/MECscore.c $(X)/find_starting_haplotypes.c | $(B)
+$(B)/HAPCUT: $(B)/fragmatrix.o $(B)/readinputfiles.o $(B)/pointerheap.o $(X)/hapcut.c $(X)/find_maxcut.c | $(B)
+	$(CC) $(B)/fragmatrix.o $(B)/readinputfiles.o $(B)/pointerheap.o -o $(B)/HAPCUT -lm $(X)/hapcut.c
+
+$(B)/fragmatrix.o: $(X)/fragmatrix.h $(X)/fragmatrix.c $(X)/common.h $(X)/printhaplotypes.c $(X)/find_starting_haplotypes.c | $(B)
 	$(CC) -c $(X)/fragmatrix.c -o $(B)/fragmatrix.o
 
 $(B)/readinputfiles.o: $(X)/readinputfiles.h $(X)/readinputfiles.c $(X)/common.h $(X)/fragmatrix.h | $(B)
@@ -89,14 +87,6 @@ $(B)/readinputfiles.o: $(X)/readinputfiles.h $(X)/readinputfiles.c $(X)/common.h
 
 $(B)/pointerheap.o: $(X)/pointerheap.h $(X)/pointerheap.c $(X)/common.h | $(B)
 	$(CC) -c $(X)/pointerheap.c -o $(B)/pointerheap.o
-
-$(B)/annealing.o: $(X)/annealing.h $(X)/annealing.c $(X)/common.h $(X)/fragmatrix.h $(X)/fragmatrix.c | $(B)
-	$(CC) -c $(X)/annealing.c -o $(B)/annealing.o
-
-$(B)/likelihood_functions.o: $(X)/likelihood_functions.c $(X)/fragmatrix.h | $(B)
-	$(CC) -c $(X)/likelihood_functions.c -o $(B)/likelihood_functions.o
-	
-
 
 # create build directory
 $(B):
