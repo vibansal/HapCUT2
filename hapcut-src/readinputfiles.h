@@ -25,6 +25,6 @@ int read_haplotypefile(char* hapfile, struct SNPfrags* snpfrag, int snps, char* 
 
 int count_htrans_bins(char* htrans_file);
 
-int read_htrans_file(char* htrans_file, int* bins, float* htrans_probs, int num_bins);
+int read_htrans_file(char* htrans_file, float* htrans_probs, int num_bins);
 
 #endif

@@ -362,7 +362,7 @@ int count_htrans_bins(char* htrans_file) {
     return bins;
 }
 
-int read_htrans_file(char* htrans_file, int* bins, float* htrans_probs, int num_bins) {
+int read_htrans_file(char* htrans_file, float* htrans_probs, int num_bins) {
     int i = 0, j = 0, k = 0, t = 0, t1 = 0;
     int blocks = 0, type = 0, l = 0, biter = 0, offset = 0;
     char buffer[MAXBUF];
@@ -386,7 +386,7 @@ int read_htrans_file(char* htrans_file, int* bins, float* htrans_probs, int num_
             ch = fgetc(ff);
         }
         buffer[j] = '\0';
-        bins[i] = atoi(buffer);
+        //bins[i] = atoi(buffer);
         
         // read htrans probability into htrans_probs
         j = 0;

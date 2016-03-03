@@ -53,6 +53,9 @@ int REFHAP_HEURISTIC = 0;
 int ERROR_ANALYSIS_MODE = 0;
 int* iters_since_improvement;
 int* iters_since_split;
+int HTRANS_BINSIZE = 50000;
+
+
 
 #include "find_maxcut.c"   // function compute_good_cut 
 
@@ -129,12 +132,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     generate_clist_structure(Flist, fragments, snpfrag, snps, components, clist);
     
     /*****************************************************************************************************/
-    // read in file with estimated probabilities of Hi-C h-trans interactions with distance
-    int num_bins        = count_htrans_bins(htrans_file);
-    int* htrans_bins    = (int*) malloc(sizeof(int) * num_bins);
-    float* htrans_probs = (float*) malloc(sizeof(float) * num_bins);
-    read_htrans_file(htrans_file, htrans_bins, htrans_probs, num_bins);
-    /*****************************************************************************************************/
+
 
     char* HAP1 = (char*) malloc(snps + 1);
     char* besthap_mec = (char*) malloc(snps + 1);
@@ -150,9 +148,45 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     else read_vcffile(variantfile, snpfrag, snps);
     
     /*****************************************************************************************************/
+    // read in file with estimated probabilities of Hi-C h-trans interactions with distance
+    
+    if (HIC == 1){
+        int num_bins        = count_htrans_bins(htrans_file);
+        float* htrans_probs = (float*) malloc(sizeof(float) * num_bins);
+        read_htrans_file(htrans_file, htrans_probs, num_bins);
+
+        int ix = -1;
+        int prev_ix = -1;
+        int isize = 0; // insert size
+        // determine the probability of an h-trans interaction for read
+
+        // for each fragment we determine the snp index of its right mate (mate 2)
+        // we use a lazy approach and assume that if the genomic distance is >300 between
+        // two adjacent SNPs then that is where the insert lies.
+        // we record in the Flist this mate index and the estimated probability of an h-trans caused error
+        for (i=0; i<fragments;i++){
+            prev_ix = -1;
+            Flist[i].mate2_ix = -1; // default; means "no mate"
+            for (j = 0; j < Flist[i].blocks; j++){
+                for (k = 0; k < Flist[i].list[j].len; k++) {
+                    ix = Flist[i].list[j].offset + k;
+                    if (prev_ix != -1 && snpfrag[ix].position - snpfrag[prev_ix].position > 150){ // the previous SNP was > 300 bp away, should be mate
+                        Flist[i].mate2_ix = ix; // record the first SNP index of the rightmost mate
+                        isize = snpfrag[ix].position - snpfrag[prev_ix].position;
+                        Flist[i].htrans_prob = htrans_probs[isize / HTRANS_BINSIZE];
+                    }
+                    prev_ix = ix;
+                }
+            }
+        }
+        free(htrans_probs);
+    }
+    // when calculating likelihoods, you can test if we have reached mate2 with something like
+    // Flist[i].mate2_ix == Flist[i].list[j].offset + k
+    /*****************************************************************************************************/
     int count=0;
     if (RANDOM_START == 1) {
-        fprintf(stdout, "starting from a completely random solution SOLUTION \n\n");
+        fprintf(stdout, "starting from a completely random solution\n");
         for (i = 0; i < snps; i++) {
             if (snpfrag[i].frags == 0) {
                 HAP1[i] = '-';

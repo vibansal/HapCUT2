@@ -279,4 +279,5 @@ float improve_cutvalue(struct SNPfrags* snpfrag, struct fragment* Flist, char* h
         }
         if (moved == 0) break;
     }
+    return 0;
 }
