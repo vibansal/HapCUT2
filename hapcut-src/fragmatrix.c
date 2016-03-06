@@ -20,8 +20,8 @@ void label_node(struct SNPfrags* snpfrag, int node, int comp) // DFS search rout
 }
 
 void add_edges_fosmids(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int* components) {
-    int i = 0, j = 0, t = 0, k = 0, iter = 0, maxdeg = 0, avgdeg = 0, mdelta = 0, t1 = 0, t2 = 0, l = 0;
-    char allele;
+    int i = 0, j = 0, k = 0, maxdeg = 0, avgdeg = 0, t1 = 0, t2 = 0;
+    //char allele;
     int csnps = 0;
     for (i = 0; i < snps; i++) snpfrag[i].edges = 0;
 
@@ -143,7 +143,7 @@ void generate_clist_structure(struct fragment* Flist, int fragments, struct SNPf
     // bcomp maps the SNP to the component number in clist since components << snps  
     // note that the previous invariant about the first SNP (ordered by position) being the root of the component is no longer true !! 
     // should we still require it ?? 
-    int i = 0, j = 0, component = 0;
+    int i = 0, component = 0;
     for (i = 0; i < snps; i++) snpfrag[i].bcomp = -1;
     for (i = 0; i < snps; i++) {
         if (snpfrag[i].component == i && snpfrag[i].csize > 1) // root node of component
@@ -192,7 +192,7 @@ void generate_clist_structure(struct fragment* Flist, int fragments, struct SNPf
 // // it generates a list of fragments (flist) that affect each SNP 
 
 void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int* components) {
-    int i = 0, j = 0, t = 0, k = 0, iter = 0, calls = 0; //maxdeg=0,avgdeg=0;
+    int i = 0, j = 0, t = 0, k = 0, calls = 0; //maxdeg=0,avgdeg=0;
 
     // find the first fragment whose endpoint lies at snp 'i' or beyond
     for (i = 0; i < snps; i++) {

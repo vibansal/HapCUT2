@@ -7,20 +7,20 @@ int removevariants(struct fragment* Flist, int fragments, struct SNPfrags* snpfr
 float evaluate_variant(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int v, char* HAP1);
 
 // phase each component individually
-
+/*
 void find_bestvariant_segment(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, char* HAP1, char* HAP2) {
-    int i = 0, j = 0, t = 0;
-    float delta = 0;
+    int i = 0;
     //	fprintf(stdout,"\ncomponent offset: %d length %d delta scores MEC %f\n",clist[k].offset+1,clist[k].length,clist[k].bestMEC);
     for (i = 0; i < clist[k].phased; i++) {
         //fprintf(stderr,"flipping variant %d ll %f \n",i,ll);
         t = clist[k].slist[i];
-        delta = evaluate_variant(Flist, fragments, snpfrag, t, HAP1);
+        //delta = evaluate_variant(Flist, fragments, snpfrag, t, HAP1);
         //fprintf(stdout,"%s_%d_%s_%s_%s ",snpfrag[t].chromosome,snpfrag[t].position,snpfrag[t].allele0,snpfrag[t].allele1,snpfrag[t].genotypes);
         //fprintf(stdout," R0 %d %d SNP %d \n",snpfrag[t].R0,snpfrag[t].R1,t);
         //fprintf(stdout,"DELTA %f %f %f %f %f\n",delta,likelihoods[0],likelihoods[1],likelihoods[2],likelihoods[3]);
     }
 }
+*/
 
 // calculate how much is MEC score reduced by removing a variant 
 
@@ -195,7 +195,7 @@ float evaluate_variant(struct fragment* Flist, int fragments, struct SNPfrags* s
 // not used for now april 9 2012
 
 int removevariants(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int maxiter, char* HAP1, char* HAP2, struct BLOCK* clist, int components) {
-    int iter = 0, k = 0;
+    int iter = 0; //k = 0;
     float calls = 0, miscalls = 0, ll = 0, bestll = 0;
     //int switches =0; int prev = 0;
     /*****************************************************************************************************/
@@ -207,7 +207,7 @@ int removevariants(struct fragment* Flist, int fragments, struct SNPfrags* snpfr
         fprintf(stdout, "MEC score %f %f  LL %f bestLL %f \n", miscalls, calls, ll, bestll);
         fprintf(stderr, "MEC score %f %f LL %f bestLL %f\n", miscalls, calls, ll, bestll);
 
-        for (k = 0; k < components; k++) find_bestvariant_segment(Flist, fragments, snpfrag, clist, k, HAP1, HAP2);
+        //for (k = 0; k < components; k++) find_bestvariant_segment(Flist, fragments, snpfrag, clist, k, HAP1, HAP2);
         //mecscore(Flist,fragments,HAP1,&ll,&calls,&miscalls); if (bestll > ll) bestll = ll;
     }
     return 1;

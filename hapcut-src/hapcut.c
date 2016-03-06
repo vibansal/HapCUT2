@@ -63,7 +63,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     // IMP NOTE: all SNPs start from 1 instead of 0 and all offsets are 1+
     fprintf(stderr, "calling MAXCUT based haplotype assembly algorithm\n");
     int fragments = 0, iter = 0, components = 0;
-    int i = 0, j = 0, k = 0, t = 0, component;
+    int i = 0, j = 0, k = 0;
     int* slist;
     int flag = 0;
     float bestscore_mec = 0, calls = 0, miscalls = 0, ll = 0;
@@ -128,7 +128,6 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     fprintf(stderr, "fragments %d snps %d component(blocks) %d\n", fragments, snps, components);
 
     struct BLOCK* clist = (struct BLOCK*) malloc(sizeof (struct BLOCK)*components);
-    component = 0;
     generate_clist_structure(Flist, fragments, snpfrag, snps, components, clist);
     
     /*****************************************************************************************************/
@@ -166,6 +165,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
         // we record in the Flist this mate index and the estimated probability of an h-trans caused error
         for (i=0; i<fragments;i++){
             prev_ix = -1;
+            Flist[i].htrans_prob = 0;
             Flist[i].mate2_ix = -1; // default; means "no mate"
             for (j = 0; j < Flist[i].blocks; j++){
                 for (k = 0; k < Flist[i].list[j].len; k++) {
@@ -173,7 +173,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
                     if (prev_ix != -1 && snpfrag[ix].position - snpfrag[prev_ix].position > 150){ // the previous SNP was > 300 bp away, should be mate
                         Flist[i].mate2_ix = ix; // record the first SNP index of the rightmost mate
                         isize = snpfrag[ix].position - snpfrag[prev_ix].position;
-                        Flist[i].htrans_prob = htrans_probs[isize / HTRANS_BINSIZE];
+                        Flist[i].htrans_prob = log10(htrans_probs[isize / HTRANS_BINSIZE]);
                     }
                     prev_ix = ix;
                 }
@@ -262,7 +262,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
         //fprintf(stderr, "iter %d current haplotype MEC %f calls %d LL %f %s \n", iter, miscalls, (int) calls, ll, buf);
         if ((iter % 5 == 0 && iter > 0)) {
             // new code added april 7 2012
-            for (k = 0; k < components; k++) find_bestvariant_segment(Flist, fragments, snpfrag, clist, k, HAP1, HAP2);
+            //for (k = 0; k < components; k++) find_bestvariant_segment(Flist, fragments, snpfrag, clist, k, HAP1, HAP2);
 
             sprintf(fn, "%s", outputfile); // newfile for every update to score....
             //sprintf(fn,"%s.%f",outputfile,miscalls);   // newfile for every update to score....
@@ -319,7 +319,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     }
     components = new_components;
 
-    for (k = 0; k < components; k++) find_bestvariant_segment(Flist, fragments, snpfrag, clist, k, HAP1, HAP2);
+    //for (k = 0; k < components; k++) find_bestvariant_segment(Flist, fragments, snpfrag, clist, k, HAP1, HAP2);
 
     refhap_heuristic(snps, fragments, Flist, snpfrag, HAP1);
     prune_snps(snps, Flist, snpfrag, HAP1);
@@ -406,6 +406,11 @@ int main(int argc, char** argv) {
         else if (strcmp(argv[i], "--refhap_heuristic") == 0 || strcmp(argv[i], "--rh") == 0) REFHAP_HEURISTIC = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--error_analysis_mode") == 0 || strcmp(argv[i], "--ea") == 0) ERROR_ANALYSIS_MODE = atoi(argv[i + 1]);
     }
+    if (SPLIT_BLOCKS && HIC){
+        fprintf(stderr,"Point-based block-splitting should not be used with Hi-C data. Exiting.");
+        exit(0);
+    }
+    
     if (flag != 3) // three essential arguments are not supplied 
     {
         print_hapcut_options();

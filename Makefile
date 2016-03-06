@@ -72,9 +72,9 @@ $(B)/readfasta.o: $(H)/readfasta.c $(H)/readfasta.h | $(B)
 
 # BUILD HAPCUT
 
-$(B)/HAPCUT: | $(B)
-	echo "Building HapCUT2..."
-	make -C $(X)
+#$(B)/HAPCUT: | $(B)
+#	echo "Building HapCUT2..."
+#	make -C $(X)
 
 $(B)/HAPCUT: $(B)/fragmatrix.o $(B)/readinputfiles.o $(B)/pointerheap.o $(X)/hapcut.c $(X)/find_maxcut.c | $(B)
 	$(CC) $(B)/fragmatrix.o $(B)/readinputfiles.o $(B)/pointerheap.o -o $(B)/HAPCUT -lm $(X)/hapcut.c

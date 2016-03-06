@@ -363,10 +363,9 @@ int count_htrans_bins(char* htrans_file) {
 }
 
 int read_htrans_file(char* htrans_file, float* htrans_probs, int num_bins) {
-    int i = 0, j = 0, k = 0, t = 0, t1 = 0;
-    int blocks = 0, type = 0, l = 0, biter = 0, offset = 0;
+    int i = 0, j = 0;
+
     char buffer[MAXBUF];
-    char blockseq[5000];
     char ch;
 
     FILE* ff = fopen(htrans_file, "r");

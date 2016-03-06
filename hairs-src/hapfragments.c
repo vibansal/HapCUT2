@@ -42,7 +42,7 @@ int print_fragment(FRAGMENT* fragment, VARIANT* varlist, FILE* outfile) {
     for (i = 0; i < fragment->variants; i++) fprintf(outfile, "%c", fragment->alist[i].qv);
     fprintf(outfile, "\n");
 
-    return NULL;
+    return 0;
 }
 
 // make sure they are in the correct order, i+1 could be < i 
@@ -101,7 +101,7 @@ int print_matepair(FRAGMENT* f1, FRAGMENT* f2, VARIANT* varlist, FILE* outfile) 
        }
        fprintf(stdout,"\n");
      */
-    return NULL;
+    return 0;
 }
 
 

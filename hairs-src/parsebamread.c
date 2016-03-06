@@ -211,7 +211,7 @@ int compare_read_INDEL(struct alignedread* read, VARIANT* varlist, int ss, int s
         }
         fragment->variants++;
     }
-    return NULL;
+    return 0;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -310,7 +310,7 @@ int copy_fragment(FRAGMENT* fnew, FRAGMENT* fragment, struct alignedread* read) 
         fnew->alist[i].allele = fragment->alist[i].allele;
         fnew->alist[i].qv = fragment->alist[i].qv;
     }
-    return NULL;
+    return 0;
 }
 
 // add a fragment to the flist whose mate is yet to be seen
@@ -334,6 +334,6 @@ int add_fragment(FRAGMENT* flist, FRAGMENT* fragment, struct alignedread* read, 
     flist[fragments].id = (char*) malloc(sl + 1);
     for (i = 0; i < sl; i++) flist[fragments].id[i] = read->readid[i];
     flist[fragments].id[i] = '\0';
-    return 1;
+    return 0;
 }
 

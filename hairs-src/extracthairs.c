@@ -189,7 +189,7 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
         clean_fragmentlist(flist, &fragments, varlist, -1, read->position, prevchrom);
     }
     bam_destroy1(b);
-    return NULL;
+    return 0;
 }
 
 int main(int argc, char** argv) {

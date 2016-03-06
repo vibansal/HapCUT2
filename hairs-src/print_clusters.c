@@ -85,7 +85,7 @@ int estimate_readdistance_distribution(struct alignedread** readlist, int s, int
         }
         //fprintf(stdout,"IRD %d %d %0.2f \n",i,intra_read_dist[i],intra_read_pdf[i]);
     }
-    return NULL;
+    return 0;
 }
 
 int generate_single_fragment(struct alignedread** readlist, int s, int e, int length, double read_density, FRAGMENT* flist, VARIANT* varlist) {

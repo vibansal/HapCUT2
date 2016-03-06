@@ -9,10 +9,15 @@ extern int VCFformat;
 extern int MINQ;
 extern int FOSMIDS;
 extern int SCORING_FUNCTION;
+
 #define MAXBUF 10000
 
-#define flip(allele) if (allele == '1') allele = '0'; else if (allele == '0') allele = '1';
-//fragment block
+// given a=log10(x) and b=log10(y), returns log10(x+y)
+#define addlogs(a, b) ((a > b) ? (a + log10(1 + pow(10, b - a))) : (b + log10(1 + pow(10, a - b))))
+// given a=log10(x) and b=log10(y), returns log10(x-y)
+#define subtractlogs(a, b) ((a > b) ? (a + log10(1 - pow(10, b - a))) : (b + log10(1 - pow(10, a - b))))
+
+#define flip(allele) if (allele == '1') allele = '0'; else if (allele == '0') allele = '1'
 
 struct block {
     int offset;
@@ -36,6 +41,7 @@ struct fragment {
     int vbits;
     char sb; // single base fragment not useful for phasing 
     float scores[4]; // added 03/02/15
+    float htscores[4]; // scores assuming a hi-c h-trans interaction added 3/6/16
     char init;
     float htrans_prob; // probability of an h-trans interaction for this read
     int mate2_ix;     // snp index of second mate; -1 if this fragment has one mate
@@ -89,6 +95,7 @@ struct SNPfrags {
     int tedges; // temporary edge list and number of edges for MIN CUT computation 
     int parent;
     float score;
+    float htscore; // htrans
     int revmap;
     int heaploc;
     char* id;

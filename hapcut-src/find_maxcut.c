@@ -38,7 +38,7 @@ int split_block(char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, s
 void split_blocks_old(char* HAP, struct BLOCK* clist, int components, struct fragment* Flist, struct SNPfrags* snpfrag);
 //int maxcut_split_blocks(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1, int iter);
 void improve_hap(char* HAP, struct BLOCK* clist, int components, int snps, int fragments, struct fragment* Flist, struct SNPfrags* snpfrag);
-float addlogs(float a, float b);
+//float addlogs(float a, float b);
 
 void single_variant_flips_LL(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1) {
     int t = 0, i = 0, f = 0;
@@ -333,9 +333,8 @@ float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, struct BL
     }
     int V = N;
     float curr_cut = 0, best_cut = 10000;
-    float oldscore;
     int snp_add;
-    int moved = 1, c1 = 0, c2 = 0;
+    int c1 = 0, c2 = 0;
     char* bestmincut;
     //	int size_small,best_small=0,secondlast=0,last=0;
     int iter = 0, maxiter = N / 10;
@@ -398,6 +397,12 @@ float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, struct BL
             Flist[f].scores[1] = 0.0;
             Flist[f].scores[2] = 0.0;
             Flist[f].scores[3] = 0.0;
+            
+            Flist[f].htscores[0] = 0.0;
+            Flist[f].htscores[1] = 0.0;
+            Flist[f].htscores[2] = 0.0;
+            Flist[f].htscores[3] = 0.0;
+            
             Flist[f].init = '1';
         }
         if (NEW_CODE == 1) // long reads, likelihood based
@@ -492,23 +497,6 @@ float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, struct BL
     return best_cut;
 }
 
-// compare pruned snps by the log-likelihood of the dataset with them removed.
-// this is so we can sort them and prune the worst ones.
-
-// given a=log10(x) and b=log10(y),
-// returns log10(x+y)
-float addlogs(float a, float b) {
-    if (a > b) return (a + log10(1 + pow(10, b - a)));
-    else return (b + log10(1 + pow(10, a - b)));
-}
-
-// given a=log10(x) and b=log10(y),
-// returns log10(x-y)
-float subtractlogs(float a, float b) {
-    if (a > b) return (a + log10(1 - pow(10, b - a)));
-    else return (b + log10(1 - pow(10, a - b)));
-}
-
 // sets snpfrag[i].prune_status:
 // 0 indicates not pruned
 // 1 indicates pruned (leave unphased in output)
@@ -591,7 +579,7 @@ void prune_snps(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char
 // the refhap heuristic for pruning SNPs
 void refhap_heuristic(int snps, int fragments, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1) {
     int i, j, f, k, snp_ix, frag_assign;
-    float prob, prob1, prob2, p0, p1;
+    float prob, prob2, p0, p1;
     int* good = (int*) malloc(snps*sizeof(int)); // good[i] is the number of frag bases consistent with phasing at SNP i
     int* bad  = (int*) malloc(snps*sizeof(int)); // bad [i] is the number of frag bases inconsistent with phasing at SNP i
 
@@ -607,7 +595,6 @@ void refhap_heuristic(int snps, int fragments, struct fragment* Flist, struct SN
 
                 prob = QVoffset - (int) Flist[f].list[j].qv[k];
                 prob /= 10;
-                prob1 = 1.0 - pow(10, prob);
                 prob2 = Flist[f].list[j].p1[k];
                 // this is likelihood based calculation
                 if (HAP1[snp_ix] == Flist[f].list[j].hap[k]) { 
@@ -761,8 +748,8 @@ void improve_hap(char* HAP, struct BLOCK* clist, int components, int snps, int f
 // then it would be valid to simply compute the posterior from those alone
 // and not the whole component.
 void split_blocks_old(char* HAP, struct BLOCK* clist, int components, struct fragment* Flist, struct SNPfrags* snpfrag) {
-    int i, j, f, c, s, a, blocks_since_split=0;
-    float P_data_H, P_data_Hsw, post_sw, post_sw_total;
+    int i, j, f, c, s, blocks_since_split=0;
+    float P_data_H, P_data_Hsw, post_sw;
     
     for (c = 0; c < components; c++) {
         //post_sw_total = FLT_MIN;

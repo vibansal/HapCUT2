@@ -241,6 +241,7 @@ int print_fragment_MEC(struct fragment* Flist, int f, char* h, FILE* outfile) {
         fprintf(outfile, " ");
     }
     fprintf(outfile, "\n");
+    return 0;
 }
 
 void print_fragmentmatrix_MEC(struct fragment* Flist, int fragments, char* h, char* outfileprefix) {
