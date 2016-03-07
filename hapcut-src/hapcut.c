@@ -53,7 +53,7 @@ int REFHAP_HEURISTIC = 0;
 int ERROR_ANALYSIS_MODE = 0;
 int* iters_since_improvement;
 int* iters_since_split;
-int HTRANS_BINSIZE = 50000;
+int HTRANS_BINSIZE = 100000;
 
 
 
@@ -170,7 +170,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
             for (j = 0; j < Flist[i].blocks; j++){
                 for (k = 0; k < Flist[i].list[j].len; k++) {
                     ix = Flist[i].list[j].offset + k;
-                    if (prev_ix != -1 && snpfrag[ix].position - snpfrag[prev_ix].position > 150){ // the previous SNP was > 300 bp away, should be mate
+                    if (prev_ix != -1 && snpfrag[ix].position - snpfrag[prev_ix].position > 150){ // the previous SNP was > 150 bp away, should be mate
                         Flist[i].mate2_ix = ix; // record the first SNP index of the rightmost mate
                         isize = snpfrag[ix].position - snpfrag[prev_ix].position;
                         Flist[i].htrans_prob = log10(htrans_probs[isize / HTRANS_BINSIZE]);

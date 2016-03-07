@@ -26,21 +26,21 @@ float cut_score(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* 
     for (i = 0; i < component->frags; i++) {
         f = component->flist[i];
         for (t = 0; t < 4; t++) scores[t] = Flist[f].scores[t];
-        for (t = 0; t < 4; t++) htscores[t] = Flist[f].htscores[t];
+        //for (t = 0; t < 4; t++) htscores[t] = Flist[f].htscores[t];
         //if (scores[0] > scores[1]) Lo = (scores[0] + log10(1+pow(10,scores[1]-scores[0]))); else Lo = (scores[1] + log10(1+pow(10,scores[0]-scores[1])));
         Ln = addlogs(scores[2], scores[3]);
         //oldLL += Lo; newLL += Ln;
         calculate_fragscore(Flist, f, hap, &fL, &chimeric_ll);
         oldLL += fL; // ready to go with h-trans calculations
-        if (!HIC){
+        //if (!HIC){
             newLL += Ln;
-        }else{
+       // }else{
             // Hi-C reads; account for h-trans
-            Ln_htrans = addlogs(htscores[2], htscores[3]);
-            normal_ll = Ln + subtractlogs(0,Flist[i].htrans_prob); // hcis LL times P(hcis)
-            htrans_ll = Ln_htrans + Flist[i].htrans_prob;          // htrans LL times P(htrans)
-            newLL += addlogs(normal_ll, htrans_ll);
-        }
+        //    Ln_htrans = addlogs(htscores[2], htscores[3]);
+        //    normal_ll = Ln + subtractlogs(0,Flist[i].htrans_prob); // hcis LL times P(hcis)
+        //    htrans_ll = Ln_htrans + Flist[i].htrans_prob;          // htrans LL times P(htrans)
+            //newLL += addlogs(normal_ll, htrans_ll);
+        //}
         //fprintf(stdout,"FRAG SCORES %d %f %f %f \n",f,Lo,Ln,fL);
     }
     if (newLL > oldLL && DEBUG) fprintf(stderr, "component %d old %f new %f %f \n", component->phased, oldLL, newLL, component->MEC);
@@ -186,7 +186,7 @@ void init_fragment_scores(struct SNPfrags* snpfrag, struct fragment* Flist, char
                             // Lo is likelihood of fragment if SNP is added to 'startnode' and Ln if SNP is added to 'secondnode' 
                             Lo_htrans = addlogs(scores[0], scores[1]);
                             Ln_htrans = addlogs(scores[2], scores[3]);
-                            snpfrag[node].htscore += Lo - Ln;                            
+                            //snpfrag[node].htscore += Lo - Ln;                            
                             
                             // we need to update Lo and Ln so they account for h-trans possibility
                             Lo = addlogs(Lo+subtractlogs(0,Flist[f].htrans_prob), Lo_htrans+Flist[f].htrans_prob);
@@ -219,12 +219,14 @@ void update_fragment_scores(struct SNPfrags* snpfrag, struct fragment* Flist, ch
     float Lo, Ln;
     float Lo_htrans, Ln_htrans;
     float f_scores[4];
+    float htrans_f_scores[4];
     float oldscore;
     int htrans_flipped = 0;
 
     for (n = 0; n < snpfrag[node_added].frags; n++){
         f = snpfrag[node_added].flist[n]; // index into Flist global 
         for (t = 0; t < 4; t++) f_scores[t] = Flist[f].scores[t]; // store previous fragment scores before updating
+        for (t = 0; t < 4; t++) htrans_f_scores[t] = Flist[f].htscores[t]; // store previous fragment scores before updating
 
         for (j = 0; j < Flist[f].blocks; j++){ // we only update likelihood for 'node_added' (have to scan through entire fragment), storing fragment as an array could speed this up 
         
@@ -333,7 +335,7 @@ void update_fragment_scores(struct SNPfrags* snpfrag, struct fragment* Flist, ch
 
                         htrans_flipped = (Flist[f].mate2_ix != -1 && node >= Flist[f].mate2_ix); // are we flipped due to h-trans? 
 
-                        for (t = 0; t < 4; t++) htscores[t] = f_scores[t];
+                        for (t = 0; t < 4; t++) htscores[t] = htrans_f_scores[t];
                         if ((hap[node] == Flist[f].list[j].hap[k] && !htrans_flipped)
                           ||(hap[node] != Flist[f].list[j].hap[k] && htrans_flipped)) {
                             htscores[0] += prob2;
