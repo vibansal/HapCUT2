@@ -81,6 +81,8 @@ typedef struct EDGE {
 
 struct SNPfrags {
     int* flist;
+    int* jlist; // list of j indexes used to index into Flist[f].list
+    int* klist; // list of k indexes used to index into Flist[f].list[j]
     int frags;
     char* alist; // alist is the alleles corresponding to each fragment that covers this SNP
     int component;
