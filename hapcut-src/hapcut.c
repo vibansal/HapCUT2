@@ -284,7 +284,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
                 print_hapfile(clist, components, HAP1, Flist, fragments, snpfrag, variantfile, miscalls, fn);
 
                 // do this only if some option is specified 
-                if (PRINT_FRAGMENT_SCORES == 1) print_fragmentmatrix_MEC(Flist, fragments, HAP1, outputfile);
+                //if (PRINT_FRAGMENT_SCORES == 1) print_fragmentmatrix_MEC(Flist, fragments, HAP1, outputfile);
 
             }
             converged_count = 0; split_occured = 0;
