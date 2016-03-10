@@ -39,7 +39,7 @@ void print_hapcut_options() {
 int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* fname, int score, char* outfile) {
     // print a new file containing one block phasing and the corresponding fragments 
     int i = 0, t = 0, k = 0, span = 0;
-    char c, c1, c2;
+    char c=0, c1=0, c2=0;
     //char fn[200]; sprintf(fn,"%s-%d.phase",fname,score); 
     FILE* fp;
     fp = fopen(outfile, "w");

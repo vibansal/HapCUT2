@@ -18,6 +18,8 @@ extern int* iters_since_improvement;
 extern int* iters_since_split;
 extern int REFHAP_HEURISTIC;
 extern int ERROR_ANALYSIS_MODE;
+extern int HTRANS_MAXBINS;
+extern int HTRANS_BINSIZE;
 /* edge weights 
    weight 334 373 hap 10 alleles 01 W 3.048192 
    weight 334 375 hap 11 alleles 00 W 3.523493 
@@ -852,4 +854,102 @@ int split_block(char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, s
     }
     
     return split_occured;
+}
+
+
+// estimate probabilities of h-trans to feed back into HapCUT algorithm
+int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struct SNPfrags* snpfrag, int snps){
+    int i,j,k,snp_ix,mate1match,mate2match, on_mate1, bin, skip;
+    float Q =0;
+    int Qcount=0;
+    // consistent counts, inconsistent counts
+    float* p_htrans = calloc(HTRANS_MAXBINS,sizeof(float));
+    int* cons       = calloc(HTRANS_MAXBINS,sizeof(int));
+    int* incons     = calloc(HTRANS_MAXBINS,sizeof(int));
+    
+    // count the number of consistent vs inconsistent for a given insert size bin
+    for (i = 0; i < fragments; i++){
+        skip = 0;
+        // keep things very simple by only sampling 1-snp mates
+        if (Flist[i].calls != 2 || Flist[i].mate2_ix == -1){
+            continue;
+        }
+     
+        mate1match = -1;
+        mate2match = -1;
+        
+        for (j = 0; j < Flist[i].blocks; j++){
+            if (skip) break;
+
+            for (k = 0; k < Flist[i].list[j].len; k++) {
+                
+                snp_ix = Flist[i].list[j].offset + k;
+                on_mate1 = (snp_ix < Flist[i].mate2_ix); // which mate are we on?
+                
+                if (HAP[snp_ix] == '-' || snpfrag[snp_ix].prune_status == 1){
+                    skip = 1;
+                    break;
+                }
+                
+                // for computing average quality score
+                Q += Flist[i].list[j].pv[k];
+                Qcount ++;
+                
+                if (on_mate1){
+                    // on mate 1
+                    if(HAP[snp_ix] == Flist[i].list[j].hap[k])
+                        mate1match = 1;
+                    else
+                        mate1match = 0;
+                }else{
+                    // on mate 2
+                    if(HAP[snp_ix] == Flist[i].list[j].hap[k])
+                        mate2match = 1;
+                    else
+                        mate2match = 0;
+                }
+                
+                bin = Flist[i].isize / HTRANS_BINSIZE;
+                if (mate1match == mate2match){
+                    cons[bin]++;
+                }else{
+                    incons[bin]++;
+                }
+            }
+        }     
+    }
+    
+    
+    // compute the average quality score Q, and use it to estimate P(flip) ignoring h-trans
+    
+    Q /= Qcount;
+    float log_denom = 2*log10(2*Q-1); // denominator for htrans estimate
+    float numval    = 2*Q*(1-Q);
+    float emp; // empirically estimate mate flip probability
+    
+    for (i = 0; i < HTRANS_MAXBINS; i++){
+        if (cons[i] + incons[i] == 0)
+            continue;
+        
+        emp = (incons[i]/(cons[i] + incons[i]));
+        p_htrans[i] = log10(emp - numval) - log_denom;
+    }
+    
+    // assign the probabilities to fragments based in insert size
+    for (i = 0; i < fragments; i++){
+        // no mate
+        if (Flist[i].mate2_ix == -1){
+            Flist[i].htrans_prob = -80;
+            continue;
+        }
+        
+        Flist[i].htrans_prob = p_htrans[Flist[i].isize/HTRANS_BINSIZE];
+        
+    }
+    
+    free(cons);
+    free(incons);
+    free(p_htrans);
+    
+    return 0;
 }
