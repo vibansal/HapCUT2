@@ -173,7 +173,7 @@ void generate_clist_structure(struct fragment* Flist, int fragments, struct SNPf
         if (snpfrag[Flist[i].list[0].offset].bcomp < 0)continue; // ignore fragments that cover singleton vertices
         clist[snpfrag[Flist[i].list[0].offset].bcomp].frags++;
     }
-    for (i = 0; i < components; i++) clist[i].flist = calloc(sizeof (int), clist[i].frags);
+    for (i = 0; i < components; i++) clist[i].flist = calloc(clist[i].frags,sizeof (int));
     for (i = 0; i < components; i++) clist[i].frags = 0;
     for (i = 0; i < fragments; i++) {
         if (snpfrag[Flist[i].list[0].offset].bcomp < 0)continue;
