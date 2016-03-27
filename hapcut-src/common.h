@@ -43,8 +43,10 @@ struct fragment {
     float scores[4]; // added 03/02/15
     float htscores[4]; // scores assuming a hi-c h-trans interaction added 3/6/16
     char init;
+    int data_type; // data type -- 0:normal, 1:HiC
     float htrans_prob; // probability of an h-trans interaction for this read
     int mate2_ix;     // snp index of second mate; -1 if this fragment has one mate
+    int isize;        // approximate insert size
 };
 
 // haplotype block
@@ -81,6 +83,8 @@ typedef struct EDGE {
 
 struct SNPfrags {
     int* flist;
+    int* jlist; // list of j indexes used to index into Flist[f].list
+    int* klist; // list of k indexes used to index into Flist[f].list[j]
     int frags;
     char* alist; // alist is the alleles corresponding to each fragment that covers this SNP
     int component;

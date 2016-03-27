@@ -1,9 +1,10 @@
 #include "readinputfiles.h"
 extern int HOMOZYGOUS_PRIOR;
+extern int NEW_FRAGFILE_FORMAT;
 
 int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragments) {
     int i = 0, j = 0, k = 0, t = 0, t1 = 0;
-    int blocks = 0, type = 0, l = 0, biter = 0, offset = 0;
+    int blocks = 0, type = 0, l = 0, biter = 0, offset = 0,dtype=0,isize = 0;
     char buffer[MAXBUF];
     char blockseq[5000];
     char ch;
@@ -53,7 +54,10 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
                 for (l = 0; l < t; l++) Flist[i].id[l] = blockseq[l];
                 Flist[i].id[l] = '\0';
                 //Flist[i].id = (char*)malloc(1); Flist[i].id[0] = '0'; this doesnt reduce the memory requirement
-                type = 2;
+                if (NEW_FRAGFILE_FORMAT)
+                    type = 4; // read in data type next
+                else
+                    type = 2; // old format, skip right to reading alleles
             } else if (type == 2 && biter < blocks) {
                 offset = 0;
                 for (l = 0; l < t; l++) {
@@ -91,6 +95,40 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
                 //for (t1=0;t1<Flist[i].list[biter].len;t1++) Flist[i].list[biter].post[t1] =0;
                 type = 2;
                 biter++;
+            } else if (type == 4){
+                // read in data type (0=normal, 1=HiC)
+                dtype = 0;
+                for (l = 0; l < t; l++) {
+                    dtype = 10 * dtype + (int) (blockseq[l] - 48);
+                }
+                Flist[i].data_type = dtype;    
+                type = 5;
+            } else if (type == 5){
+                // read in the position of mate 2
+                if (blockseq[0] == '-'){ // negative index means no mate 2
+                    Flist[i].mate2_ix = -1;
+                }else{
+                    offset = 0;
+                    for (l = 0; l < t; l++) {
+                        offset = 10 * offset + (int) (blockseq[l] - 48);
+                    }
+                    Flist[i].mate2_ix = offset - 1;
+                }
+                
+                type = 6;
+            } else if (type == 6){
+                // read in the absolute insert size
+                if (blockseq[0] == '-'){ // negative index means no mate 2
+                    Flist[i].isize = -1;
+                }else{
+                    isize = 0;
+                    for (l = 0; l < t; l++) {
+                        isize = 10 * isize + (int) (blockseq[l] - 48);
+                    }
+                    Flist[i].isize = isize;
+                }
+                
+                type = 2; // go back to reading in fragment info
             }
             t = 0;
         }

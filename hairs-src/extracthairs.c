@@ -54,6 +54,7 @@ int DATA_TYPE = 0;
 // same as old format but with more columns.
 // column 3 is the data type (0 for normal, 1 for HiC)
 // column 4 is the first SNP index of mate 2 (-1 if no mate 2)
+// column 5 is the absolute insert size
 int NEW_FORMAT = 0;
 
 
@@ -102,7 +103,6 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
     int i = 0;
     int chrom = 0; //int sl=0;
     // int v1,v2;
-    int absIS;
     int prevchrom = -1;
     int prevtid = -1;
 
@@ -144,14 +144,14 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
             }
         } else chrom = prevchrom;
 
-        if (read->tid == read->mtid) // use mateposition to calculate insert size, march 12 2013, wrong since we need to consider the readlength/cigar
-        {
-            //read->IS = read->mateposition - read->position;
-        }
+        //if (read->tid == read->mtid) // use mateposition to calculate insert size, march 12 2013, wrong since we need to consider the readlength/cigar
+        //{
+        //    read->IS = read->mateposition - read->position;
+        //}
 
-        absIS = (read->IS < 0) ? -1 * read->IS : read->IS;
+        fragment.absIS = (read->IS < 0) ? -1 * read->IS : read->IS;
         // add check to see if the mate and its read are on same chromosome, bug for contigs, july 16 2012
-        if ((read->flag & 8) || absIS > MAX_IS || absIS < MIN_IS || read->IS == 0 || !(read->flag & 1) || read->tid != read->mtid) // single read
+        if ((read->flag & 8) || fragment.absIS > MAX_IS || fragment.absIS < MIN_IS || read->IS == 0 || !(read->flag & 1) || read->tid != read->mtid) // single read
         {
             fragment.variants = 0; // v1 =0; v2=0;
             if (chrom >= 0 && PEONLY == 0) {

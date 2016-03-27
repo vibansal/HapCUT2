@@ -121,7 +121,7 @@ int mecscore(struct fragment* Flist, int fragments, char* h, float* ll, float* c
 }
 
 // function to print comparison of fragment to haplotype | format is 45333 000:010:BAF  (fragment block):(hap block):(qscore block)
-
+/*
 int print_fragment_MEC(struct fragment* Flist, int f, char* h, FILE* outfile) {
     int j = 0, k = 0, t = 0;
     float prob = 0, prob1 = 0, good = 0, bad = 0, mec = 0;
@@ -147,7 +147,7 @@ int print_fragment_MEC(struct fragment* Flist, int f, char* h, FILE* outfile) {
     fragments += 1;
     //fprintf(outfile,"frags %d counts %0.2f %0.2f %0.2f %0.2f\n",fragments,expected_counts[0],expected_counts[1],expected_counts[2],expected_counts[3]);
 
-    float lastprob1;
+    float lastprob1=0;
 
     for (j = 0; j < Flist[f].blocks; j++) {
         for (k = 0; k < Flist[f].list[j].len; k++) {
@@ -253,3 +253,4 @@ void print_fragmentmatrix_MEC(struct fragment* Flist, int fragments, char* h, ch
     for (i = 0; i < fragments; i++) print_fragment_MEC(Flist, i, h, fp);
     fclose(fp);
 }
+*/

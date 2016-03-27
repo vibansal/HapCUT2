@@ -11,8 +11,8 @@
 
 int select_neighbor(struct SNPfrags* snpfrag, int* slist, int N, int node, struct fragment* Flist, char* hap) {
     int j = 0, f = 0, i = 0, n = 0, k = 0;
-    char allele, allele1;
-    float q2, q1, p1, p2, ew, match;
+    char allele=0, allele1=0;
+    float q2=0, q1=0, p1=0, p2=0, ew=0, match=0;
 
     for (i = 0; i < N; i++) snpfrag[slist[i]].score = 0;
     for (n = 0; n < snpfrag[node].frags; n++) {
@@ -66,8 +66,8 @@ int select_neighbor(struct SNPfrags* snpfrag, int* slist, int N, int node, struc
 void init_neighbor_scores(struct SNPfrags* snpfrag, int node, struct fragment* Flist, char* hap, float weight) {
     // for all vertices linked to node -> update score of the neighbors, can be done using list of fragments for snpfrag[node]
     int j = 0, f = 0, n = 0, k = 0;
-    char allele, allele1;
-    float q2, q1, p1, p2, ew, match;
+    char allele=0, allele1=0;
+    float q2=0, q1=0, p1=0, p2=0, ew=0, match=0;
     for (n = 0; n < snpfrag[node].frags; n++) {
         f = snpfrag[node].flist[n]; // index into Flist global 
         for (j = 0; j < Flist[f].blocks; j++) // first find the allele at 'node' in the fragment 'f' 
@@ -102,8 +102,8 @@ void init_neighbor_scores(struct SNPfrags* snpfrag, int node, struct fragment* F
 void update_neighbor_scores(struct SNPfrags* snpfrag, int node, int startnode, int secondnode, struct fragment* Flist, char* hap, struct PHEAP* pheap, int* slist) {
     // for all vertices linked to node -> update score of the neighbors, can be done using list of fragments for snpfrag[node]
     int j = 0, f = 0, n = 0, k = 0, newnode = 0;
-    char allele, allele1;
-    float q2, q1, p1, p2, ew, match;
+    char allele=0, allele1=0;
+    float q2=0, q1=0, p1=0, p2=0, ew=0, match=0;
     double oldscore = 0;
     for (n = 0; n < snpfrag[node].frags; n++) {
         f = snpfrag[node].flist[n]; // index into Flist global 
@@ -177,8 +177,8 @@ float cut_MEC(struct SNPfrags* snpfrag, struct fragment* Flist, char* hap, int* 
 
 float find_cutvalue(struct SNPfrags* snpfrag, struct fragment* Flist, char* hap, int* slist, int N) {
     int j = 0, f = 0, i = 0, n = 0, k = 0, node = 0, newnode = 0;
-    char allele, allele1;
-    float q2, q1, p1, p2, ew, match;
+    char allele=0, allele1=0;
+    float q2=0, q1=0, p1=0, p2=0, ew=0, match=0;
     float curr_cut = 0;
 
     for (i = 0; i < N; i++) {
@@ -223,8 +223,8 @@ float find_cutvalue(struct SNPfrags* snpfrag, struct fragment* Flist, char* hap,
 
 float improve_cutvalue(struct SNPfrags* snpfrag, struct fragment* Flist, char* hap, int* slist, int N, float* curr_cut, int* c1, int* c2) {
     int j = 0, f = 0, i = 0, n = 0, k = 0, node = 0, newnode = 0, moved = 0;
-    char allele, allele1;
-    float q2, q1, p1, p2, ew, match;
+    char allele=0, allele1=0;
+    float q2=0, q1=0, p1=0, p2=0, ew=0, match=0;
 
     while (1) {
         moved = 0;

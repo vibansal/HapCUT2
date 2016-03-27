@@ -25,6 +25,7 @@ typedef struct {
     int blocks;
     int paired;
     int matepos;
+    int absIS;
 
 } FRAGMENT;
 

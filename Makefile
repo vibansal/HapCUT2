@@ -2,7 +2,7 @@
 # HAPCUT MAKEFILE
 default: all
 
-CC=gcc -g -Wall -D_GNU_SOURCE
+CC=gcc -g -O3 -Wall -D_GNU_SOURCE
 CFLAGS=-c -Wall
 
 # DIRECTORIES

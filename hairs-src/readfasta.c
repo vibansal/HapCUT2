@@ -38,7 +38,7 @@ int read_fastaheader(char* fastafile, REFLIST* reflist) // assumed to be referen
     char fastaindexfile[1024];
     sprintf(fastaindexfile, "%s.fai", fastafile);
     FILE* fp;
-    fp = fopen(fastafile, "r"); // check if fasta file is present 
+    fp = fopen(fastafile, "r"); // check if fasta file is present
     if (fp == NULL) {
         fprintf(stderr, "fasta file not found, please provide a valid reference fasta file\n");
         return -1;
@@ -124,7 +124,7 @@ int read_chromosome(REFLIST* reflist, int chrom, FILE* fp) {
         if (c != '\n' && c != '\t' && c != ' ') {
             reflist->sequences[chrom][j] = toupper(c);
             j++;
-            // 06/22/13 what if 'c' is not 'A|C|T|G|a|c|t|g' or 'N' 
+            // 06/22/13 what if 'c' is not 'A|C|T|G|a|c|t|g' or 'N'
             // R = A/G | Y = C/T | S = G/c | W = A/T | K = G/T | M = A/C | B = C/G/T | D = A/G/T | H = A/C/T | V = A/C/G | N
             bases++;
         }
@@ -132,7 +132,7 @@ int read_chromosome(REFLIST* reflist, int chrom, FILE* fp) {
     }
     //fprintf(stderr,"bases %d %d \n",bases,reflist->lengths[chrom]);
     //for (i=0;i<20;i++) fprintf(stderr,"%c",reflist->sequences[chrom][i]); fprintf(stderr," ");
-    // now mark the targeted bases in lower case 
+    // now mark the targeted bases in lower case
     if (reflist->intervals <= 0 || reflist->first_interval_chrom[chrom] < 0) {
         fprintf(stderr, "\n");
         return 1;
@@ -141,9 +141,9 @@ int read_chromosome(REFLIST* reflist, int chrom, FILE* fp) {
     while (i < reflist->intervals && reflist->intervallist[i].chrom == chrom) {
         k += reflist->intervallist[i].end - reflist->intervallist[i].start;
         /*
-        for (j=reflist->intervallist[i].start;j<=reflist->intervallist[i].end;j++) 
+        for (j=reflist->intervallist[i].start;j<=reflist->intervallist[i].end;j++)
         {
-                if (isupper(reflist->sequences[chrom][j]) > 0) 
+                if (isupper(reflist->sequences[chrom][j]) > 0)
                 {
                         reflist->sequences[chrom][j] = tolower(reflist->sequences[chrom][j]); k++;
                 }
@@ -169,7 +169,7 @@ int read_next_chromosome(REFLIST* reflist, int chrom, FILE* fp) {
             j++;
         }
     }
-    // now mark the targeted bases in lower case 
+    // now mark the targeted bases in lower case
     if (reflist->intervals <= 0) {
         fprintf(stderr, "\n");
         return 1;
@@ -195,7 +195,7 @@ int read_fasta(char* seqfile, REFLIST* reflist) {
     }
     fprintf(stderr, "reading reference sequence file %s with %d sequences\n", seqfile, reflist->ns);
     int i = -1, j = 0;
-    char c;
+    char c=0;
     while (c != EOF) {
         c = fgetc(fp);
         if (c == '>') {
@@ -229,7 +229,7 @@ int compare_intervals(const void* a, const void* b) {
     } else return ia->chrom - ib->chrom;
 }
 
-// modified on august 16 2011 to ignore lines in bed file that have no match of chromosome name to reference fasta file 
+// modified on august 16 2011 to ignore lines in bed file that have no match of chromosome name to reference fasta file
 
 int read_bedfile(char* bedfile, REFLIST* reflist) {
     char buffer[MAX_BUF_SIZE];
@@ -292,7 +292,7 @@ int read_bedfile(char* bedfile, REFLIST* reflist) {
             s = c;
             while (buffer[c] != ' ' && buffer[c] != '\t' && buffer[c] != '\n') c++;
             e = c;
-            if (e - s > 1) // annotation 
+            if (e - s > 1) // annotation
             {
                 for (i = s; i < e; i++) annotation[i - s] = buffer[i];
                 annotation[i - s] = '\0';
@@ -312,7 +312,7 @@ int read_bedfile(char* bedfile, REFLIST* reflist) {
             if (index == -1) fprintf(stderr, "no match for target name, ignoring this chromosome in bedfile %s", buffer);
         }
 
-        // start is 1-offset while sequences stored as 0-offset 
+        // start is 1-offset while sequences stored as 0-offset
         if (index != -1) {
             reflist->intervallist[j].chrom = index;
             reflist->intervallist[j].start = start;
@@ -346,5 +346,3 @@ int read_bedfile(char* bedfile, REFLIST* reflist) {
     //for (i=0;i<reflist->ns;i++) fprintf(stdout,"chrom %s first index %d \n",reflist->names[i],reflist->first_interval_chrom[i]);
     return 1;
 }
-
-

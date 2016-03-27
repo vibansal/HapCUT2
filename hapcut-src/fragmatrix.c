@@ -173,7 +173,7 @@ void generate_clist_structure(struct fragment* Flist, int fragments, struct SNPf
         if (snpfrag[Flist[i].list[0].offset].bcomp < 0)continue; // ignore fragments that cover singleton vertices
         clist[snpfrag[Flist[i].list[0].offset].bcomp].frags++;
     }
-    for (i = 0; i < components; i++) clist[i].flist = calloc(sizeof (int), clist[i].frags);
+    for (i = 0; i < components; i++) clist[i].flist = calloc(clist[i].frags,sizeof (int));
     for (i = 0; i < components; i++) clist[i].frags = 0;
     for (i = 0; i < fragments; i++) {
         if (snpfrag[Flist[i].list[0].offset].bcomp < 0)continue;
@@ -192,8 +192,8 @@ void generate_clist_structure(struct fragment* Flist, int fragments, struct SNPf
 // // it generates a list of fragments (flist) that affect each SNP 
 
 void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int* components) {
-    int i = 0, j = 0, t = 0, k = 0, calls = 0; //maxdeg=0,avgdeg=0;
-
+    int f = 0,i = 0, h = 0 , j = 0, s=0, k = 0, calls = 0; //maxdeg=0,avgdeg=0;
+    
     // find the first fragment whose endpoint lies at snp 'i' or beyond
     for (i = 0; i < snps; i++) {
         snpfrag[i].frags = 0;
@@ -208,7 +208,7 @@ void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snp
         j = Flist[i].list[0].offset;
         k = Flist[i].list[Flist[i].blocks - 1].len + Flist[i].list[Flist[i].blocks - 1].offset;
         // commented the line below since it slows program for long mate-pairs june 7 2012
-        for (t=j;t<k;t++) { if (snpfrag[t].ff == -1) snpfrag[t].ff = i;  } 
+        //for (t=j;t<k;t++) { if (snpfrag[t].ff == -1) snpfrag[t].ff = i;  } 
     } //for (i=0;i<snps;i++) { fprintf(stdout,"SNP %d firstfrag %d start snp %d \n",i,snpfrag[i].ff,i); } 
 
     for (i = 0; i < fragments; i++) {
@@ -218,8 +218,11 @@ void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snp
         }
     }
     for (i = 0; i < snps; i++) {
-        snpfrag[i].flist = (int*) malloc(sizeof (int)*snpfrag[i].frags);
+        snpfrag[i].flist = (int*) malloc(snpfrag[i].frags*sizeof (int));
         snpfrag[i].alist = (char*) malloc(snpfrag[i].frags);
+        snpfrag[i].jlist = (int*) malloc(snpfrag[i].frags *sizeof(int));
+        snpfrag[i].klist = (int*) malloc(snpfrag[i].frags *sizeof(int));
+
     }
 
     for (i = 0; i < snps; i++) {
@@ -229,32 +232,43 @@ void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snp
         snpfrag[i].edges = 0;
         snpfrag[i].best_mec = 10000;
     }
-
-    for (i = 0; i < fragments; i++) {
+   
+    for (f = 0; f < fragments; f++) {
         calls = 0;
-        for (j = 0; j < Flist[i].blocks; j++) {
-            for (k = 0; k < Flist[i].list[j].len; k++) {
-                snpfrag[Flist[i].list[j].offset + k].flist[snpfrag[Flist[i].list[j].offset + k].frags] = i;
-                snpfrag[Flist[i].list[j].offset + k].alist[snpfrag[Flist[i].list[j].offset + k].frags] = Flist[i].list[j].hap[k];
-                snpfrag[Flist[i].list[j].offset + k].frags++;
-                calls += Flist[i].list[j].len;
+        for (j = 0; j < Flist[f].blocks; j++) {
+            for (k = 0; k < Flist[f].list[j].len; k++) {
+                s = Flist[f].list[j].offset + k;           // index in snp list
+                h = snpfrag[s].frags; // index into snpfrag.flist
+
+                // save the f,j,k indices that we found this fragment spot at
+                // so that from the index in snpfrag.flist alone, we can rapidly
+                // get to the spot in the  global fragment* Flist.
+                snpfrag[s].flist[h] = f;
+                snpfrag[s].jlist[h] = j;
+                snpfrag[s].klist[h] = k; 
+                snpfrag[s].alist[h] = Flist[f].list[j].hap[k];
+
+  
+                
+                snpfrag[s].frags++;
+                calls += Flist[f].list[j].len;
             }
         }
 
         if (FOSMIDS == 1) // long reads 
         {
             // 2 edges for every node in fragment ( 00000----0---[1]----10011 ) adjacent left and right
-            for (j = 0; j < Flist[i].blocks; j++) {
-                for (k = 0; k < Flist[i].list[j].len; k++) snpfrag[Flist[i].list[j].offset + k].edges += 2;
+            for (j = 0; j < Flist[f].blocks; j++) {
+                for (k = 0; k < Flist[f].list[j].len; k++) snpfrag[Flist[f].list[j].offset + k].edges += 2;
             }
             j = 0;
-            snpfrag[Flist[i].list[j].offset].edges -= 1;
-            j = Flist[i].blocks - 1;
-            snpfrag[Flist[i].list[j].offset + Flist[i].list[j].len - 1].edges -= 1;
+            snpfrag[Flist[f].list[j].offset].edges -= 1;
+            j = Flist[f].blocks - 1;
+            snpfrag[Flist[f].list[j].offset + Flist[f].list[j].len - 1].edges -= 1;
             // single edge for first and last node in fragment 
         } else {
-            for (j = 0; j < Flist[i].blocks; j++) {
-                for (k = 0; k < Flist[i].list[j].len; k++) snpfrag[Flist[i].list[j].offset + k].edges += calls - 1;
+            for (j = 0; j < Flist[f].blocks; j++) {
+                for (k = 0; k < Flist[f].list[j].len; k++) snpfrag[Flist[f].list[j].offset + k].edges += calls - 1;
             }
         }
     }

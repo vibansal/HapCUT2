@@ -1,5 +1,8 @@
 /* functions for comparing an aligned sequence read to the set of variants to identify alleles and haplotype-informative reads */
 
+#include "hapfragments.h"
+
+
 // only for comparing read to SNP (or block substitution with multiple SNPs that don't change length of haplotype)
 
 int compare_read_SNP(struct alignedread* read, VARIANT* varlist, int ss, int start, int l1, int l2, FRAGMENT* fragment) {
@@ -305,6 +308,7 @@ int copy_fragment(FRAGMENT* fnew, FRAGMENT* fragment, struct alignedread* read) 
     fnew->variants = fragment->variants;
     fnew->paired = 1;
     fnew->alist = (allele*) malloc(sizeof (allele) * fragment->variants);
+    fnew->absIS   = fragment->absIS;
     for (i = 0; i < fragment->variants; i++) {
         fnew->alist[i].varid = fragment->alist[i].varid;
         fnew->alist[i].allele = fragment->alist[i].allele;
@@ -319,6 +323,7 @@ int add_fragment(FRAGMENT* flist, FRAGMENT* fragment, struct alignedread* read, 
     int i = 0, sl = 0;
     flist[fragments].variants = fragment->variants;
     flist[fragments].paired = 1;
+    flist[fragments].absIS = fragment->absIS;
     // april 10 2012 change made for Poplar data to not use matepos...
     if (read->IS > 0) flist[fragments].matepos = read->mateposition;
         //if (read->IS > 0) flist[fragments].matepos = read->position + read->IS; 

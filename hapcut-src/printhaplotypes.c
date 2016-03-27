@@ -14,10 +14,12 @@ void print_hapcut_options() {
     fprintf(stderr, "--converge <int>: cut off iterations for a block if no improvement after this many iterations\n");
     fprintf(stderr, "--threshold, --t <float>: posterior probability cutoff for pruning SNPs (closer to 1 prunes a lot, closer to 0.5 prunes few. default: 0.8)\n");
     fprintf(stderr, "--split_threshold, --st <float>: posterior probability cutoff for splitting blocks (closer to 1 splits many blocks, closer to 0.5 splits few. default: 0.99)\n");
+    fprintf(stderr, "--HiC_htrans_file, --htrans <FILENAME> file where the second column specifies h-trans probabilities for insert size bins 0-50Kb, 50Kb-100Kb, etc.");
+    fprintf(stderr, "--htrans_EM, --hEM <0/1> NOT RECOMMENDED, HIGHLY EXPERIMENTAL Expectation-Maximization approach to HiC phasing");
+    fprintf(stderr, "--new_format, --nf <0/1>: use new fragment matrix file format for HiC where col 3 is data type, col 4 is index of mate 2, col 5 is absolute insert size\n");        
     fprintf(stderr, "--splitblocks <0/1>: split blocks using simple log-likelihood score to reduce switch errors\n");
     fprintf(stderr, "--splitblocks_maxcut <0/1>: split blocks using extra maxcut computations (NOT RECOMMENDED)\n");
     fprintf(stderr, "--refhap_heuristic, --rh <0/1>: use refhap's discrete heuristic to prune SNPs rather than HapCUT's log-likelihood based strategy (not recommended unless read quality scores are very inaccurate)\n");
-    fprintf(stderr, "--new_format, --nf <0/1>: use new fragment matrix file format, where column 3 specifies data type and column 4 specifies index of mate 2 for HiC\n");    
     fprintf(stderr, "--verbose, --v <0/1>: Verbose mode: print extra information to stdout and stderr.\n");
     fprintf(stderr, "--error_analysis_mode, --ea <0/1>: for analyzing switch errors/mismatches. print posterior probability of errors to file but don't split blocks or prune. (needless slowdown)\n");
     fprintf(stderr, "--MEC <0/1>: Use old MEC-based method rather than Log-likelihood based (not recommended).\n");
@@ -39,7 +41,7 @@ void print_hapcut_options() {
 int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* fname, int score, char* outfile) {
     // print a new file containing one block phasing and the corresponding fragments 
     int i = 0, t = 0, k = 0, span = 0;
-    char c, c1, c2;
+    char c=0, c1=0, c2=0;
     //char fn[200]; sprintf(fn,"%s-%d.phase",fname,score); 
     FILE* fp;
     fp = fopen(outfile, "w");
