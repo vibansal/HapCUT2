@@ -1,10 +1,10 @@
-// author: Vikas Bansal, vbansal@scripps, 2011-2012 
-//  program to extract haplotype informative reads from sorted BAM file, input requirements: bamfile and variantfile 
-//  Jan 13 2012, changed to read directly from BAM file 
+// author: Vikas Bansal, vbansal@scripps, 2011-2012
+//  program to extract haplotype informative reads from sorted BAM file, input requirements: bamfile and variantfile
+//  Jan 13 2012, changed to read directly from BAM file
 //  paired-end overlapping reads need to be handled properly
 //  add module for RNA-seq data as well
-//  add flag for secondary alignments and PCR duplicates (picard mark duplicates) 
-//  input format for variants should be VCF from now 
+//  add flag for secondary alignments and PCR duplicates (picard mark duplicates)
+//  input format for variants should be VCF from now
 //#include "extracthairs.h"
 #include<stdio.h>
 #include<stdlib.h>
@@ -28,7 +28,7 @@ int MINQ = 13; // minimum base quality
 int MIN_MQ = 20; // minimum read mapping quality
 int MAX_IS = 1000; // maximum insert size
 int MIN_IS = 0; // maximum insert size
-int PEONLY = 0; // if this is set to 1, reads for which only one end is mapped are not considered for hairs 
+int PEONLY = 0; // if this is set to 1, reads for which only one end is mapped are not considered for hairs
 int BSIZE = 500;
 int IFLAG = 0;
 int MAXFRAG = 500000;
@@ -45,13 +45,25 @@ char* GROUPNAME; // for fragments from different pools, SRRxxx
 FILE* fragment_file;
 int TRI_ALLELIC = 0;
 
+// DATA TYPE
+// 0 : generic reads
+// 1 : HiC
+int DATA_TYPE = 0;
+
+// NEW FORMAT FOR HIC
+// same as old format but with more columns.
+// column 3 is the data type (0 for normal, 1 for HiC)
+// column 4 is the first SNP index of mate 2 (-1 if no mate 2)
+int NEW_FORMAT = 0;
+
+
 //int get_chrom_name(struct alignedread* read,HASHTABLE* ht,REFLIST* reflist);
 
 #include "parsebamread.c"
-#include "fosmidbam_hairs.c" // code for parsing fosmid pooled sequence data 
+#include "fosmidbam_hairs.c" // code for parsing fosmid pooled sequence data
 
 //disabled sam file reading
-//#include "samhairs.c" // has two functions that handle sam file parsing 
+//#include "samhairs.c" // has two functions that handle sam file parsing
 
 void print_options();
 int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VARIANT* varlist, REFLIST* reflist);
@@ -63,6 +75,7 @@ void print_options() {
     fprintf(stderr, "--qvoffset <33/64> : quality value offset, 33/64 depending on how quality values were encoded, default is 33 \n");
     fprintf(stderr, "--mbq <INT> : minimum base quality to consider a base for haplotype fragment, default 13\n");
     fprintf(stderr, "--mmq <INT> : minimum read mapping quality to consider a read for phasing, default 20\n");
+    fprintf(stderr, "--HiC <0/1> : sets default maxIS to 40MB, prints matrix in new HiC format\n");
     fprintf(stderr, "--VCF <FILENAME> : variant file with genotypes for a single individual in VCF format\n");
     fprintf(stderr, "--variants : variant file in hapCUT format (use this option or --VCF option but not both), this option will be phased out in future releases\n");
     fprintf(stderr, "--maxIS <INT> : maximum insert size for a paired-end read to be considered as a single fragment for phasing, default 1000\n");
@@ -133,23 +146,23 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
 
         if (read->tid == read->mtid) // use mateposition to calculate insert size, march 12 2013, wrong since we need to consider the readlength/cigar
         {
-            //read->IS = read->mateposition - read->position; 
+            //read->IS = read->mateposition - read->position;
         }
 
         absIS = (read->IS < 0) ? -1 * read->IS : read->IS;
         // add check to see if the mate and its read are on same chromosome, bug for contigs, july 16 2012
         if ((read->flag & 8) || absIS > MAX_IS || absIS < MIN_IS || read->IS == 0 || !(read->flag & 1) || read->tid != read->mtid) // single read
         {
-            fragment.variants = 0; // v1 =0; v2=0; 
+            fragment.variants = 0; // v1 =0; v2=0;
             if (chrom >= 0 && PEONLY == 0) {
                 fragment.id = read->readid;
                 extract_variants_read(read,ht,chromvars,varlist,0,&fragment,chrom,reflist);
                 if (fragment.variants >= 2 || (SINGLEREADS == 1 && fragment.variants >= 1)) {
-                    // instead of printing fragment, we could change this to update genotype likelihoods 
+                    // instead of printing fragment, we could change this to update genotype likelihoods
                     print_fragment(&fragment, varlist, fragment_file);
                 }
             }
-        } else // paired-end read 
+        } else // paired-end read
         {
             //fprintf(stdout,"tid %d %d \n",read->tid,read->mtid);
             fragment.variants = 0;
@@ -223,10 +236,14 @@ int main(int argc, char** argv) {
         } else if (strcmp(argv[i], "--sorted") == 0) readsorted = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--mbq") == 0) MINQ = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--mmq") == 0) MIN_MQ = atoi(argv[i + 1]);
-        else if (strcmp(argv[i], "--hiC") == 0) MAX_IS = INT_MAX;
+        else if (strcmp(argv[i], "--HiC") == 0){
+            MAX_IS = 40000000;
+            NEW_FORMAT = 1;
+            DATA_TYPE = 1;
+        }
         else if (strcmp(argv[i], "--maxIS") == 0) MAX_IS = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--minIS") == 0) MIN_IS = atoi(argv[i + 1]);
-        else if (strcmp(argv[i], "--PEonly") == 0) PEONLY = 1; // discard single end mapped reads 
+        else if (strcmp(argv[i], "--PEonly") == 0) PEONLY = 1; // discard single end mapped reads
         else if (strcmp(argv[i], "--indels") == 0) PARSEINDELS = atoi(argv[i + 1]); // allow indels in hairs
         else if (strcmp(argv[i], "--pflag") == 0) IFLAG = atoi(argv[i + 1]); // allow indels in hairs
         else if (strcmp(argv[i], "--qvoffset") == 0) QVoffset = atoi(argv[i + 1]);
@@ -272,16 +289,16 @@ int main(int argc, char** argv) {
         varlist = (VARIANT*) malloc(sizeof (VARIANT) * variants);
         chromosomes = read_variantfile_oldformat(variantfile, varlist, &ht, variants);
     }
-    // variants is set to hetvariants only, but this is not correct since 
+    // variants is set to hetvariants only, but this is not correct since
     VARIANTS = variants;
-    // there are two options, we include all variants in the chromvars datastructure but only use heterozygous variants for outputting HAIRS 
-    // variant-id should correspond to line-number in VCF file since that will be used for printing out variants in Hapcut 
+    // there are two options, we include all variants in the chromvars datastructure but only use heterozygous variants for outputting HAIRS
+    // variant-id should correspond to line-number in VCF file since that will be used for printing out variants in Hapcut
 
     //	fprintf(stderr,"read %d variants from file %s chromosomes %d\n",snps,argv[1],chromosomes);
     CHROMVARS* chromvars = (CHROMVARS*) malloc(sizeof (CHROMVARS) * chromosomes);
     build_intervalmap(chromvars, chromosomes, varlist, VARIANTS);
 
-    // read reference fasta file for INDELS, currently reads entire genome in one go, need to modify to read chromosome by chromosome 
+    // read reference fasta file for INDELS, currently reads entire genome in one go, need to modify to read chromosome by chromosome
     REFLIST* reflist = (REFLIST*) malloc(sizeof (REFLIST));
     reflist->ns = 0;
     reflist->names = NULL;
@@ -301,14 +318,14 @@ int main(int argc, char** argv) {
     if (readsorted == 0 && bamfiles > 0) {
         for (i = 0; i < bamfiles; i++) {
             if (FOSMIDS == 0) parse_bamfile_sorted(bamfilelist[i], &ht, chromvars, varlist, reflist);
-            else parse_bamfile_fosmid(bamfilelist[i], &ht, chromvars, varlist, reflist); // fosmid pool bam file 
+            else parse_bamfile_fosmid(bamfilelist[i], &ht, chromvars, varlist, reflist); // fosmid pool bam file
         }
     }
     if (logfile != NULL) fclose(logfile);
     if (fragment_file != NULL && fragment_file != stdout) fclose(fragment_file);
 
 
-    // need to free up all memory before we exit the program 
+    // need to free up all memory before we exit the program
     /*
     int xor = pow(2,16)-1;
     for (i=0;i<variants;i++)
@@ -320,5 +337,3 @@ int main(int argc, char** argv) {
      */
     return 0;
 }
-
-

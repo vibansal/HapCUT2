@@ -15,8 +15,9 @@ void print_hapcut_options() {
     fprintf(stderr, "--threshold, --t <float>: posterior probability cutoff for pruning SNPs (closer to 1 prunes a lot, closer to 0.5 prunes few. default: 0.8)\n");
     fprintf(stderr, "--split_threshold, --st <float>: posterior probability cutoff for splitting blocks (closer to 1 splits many blocks, closer to 0.5 splits few. default: 0.99)\n");
     fprintf(stderr, "--splitblocks <0/1>: split blocks using simple log-likelihood score to reduce switch errors\n");
-    fprintf(stderr, "--splitblocks_maxcut <0/1>: split blocks using extra maxcut computations (not recommended)\n");
+    fprintf(stderr, "--splitblocks_maxcut <0/1>: split blocks using extra maxcut computations (NOT RECOMMENDED)\n");
     fprintf(stderr, "--refhap_heuristic, --rh <0/1>: use refhap's discrete heuristic to prune SNPs rather than HapCUT's log-likelihood based strategy (not recommended unless read quality scores are very inaccurate)\n");
+    fprintf(stderr, "--new_format, --nf <0/1>: use new fragment matrix file format, where column 3 specifies data type and column 4 specifies index of mate 2 for HiC\n");    
     fprintf(stderr, "--verbose, --v <0/1>: Verbose mode: print extra information to stdout and stderr.\n");
     fprintf(stderr, "--error_analysis_mode, --ea <0/1>: for analyzing switch errors/mismatches. print posterior probability of errors to file but don't split blocks or prune. (needless slowdown)\n");
     fprintf(stderr, "--MEC <0/1>: Use old MEC-based method rather than Log-likelihood based (not recommended).\n");

@@ -54,6 +54,7 @@ int ERROR_ANALYSIS_MODE = 0;
 int* iters_since_improvement;
 int* iters_since_split;
 int HTRANS_BINSIZE = 50000;
+int NEW_FRAGFILE_FORMAT = 0;
 
 
 
@@ -392,6 +393,7 @@ int main(int argc, char** argv) {
             strcpy(htrans_file, argv[i + 1]);
             HIC = 1;
         }
+        else if (strcmp(argv[i], "--nf") == 0 || strcmp(argv[i], "--new_format") == 0) NEW_FRAGFILE_FORMAT = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--sf") == 0 || strcmp(argv[i], "--switches") == 0) SCORING_FUNCTION = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--printscores") == 0 || strcmp(argv[i], "--scores") == 0) PRINT_FRAGMENT_SCORES = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--maxcutiter") == 0) {
