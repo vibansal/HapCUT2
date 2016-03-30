@@ -198,8 +198,8 @@ def main():
         ix = int(f.insert_size / bin_size)
         post_list[ix].append(p)
         
-    import pdb
-    pdb.set_trace()
+    #import pdb
+    #pdb.set_trace()
     # estimate probabilities and write to output file
     with open(outfile,'w') as o:
         for i, b in enumerate(bins):

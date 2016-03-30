@@ -48,7 +48,7 @@ def main():
 
     # bins of size binsize
     # bin i concerns insert size bin starting at i*binsize    
-    numbins = int(max_is/binsize)
+    numbins = int(max_is/binsize) + 1
     bins = [0]*numbins
     
     # names of chromosomes to consider
@@ -57,10 +57,7 @@ def main():
     valid_chroms = set(['chr{}'.format(x) for x in csuffixes])
 
     with pysam.AlignmentFile(infile,"rb") as file:
-        seen_records = set()
-        
-
-        
+       
         # go through bam file
         # count number of mates within current chrom of a given insert size,
         # and number that map to other chromosomes
@@ -68,10 +65,14 @@ def main():
             if a.reference_id == -1 or a.next_reference_id == -1:
                 continue
             if (a.is_unmapped or a.mate_is_unmapped
-                or a.qname in seen_records or a.is_duplicate
+                or a.is_duplicate
                 or (a.next_reference_name not in valid_chroms)):
                 continue
-        
+            
+            # if we are on the same chrom, only count the mate pair once (using first mate)
+            if a.reference_id == a.next_reference_id and a.reference_start > a.next_reference_start:
+                continue
+
             mapq = a.mapping_quality
             mate_mapq = a.get_tag('MQ')
             isize = abs(a.isize)        
@@ -85,8 +86,7 @@ def main():
                 bins[bin_ix] += 1
             else:
                 map_to_other_chrom += 1 # this mate maps to another chrom
-        
-            seen_records.add(a.qname)
+       
             mapq = a.mapping_quality
             mate_mapq = a.get_tag('MQ')
             
