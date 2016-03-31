@@ -53,8 +53,9 @@ int REFHAP_HEURISTIC = 0;
 int ERROR_ANALYSIS_MODE = 0;
 int* iters_since_improvement;
 int* iters_since_split;
+int HTRANS_BINSIZE = 50000;
+int NEW_FRAGFILE_FORMAT = 0;
 int HIC_EM = 0;
-int HTRANS_BINSIZE = 10000;//100000;
 int HTRANS_MAXBINS = 50000;
 int MAX_HIC_ITER = 5;
 
@@ -65,7 +66,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     // IMP NOTE: all SNPs start from 1 instead of 0 and all offsets are 1+
     fprintf(stderr, "calling MAXCUT based haplotype assembly algorithm\n");
     int fragments = 0, iter = 0, components = 0;
-    int i = 0, j = 0, k = 0;
+    int i = 0, k = 0;
     int* slist;
     int flag = 0;
     float bestscore_mec = 0, calls = 0, miscalls = 0, ll = 0;
@@ -153,33 +154,15 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
 
     if (HIC){
 
-        int ix = -1;
-        int prev_ix = -1;
         int MAXIS = -1;
         // determine the probability of an h-trans interaction for read
 
-        // for each fragment we determine the snp index of its right mate (mate 2)
-        // we use a lazy approach and assume that if the genomic distance is >300 between
-        // two adjacent SNPs then that is where the insert lies.
-        // we record in the Flist this mate index and the estimated probability of an h-trans caused error
         for (i=0; i<fragments;i++){
-            prev_ix = -1;
-            Flist[i].htrans_prob = -80;
-            Flist[i].mate2_ix = -1; // default; means "no mate"
-            Flist[i].isize = -1;    // default; means "no mate"
 
-            for (j = 0; j < Flist[i].blocks; j++){
-                for (k = 0; k < Flist[i].list[j].len; k++) {
-                    ix = Flist[i].list[j].offset + k;
-                    if (prev_ix != -1 && snpfrag[ix].position - snpfrag[prev_ix].position > 150){ // the previous SNP was > 150 bp away, should be mate
-                        Flist[i].mate2_ix = ix; // record the first SNP index of the rightmost mate
-                        Flist[i].isize = snpfrag[ix].position - snpfrag[prev_ix].position;
-                        if (Flist[i].isize > MAXIS)
-                            MAXIS = Flist[i].isize;
-                    }
-                    prev_ix = ix;
-                }
-            }
+            Flist[i].htrans_prob = -80;
+
+            if (Flist[i].isize > MAXIS)
+                MAXIS = Flist[i].isize;
         }
 
         HTRANS_MAXBINS = MAXIS/HTRANS_BINSIZE + 1;
@@ -260,9 +243,10 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
 
     /************************** RUN THE MAX_CUT ALGORITHM ITERATIVELY TO IMPROVE MEC SCORE*********************************/
     int hic_iter;
+
     for (hic_iter = 0; hic_iter<MAX_HIC_ITER; hic_iter++){
 
-        fprintf(stderr, "Expectation-Maximization iteration %d\n",hic_iter);
+        if (HIC_EM) fprintf(stderr, "Expectation-Maximization iteration %d\n",hic_iter);
 
         for (iter = 0; iter < maxiter_hapcut; iter++) {
             trueMEC = mecscore(Flist, fragments, HAP1, &ll, &calls, &miscalls);
@@ -297,6 +281,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
                 else converged_count++;
                 if (clist[k].split) split_occured = 1;
             }
+
             if (split_occured){
                 // regenerate clist because there are newly split blocks
                 free(clist);
@@ -310,12 +295,14 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
             }
         }
 
-        prune_snps(snps, Flist, snpfrag, HAP1);
-
         if (HIC_EM){
+
+            prune_snps(snps, Flist, snpfrag, HAP1);
+
             estimate_htrans_probs(Flist, fragments, HAP1, snpfrag, snps);
             for (i=0; i<snps; i++){
-                iters_since_improvement = 0;
+                iters_since_improvement[i] = 0;
+                snpfrag[i].prune_status = 0;
             }
 
         } else{
@@ -415,12 +402,14 @@ int main(int argc, char** argv) {
             }
         }else if (strcmp(argv[i], "--fosmid") == 0 || strcmp(argv[i], "--fosmids") == 0) FOSMIDS = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--HiC_htrans_file") == 0 || strcmp(argv[i], "--htrans") == 0){
+            NEW_FRAGFILE_FORMAT = 1;
             strcpy(htrans_file, argv[i + 1]);
             HIC = 1;
         }else if (strcmp(argv[i], "--htrans_EM") == 0 || strcmp(argv[i], "--hEM") == 0){
             HIC_EM = 1;
             HIC = 1;
         }
+        else if (strcmp(argv[i], "--nf") == 0 || strcmp(argv[i], "--new_format") == 0) NEW_FRAGFILE_FORMAT = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--sf") == 0 || strcmp(argv[i], "--switches") == 0) SCORING_FUNCTION = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--printscores") == 0 || strcmp(argv[i], "--scores") == 0) PRINT_FRAGMENT_SCORES = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--maxcutiter") == 0) {

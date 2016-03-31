@@ -31,6 +31,11 @@ int print_fragment(FRAGMENT* fragment, VARIANT* varlist, FILE* outfile) {
         if (fragment->alist[i + 1].varid - fragment->alist[i].varid != 1) fragment->blocks++;
     }
     fprintf(outfile, "%d %s", fragment->blocks, fragment->id);
+    
+    //new format prints col 3 as data type (0 for normal, 1 for HiC) and col 4 as mate 2 index
+    if (NEW_FORMAT)
+        fprintf(outfile, " %d -1 -1", DATA_TYPE);
+    
     //for (i=0;i<fragment->variants;i++) fprintf(stdout,"%c",fragment->alist[i].qv);
     // varid is printed with offset of 1 rather than 0 since that is encoded in the Hapcut program
     fprintf(outfile, " %d %c", fragment->alist[0].varid + 1, fragment->alist[0].allele);
@@ -64,6 +69,10 @@ int print_matepair(FRAGMENT* f1, FRAGMENT* f2, VARIANT* varlist, FILE* outfile) 
     //	for (i=0;i<f1->variants;i++) fprintf(outfile,"%c",f1->alist[i].qv);
     //	for (i=0;i<f2->variants;i++) fprintf(outfile,"%c",f2->alist[i].qv);
 
+    //new format prints col 3 as data type (0 for normal, 1 for HiC) and col 4 as mate 2 index
+    if (NEW_FORMAT)
+        fprintf(outfile, " %d %d %d", DATA_TYPE, f2->alist[0].varid+1, f1->absIS);
+    
     // varid is printed with offset of 1 rather than 0 since that is encoded in the Hapcut program
     fprintf(outfile, " %d %c", f1->alist[0].varid + 1, f1->alist[0].allele);
 

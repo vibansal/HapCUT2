@@ -9,6 +9,8 @@
 #include "readvariant.h"
 
 extern int SINGLEREADS;
+extern int DATA_TYPE;
+extern int NEW_FORMAT;
 
 typedef struct {
     char allele;
@@ -23,6 +25,7 @@ typedef struct {
     int blocks;
     int paired;
     int matepos;
+    int absIS;
 
 } FRAGMENT;
 

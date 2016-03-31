@@ -28,7 +28,7 @@ void calculate_fragscore(struct fragment* Flist, int f, char* h, float* mec_ll, 
                 p1 += prob2;
             }
 
-            if (HIC == 1 && Flist[f].mate2_ix != -1){
+            if (Flist[f].data_type == 1 && Flist[f].mate2_ix != -1){ // HiC read
                 if (Flist[f].list[j].offset + k >= Flist[f].mate2_ix){
                     // we are on mate 2 so haplotypes (and probabilities) are flipped, since h-trans
                     if (h[Flist[f].list[j].offset + k] == Flist[f].list[j].hap[k]){
@@ -93,8 +93,7 @@ void calculate_fragscore(struct fragment* Flist, int f, char* h, float* mec_ll, 
     *chimeric_ll = chim_prob;
     */
 
-
-    if (HIC && Flist[f].mate2_ix != -1){
+    if (Flist[f].data_type == 1 && Flist[f].mate2_ix != -1){ // HiC read
 
         // Hi-C LL calculation accounting for h-trans
 
@@ -147,7 +146,7 @@ void update_fragscore(struct fragment* Flist, int f, char* h) {
             }
 
             // this is the likelihood based calculation assuming a Hi-C h-trans interaction
-            if (HIC == 1){
+            if (Flist[f].data_type == 1){
                 if (Flist[f].mate2_ix != -1 && Flist[f].list[j].offset + k >= Flist[f].mate2_ix){
                     // we are on mate 2 so haplotypes (and probabilities) are flipped, since h-trans
                     if (h[Flist[f].list[j].offset + k] == Flist[f].list[j].hap[k]){
@@ -179,10 +178,10 @@ void update_fragscore(struct fragment* Flist, int f, char* h) {
         }
     }
 
-    if (!HIC){
+    if (Flist[f].data_type == 0){ // normal fragment
         // normal LL calculation
         Flist[f].ll = addlogs(p0,p1);
-    } else{
+    } else if (Flist[f].data_type == 1){ // HiC fragment 
         // Hi-C LL calculation accounting for h-trans
         normal_ll = addlogs(p0,p1);
         htrans_ll = addlogs(p0h,p1h);
@@ -246,11 +245,11 @@ int calculate_error_probs(struct fragment* Flist, int f, char* h, float perr[], 
 float fragment_ll(struct fragment* Flist, int f, char* h, int homozygous, int switch_ix) {
     int j = 0, k = 0;
     float p0 = 0, p1 = 0, p0h = 0, p1h =0, prob = 0, prob1 = 0, prob2 = 0;
-    float good = 0, bad = 0, ll;
+    float good = 0, bad = 0, ll=0;
     int snp_ix, switched, htrans_flipped;
 
     // normal LL calculation, no Hi-C h-trans
-    if (!HIC){
+    if (Flist[f].data_type == 0){
         for (j = 0; j < Flist[f].blocks; j++) {
             for (k = 0; k < Flist[f].list[j].len; k++) {
                 snp_ix = Flist[f].list[j].offset + k; // index of current position with respect to all SNPs
@@ -285,7 +284,7 @@ float fragment_ll(struct fragment* Flist, int f, char* h, int homozygous, int sw
         }
 
         ll = addlogs(p0, p1);
-    }else{ // Hi-C LL calculation that accounts for Hi-C h-trans
+    }else if (Flist[f].data_type == 1){ // Hi-C LL calculation that accounts for Hi-C h-trans
 
         for (j = 0; j < Flist[f].blocks; j++) {
             for (k = 0; k < Flist[f].list[j].len; k++) {
