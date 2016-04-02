@@ -118,8 +118,8 @@ int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, str
     if (iters_since_improvement[clist[k].offset] > CONVERGE && (!SPLIT_BLOCKS_MAXCUT || iters_since_split[clist[k].offset] > CONVERGE)) {
         return 1; // return 1 only if converged
     }
-
     int i = 0, j = 0, t = 0, first_in, first_out, count1, count2;
+    
     float cutvalue, post;
     /*
        i=0;for (j=clist[k].offset;j<clist[k].offset+clist[k].length;j++)

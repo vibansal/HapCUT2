@@ -297,7 +297,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
 
         if (HIC_EM){
 
-            prune_snps(snps, Flist, snpfrag, HAP1);
+            prune_snps(snps, Flist, snpfrag,HAP1);
 
             estimate_htrans_probs(Flist, fragments, HAP1, snpfrag, snps);
             for (i=0; i<snps; i++){

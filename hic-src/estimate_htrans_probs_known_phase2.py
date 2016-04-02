@@ -134,66 +134,26 @@ def main():
 
             flist.append(f)
 
-    # post_list[i] contains a list of posterior probs for insert size i
-    # each posterior prob is the probability of h-trans as opposed to h-cis for one fragment
-    post_list = [[] for x in range(0,numbins)]
-
     for f in flist:
 
         # we only care about reads with mates
         if f.mate2_ix == -1 or f.insert_size == -1:
             continue
 
-        # two probabilities for each hcis and htrans, since it could be from either chrom
-        p_hcis1 = 1
-        p_hcis2 = 1
-        p_htrans1 = 1
-        p_htrans2 = 1
+        # bins of size binsize
+        # bin i concerns insert size bin starting at i*binsize
+        numbins = int(max_is/binsize) + 1
+        IS_count = [0]*numbins
 
-        m1 = 0 # count number of alleles considered on mate 1
-        m2 = 0 # count number of alleles considered on mate 2
-
-        for snp_ix, call, qual in f.alleles:
-
-            if hap1[snp_ix] == '-':
-                continue
-
-            # for hcis
-            if call == hap1[snp_ix]:
-                p_hcis1 *= 1 - qual
-                p_hcis2 *= qual
-            else:
-                p_hcis1 *= qual
-                p_hcis2 *= 1 - qual
-
-            # for htrans
-            if ((call == hap1[snp_ix] and snp_ix < f.mate2_ix)
-            or (call != hap1[snp_ix] and snp_ix >= f.mate2_ix)):
-                p_htrans1 *= 1 - qual
-                p_htrans2 *= qual
-            else:
-                p_htrans1 *= qual
-                p_htrans2 *= 1 - qual
-
-
-            if snp_ix < f.mate2_ix:
-                m1 += 1
-            else:
-                m2 += 1
-
-        # skip this mate if there is not at least one allele on each mate
-        if not (m1 > 0 and m2 > 0):
+        # only sample fragments with exactly 1 snp per mate
+        alist = []
+        for a in f.alleles:
+            if call1 == '-' or call2 == '-'
             continue
+            alist.append(a)
 
-        p_hcis = 0.5*p_hcis1 + 0.5*p_hcis2
-        p_htrans = 0.5*p_htrans1 + 0.5*p_htrans2
-
-        # compute posterior assuming equal priors
-        p = p_htrans / (p_htrans + p_hcis)
-
-#        if p == 0.5:
-#            import pdb
-#            pdb.set_trace()
+        if len(alist != 2 or alist[1][0] != f.mate2_ix):
+            continue
 
         ix = int(f.insert_size / bin_size)
         post_list[ix].append(p)
