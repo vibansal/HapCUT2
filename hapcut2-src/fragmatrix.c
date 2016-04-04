@@ -219,7 +219,7 @@ void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snp
     }
     for (i = 0; i < snps; i++) {
         snpfrag[i].flist = (int*) malloc(snpfrag[i].frags*sizeof (int));
-        snpfrag[i].alist = (char*) malloc(snpfrag[i].frags);
+        snpfrag[i].alist = (char*) malloc(snpfrag[i].frags*sizeof(char));
         snpfrag[i].jlist = (int*) malloc(snpfrag[i].frags *sizeof(int));
         snpfrag[i].klist = (int*) malloc(snpfrag[i].frags *sizeof(int));
 

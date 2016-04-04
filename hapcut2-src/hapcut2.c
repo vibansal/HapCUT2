@@ -55,12 +55,13 @@ int* iters_since_improvement;
 int* iters_since_split;
 int HTRANS_BINSIZE = 50000;
 int NEW_FRAGFILE_FORMAT = 0;
-int HIC_EM = 0;
-int HTRANS_MAXBINS = 50000;
-int MAX_HIC_ITER = 5;
-
+int HTRANS_MAXBINS = 1000000; // this value will be overwritten at startup
+int HTRANS_MLE_COUNT_LOWBOUND = 1000;
+char HTRANS_DATA_OUTFILE[10000];
+int HIC_EM_ITER = 0;
 
 #include "find_maxcut.c"   // function compute_good_cut
+#include "post_processing.c"  // post-processing functions
 
 int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* outputfile, char* htrans_file, int maxiter_hapcut) {
     // IMP NOTE: all SNPs start from 1 instead of 0 and all offsets are 1+
@@ -240,13 +241,14 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     // maintained OUTSIDE of the clist structure since it gets regenerated frequently
     iters_since_improvement = (int*) calloc(snps,sizeof(int));
     iters_since_split = (int*) calloc(snps,sizeof(int));
-
+    
     /************************** RUN THE MAX_CUT ALGORITHM ITERATIVELY TO IMPROVE MEC SCORE*********************************/
     int hic_iter;
 
-    for (hic_iter = 0; hic_iter<MAX_HIC_ITER; hic_iter++){
+    for (hic_iter = 0; hic_iter<HIC_EM_ITER; hic_iter++){
 
-        if (HIC_EM) fprintf(stderr, "Expectation-Maximization iteration %d\n",hic_iter);
+        if (HIC_EM_ITER != 0)
+            fprintf(stderr, "Expectation-Maximization iteration %d\n",hic_iter);
 
         for (iter = 0; iter < maxiter_hapcut; iter++) {
             trueMEC = mecscore(Flist, fragments, HAP1, &ll, &calls, &miscalls);
@@ -295,11 +297,11 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
             }
         }
 
-        if (HIC_EM){
+        if (HIC_EM_ITER != 0){ // we are doing expectation-maximization for HiC
 
-            prune_snps(snps, Flist, snpfrag,HAP1);
+            prune_snps(snps, Flist, snpfrag,HAP1, 0.999); // prune for only very high confidence SNPs
 
-            estimate_htrans_probs(Flist, fragments, HAP1, snpfrag, snps);
+            estimate_htrans_probs(Flist, fragments, HAP1, snpfrag, snps, hic_iter);
             for (i=0; i<snps; i++){
                 iters_since_improvement[i] = 0;
                 snpfrag[i].prune_status = 0;
@@ -335,7 +337,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     //for (k = 0; k < components; k++) find_bestvariant_segment(Flist, fragments, snpfrag, clist, k, HAP1, HAP2);
 
     //refhap_heuristic(snps, fragments, Flist, snpfrag, HAP1);
-    prune_snps(snps, Flist, snpfrag, HAP1);
+    prune_snps(snps, Flist, snpfrag, HAP1,THRESHOLD);
 
     fprintf(stdout, "OUTPUTTING PRUNED HAPLOTYPE ASSEMBLY TO FILE %s\n", outputfile);
     //if (VCFformat ==1) print_haplotypes_vcf(clist,components,HAP1,Flist,fragments,snpfrag,snps,fn);
@@ -364,6 +366,7 @@ int main(int argc, char** argv) {
     strcpy(varfile, "None");
     strcpy(hapfile, "None");
     strcpy(htrans_file, "None");
+    strcpy(HTRANS_DATA_OUTFILE, "None");
     for (i = 1; i < argc; i += 2) {
         if (argc < 6) break;
         if (strcmp(argv[i], "--fragments") == 0 || strcmp(argv[i], "--frags") == 0) {
@@ -406,8 +409,13 @@ int main(int argc, char** argv) {
             strcpy(htrans_file, argv[i + 1]);
             HIC = 1;
         }else if (strcmp(argv[i], "--htrans_EM") == 0 || strcmp(argv[i], "--hEM") == 0){
-            HIC_EM = 1;
+            NEW_FRAGFILE_FORMAT = 1;
+            HIC_EM_ITER = atoi(argv[i + 1]);
             HIC = 1;
+        }else if (strcmp(argv[i], "--htrans_MLE_count_lowbound") == 0){
+            HTRANS_MLE_COUNT_LOWBOUND = atoi(argv[i + 1]);
+        }else if (strcmp(argv[i], "--htrans_data_outfile") == 0){
+            strcpy(HTRANS_DATA_OUTFILE, argv[i + 1]);
         }
         else if (strcmp(argv[i], "--nf") == 0 || strcmp(argv[i], "--new_format") == 0) NEW_FRAGFILE_FORMAT = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--sf") == 0 || strcmp(argv[i], "--switches") == 0) SCORING_FUNCTION = atoi(argv[i + 1]);

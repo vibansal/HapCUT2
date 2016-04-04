@@ -8,32 +8,37 @@ void print_hapcut_options() {
     fprintf(stderr, "=============== PROGRAM OPTIONS ======================================== \n\n");
     fprintf(stderr, "--fragments <FILENAME>: file with haplotype-informative reads generated using the extracthairs program\n");
     //fprintf(stderr,"--variants : variant file in hapCUT format (same file as used for extracthairs)\n");
-    fprintf(stderr, "--VCF <FILENAME>: variant file in VCF format ((same file as used for running the extracthairs program)\n");
+    fprintf(stderr, "--VCF <FILENAME>: variant file in VCF format (use EXACT SAME file that was used for the extracthairs program)\n");
     fprintf(stderr, "--output <FILENAME> : file to which phased haplotype segments/blocks will be output | the program will write best current haplotypes to this file after every 10 iterations\n");
     fprintf(stderr, "--maxiter <int> : maximum number of global iterations for HAPCUT, default is 100\n");
     fprintf(stderr, "--converge <int>: cut off iterations for a block if no improvement after this many iterations\n");
     fprintf(stderr, "--threshold, --t <float>: posterior probability cutoff for pruning SNPs (closer to 1 prunes a lot, closer to 0.5 prunes few. default: 0.8)\n");
-    fprintf(stderr, "--split_threshold, --st <float>: posterior probability cutoff for splitting blocks (closer to 1 splits many blocks, closer to 0.5 splits few. default: 0.99)\n");
-    fprintf(stderr, "--HiC_htrans_file, --htrans <FILENAME> file where the second column specifies h-trans probabilities for insert size bins 0-50Kb, 50Kb-100Kb, etc.");
-    fprintf(stderr, "--htrans_EM, --hEM <0/1> NOT RECOMMENDED, HIGHLY EXPERIMENTAL Expectation-Maximization approach to HiC phasing");
-    fprintf(stderr, "--new_format, --nf <0/1>: use new fragment matrix file format for HiC where col 3 is data type, col 4 is index of mate 2, col 5 is absolute insert size\n");        
+    fprintf(stderr, "--new_format, --nf <0/1>: use new fragment matrix file format for HiC where col 3 is data type, col 4 is index of mate 2, col 5 is absolute insert size\n"); 
+    fprintf(stderr, "--split_threshold, --st <float>: posterior probability cutoff for splitting blocks (closer to 1 splits many blocks, closer to 0.5 splits few. default: 0.99)\n");       
     fprintf(stderr, "--splitblocks <0/1>: split blocks using simple log-likelihood score to reduce switch errors\n");
     fprintf(stderr, "--splitblocks_maxcut <0/1>: split blocks using extra maxcut computations (NOT RECOMMENDED)\n");
     fprintf(stderr, "--refhap_heuristic, --rh <0/1>: use refhap's discrete heuristic to prune SNPs rather than HapCUT's log-likelihood based strategy (not recommended unless read quality scores are very inaccurate)\n");
     fprintf(stderr, "--verbose, --v <0/1>: Verbose mode: print extra information to stdout and stderr.\n");
     fprintf(stderr, "--error_analysis_mode, --ea <0/1>: for analyzing switch errors/mismatches. print posterior probability of errors to file but don't split blocks or prune. (needless slowdown)\n");
-    fprintf(stderr, "--MEC <0/1>: Use old MEC-based method rather than Log-likelihood based (not recommended).\n");
+    fprintf(stderr, "--MEC <0/1>: (NOT RECOMMENDED) Use old MEC-based method rather than Log-likelihood based.\n");
     fprintf(stderr, "--qvoffset <33/48/64> : quality value offset for base quality scores, default is 33 (use same value as for extracthairs)\n");
     fprintf(stderr, "--maxcutiter <int> : maximum number of iterations to find max cut for each haplotype block in a given iteration, default value is 100 | if this is set to -1, the number of iterations = N/10 where N is the number of nodes in the block\n");
     fprintf(stderr, "--longreads <0/1> : set to 1 for phasing long read data if program uses too much memory, default is 0\n");
     //fprintf(stderr,"--fosmids <0/1> : set to 1 for phasing fosmid pooled sequencing data, default is 0\n");
-    fprintf(stderr, "--sf <0/1> : scoring function for comparing reads against haplotypes: default is 0 (MEC score), set to 1 (switch error rate) for fosmid data\n");
+    //fprintf(stderr, "--sf <0/1> : scoring function for comparing reads against haplotypes: default is 0 (MEC score), set to 1 (switch error rate) for fosmid data\n");
+   
+    fprintf(stderr, "\nHi-C Specific Options:\n");
+    fprintf(stderr, "--HiC_htrans_file, --htrans <FILENAME> file where the second column specifies h-trans probabilities for insert size bins 0-50Kb, 50Kb-100Kb, etc.\n");
+    fprintf(stderr, "--htrans_EM, --hEM <int> Expectation-Maximization approach to HiC phasing (argument is number of EM iterations, 5 recommended)\n");
+    fprintf(stderr, "--htrans_MLE_count_lowbound <0/1> minimum number of fragments to estimate P(htrans) at a given insert size.\n");
+    fprintf(stderr, "  HiC Notes:");
+    fprintf(stderr, "  (1) use the --HiC option in extracthairs, or a large value for the maxIS option");
+    fprintf(stderr, "  (2) set --converge to at least 5, --maxcutiter to 100 \n ");
+    fprintf(stderr, "  (3) use --htrans_EM if P(htrans) unknown, otherwise use --HiC_htrans_file\n ");
     fprintf(stderr, "\n");
 
-    fprintf(stderr, "NOTES:\n");
-    fprintf(stderr, " 1. Make sure to use the same VCF file for running extracthairs and HapCUT\"\n");
-    fprintf(stderr, " 2. For phasing fosmid data or synthetic long read data, use the options \"--fosmids 1 --sf 1\"\n");
-    fprintf(stderr, " 3. For phasing Hi-C data, use a large value for the maxIS option in extracthairs and set the paramter maxcutiter = 100 \n ");
+    fprintf(stderr, "  *For phasing fosmid data or synthetic long read data, use the options \"--fosmids 1 --sf 1\"\n");
+
     fprintf(stderr, "\n");
 
 }
