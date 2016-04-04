@@ -58,7 +58,7 @@ int NEW_FRAGFILE_FORMAT = 0;
 int HTRANS_MAXBINS = 1000000; // this value will be overwritten at startup
 int HTRANS_MLE_COUNT_LOWBOUND = 1000;
 char HTRANS_DATA_OUTFILE[10000];
-int HIC_EM_ITER = 0;
+int HIC_EM_ITER = 1;
 
 #include "find_maxcut.c"   // function compute_good_cut
 #include "post_processing.c"  // post-processing functions
@@ -247,7 +247,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
 
     for (hic_iter = 0; hic_iter<HIC_EM_ITER; hic_iter++){
 
-        if (HIC_EM_ITER != 0)
+        if (HIC_EM_ITER > 1)
             fprintf(stderr, "Expectation-Maximization iteration %d\n",hic_iter);
 
         for (iter = 0; iter < maxiter_hapcut; iter++) {
@@ -297,7 +297,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
             }
         }
 
-        if (HIC_EM_ITER != 0){ // we are doing expectation-maximization for HiC
+        if (HIC_EM_ITER > 1){ // we are doing expectation-maximization for HiC
 
             prune_snps(snps, Flist, snpfrag,HAP1, 0.999); // prune for only very high confidence SNPs
 
