@@ -12,7 +12,7 @@ where H_new is new haplotype formed by flipping the phase of vertices in shore2 
 score of a variant snpfrag[node].score = log10( P(R|H) + P(R | complement(H)) - log10( P(R|H_new) + P(R | complement(H_new) )
  */
 #include "common.h"
-
+extern int HIC;
 // simple calculation for difference between likelihood of old and new solution based on the Flist[f].scores used for building max-cut
 
 float cut_score(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* component, char* hap) {
@@ -29,7 +29,7 @@ float cut_score(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* 
         
         Ln = addlogs(scores[2], scores[3]);
 
-        if (Flist[i].data_type == 1 && Flist[i].mate2_ix != -1){ // HiC read
+        if (HIC && Flist[i].data_type == 1 && Flist[i].mate2_ix != -1){ // HiC read
             Ln_htrans = addlogs(htscores[2], htscores[3]);
             Ln = addlogs(Ln+subtractlogs(0,Flist[f].htrans_prob), Ln_htrans+Flist[f].htrans_prob);
         }
@@ -100,7 +100,7 @@ void init_fragment_scores(struct SNPfrags* snpfrag, struct fragment* Flist, char
             }
 
             // extra calculation for Hi-C h-trans possibility
-            if (Flist[f].data_type == 1){
+            if (HIC && Flist[f].data_type == 1){
                 if ((node == startnode && !htrans_flipped)
                   ||(node == secondnode && htrans_flipped)) {
                     if (hap[node] == Flist[f].list[j].hap[k]){
@@ -160,7 +160,7 @@ void init_fragment_scores(struct SNPfrags* snpfrag, struct fragment* Flist, char
                     Lo = addlogs(scores[0], scores[1]);
                     Ln = addlogs(scores[2], scores[3]);
 
-                    if (Flist[f].data_type == 1){
+                    if (HIC && Flist[f].data_type == 1){
 
                         htrans_flipped = (Flist[f].mate2_ix != -1 && node >= Flist[f].mate2_ix); // are we flipped due to h-trans?
 
@@ -253,7 +253,7 @@ void update_fragment_scores(struct SNPfrags* snpfrag, struct fragment* Flist, ch
             }
         }
 
-        if (Flist[f].data_type == 1){ // HiC read
+        if (HIC && Flist[f].data_type == 1){ // HiC read
 
             htrans_flipped = (Flist[f].mate2_ix != -1 && node >= Flist[f].mate2_ix); // are we flipped due to h-trans?
 
@@ -314,7 +314,7 @@ void update_fragment_scores(struct SNPfrags* snpfrag, struct fragment* Flist, ch
                     Lo = addlogs(scores[0], scores[1]);
                     Ln = addlogs(scores[2], scores[3]);
 
-                    if (Flist[f].data_type == 1){ // HiC Read
+                    if (HIC && Flist[f].data_type == 1){ // HiC Read
 
                         htrans_flipped = (Flist[f].mate2_ix != -1 && node >= Flist[f].mate2_ix); // are we flipped due to h-trans?
 
@@ -357,7 +357,7 @@ void update_fragment_scores(struct SNPfrags* snpfrag, struct fragment* Flist, ch
                     Lo = addlogs(scores[0], scores[1]);
                     Ln = addlogs(scores[2], scores[3]);
 
-                    if (Flist[f].data_type == 1){ // HiC read
+                    if (HIC && Flist[f].data_type == 1){ // HiC read
                         for (t = 0; t < 4; t++) scores[t] = Flist[f].htscores[t];
 
                         if ((hap[node] == Flist[f].list[j].hap[k] && !htrans_flipped)

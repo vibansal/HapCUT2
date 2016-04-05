@@ -16,6 +16,7 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
     }
     for (i = 0; i < fragments; i++) {
         //		fprintf(stdout,"%s \n",buffer);
+        Flist[i].data_type = 0; // default data type
         j = 0;
         ch = fgetc(ff);
         while (ch != '\n') {

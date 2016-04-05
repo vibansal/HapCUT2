@@ -179,8 +179,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
         }
     }
 
-    // when calculating likelihoods, you can test if we have reached mate2 with something like
-    // Flist[i].mate2_ix == Flist[i].list[j].offset + k
+
     /*****************************************************************************************************/
     int count=0;
     if (RANDOM_START == 1) {
