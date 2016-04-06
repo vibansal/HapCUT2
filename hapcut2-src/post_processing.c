@@ -15,6 +15,7 @@ extern float SPLIT_THRESHOLD;
 extern int SPLIT_BLOCKS;
 extern int HTRANS_MLE_COUNT_LOWBOUND;
 extern char HTRANS_DATA_OUTFILE[10000];
+extern int MAX_WINDOW_SIZE;
 
 // sets snpfrag[i].prune_status:
 // 0 indicates not pruned
@@ -459,11 +460,14 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
         
     int i_minus = 0;
     int i_plus = 0;
+    int e_window_size = HTRANS_BINSIZE; //track the effective window size
+
     for (i = 0; i < HTRANS_MAXBINS; i++){
         adj_MLE_count[i] = MLE_count[i];
         adj_MLE_sum[i] = MLE_sum[i];
         i_minus = i;
         i_plus = i;
+        e_window_size = HTRANS_BINSIZE; //track the effective window size
         for (j = 0; j< 100000; j++){
             if (adj_MLE_count[i] >= HTRANS_MLE_COUNT_LOWBOUND) break;
             i_minus--;
@@ -471,11 +475,14 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
             if (i_minus >= 0){
                 adj_MLE_count[i] += MLE_count[i_minus];
                 adj_MLE_sum[i] += MLE_sum[i_minus];
+                e_window_size += HTRANS_BINSIZE;
             }
             if(i_plus < HTRANS_MAXBINS){
                 adj_MLE_count[i] += MLE_count[i_plus];
                 adj_MLE_sum[i] += MLE_sum[i_plus];
+                e_window_size += HTRANS_BINSIZE;
             }
+            if (e_window_size >= MAX_WINDOW_SIZE) break; // cut off window expansion if it's larger than some amount
         }
     }
     
