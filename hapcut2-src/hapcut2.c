@@ -56,7 +56,7 @@ int* iters_since_split;
 int HTRANS_BINSIZE = 50000;
 int NEW_FRAGFILE_FORMAT = 0;
 int HTRANS_MAXBINS = 1000000; // this value will be overwritten at startup
-int HTRANS_MLE_COUNT_LOWBOUND = 1000;
+int HTRANS_MLE_COUNT_LOWBOUND = 500;
 int MAX_WINDOW_SIZE = 4000000; // maximum window size for h-trans estimation
 char HTRANS_DATA_OUTFILE[10000];
 int HIC_EM_ITER = 1;

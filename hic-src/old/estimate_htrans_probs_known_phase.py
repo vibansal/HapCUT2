@@ -16,7 +16,7 @@ def parse_args():
     parser.add_argument('-o', '--outfile', nargs='?', type = str, help='', default='estimated_htrans_probs_known_phase.txt')
 
     # default to help option. credit to unutbu: http://stackoverflow.com/questions/4042452/display-help-message-with-python-argparse-when-script-is-called-without-any-argu
-    if len(sys.argv) < 4:
+    if len(sys.argv) < 3:
         parser.print_help()
         sys.exit(1)
 
@@ -134,49 +134,72 @@ def main():
 
             flist.append(f)
 
-    # bins of size binsize
-    # bin i concerns insert size bin starting at i*binsize
-    numbins = int(max_is/bin_size) + 1
-    MLE_IS_count = [0]*numbins     # only two-snp mate pairs
-    total_IS_count = [0]*numbins   # all mate pairs for an insert size
-    MLE_sum = [0]*numbins          # running sums for the numerator of MLE
-    
+    # post_list[i] contains a list of posterior probs for insert size i
+    # each posterior prob is the probability of h-trans as opposed to h-cis for one fragment
+    post_list = [[] for x in range(0,numbins)]
+
     for f in flist:
 
         # we only care about reads with mates
         if f.mate2_ix == -1 or f.insert_size == -1:
             continue
 
-        # insert size bin
-        b = int(f.insert_size / bin_size)      
-        
-        total_IS_count[b] += 1
-        # only sample fragments with exactly 1 snp per mate
-        alist = f.alleles
+        # two probabilities for each hcis and htrans, since it could be from either chrom
+        p_hcis1 = 1
+        p_hcis2 = 1
+        p_htrans1 = 1
+        p_htrans2 = 1
 
-        if len(alist) != 2 or alist[1][0] != f.mate2_ix:
-            continue
-        
-        i1 = alist[0][0]
-        i2 = alist[1][0]
-        h1 = hap1[i1]
-        h2 = hap1[i2]
-        
-        if h1 == '-' or h2 == '-':
+        m1 = 0 # count number of alleles considered on mate 1
+        m2 = 0 # count number of alleles considered on mate 2
+
+        for snp_ix, call, qual in f.alleles:
+
+            if hap1[snp_ix] == '-':
+                continue
+
+            # for hcis
+            if call == hap1[snp_ix]:
+                p_hcis1 *= 1 - qual
+                p_hcis2 *= qual
+            else:
+                p_hcis1 *= qual
+                p_hcis2 *= 1 - qual
+
+            # for htrans
+            if ((call == hap1[snp_ix] and snp_ix < f.mate2_ix)
+            or (call != hap1[snp_ix] and snp_ix >= f.mate2_ix)):
+                p_htrans1 *= 1 - qual
+                p_htrans2 *= qual
+            else:
+                p_htrans1 *= qual
+                p_htrans2 *= 1 - qual
+
+
+            if snp_ix < f.mate2_ix:
+                m1 += 1
+            else:
+                m2 += 1
+
+        # skip this mate if there is not at least one allele on each mate
+        if not (m1 > 0 and m2 > 0):
             continue
 
-        a1 = alist[0][1]
-        a2 = alist[1][1]
-        q1 = alist[0][2]
-        q2 = alist[1][2]
-        
-        MLE_IS_count[b] += 1        
-        
-        if (a1 == a2) == (h1 == h2):        # alleles match haplotype
-            MLE_sum[b] += (1-q1)*q2 + (1-q2)*q1
-        else:                               # alleles don't match haplotype
-            MLE_sum[b] += (1-q1)*(1-q2) + q1*q2
-            
+        p_hcis = 0.5*p_hcis1 + 0.5*p_hcis2
+        p_htrans = 0.5*p_htrans1 + 0.5*p_htrans2
+
+        # compute posterior assuming equal priors
+        p = p_htrans / (p_htrans + p_hcis)
+
+#        if p == 0.5:
+#            import pdb
+#            pdb.set_trace()
+
+        ix = int(f.insert_size / bin_size)
+        post_list[ix].append(p)
+
+    #import pdb
+    #pdb.set_trace()
     # estimate probabilities and write to output file
     with open(outfile,'w') as o:
         for i, b in enumerate(bins):
@@ -184,10 +207,10 @@ def main():
             binend   = (i+1)*bin_size
             binstr   = "{}-{}".format(binstart, binend)
 
-            p_htrans = MLE_sum[i] / MLE_IS_count[i] if MLE_IS_count[i] > 0 else 0
-            e_interactions = p_htrans * total_IS_count[i]
-            
-            print("{}\t{}\t{}\t{}".format(binstr, p_htrans, e_interactions, total_IS_count[i]), file=o)
+            plist    = post_list[i]
+            p_htrans = sum(plist) / len(plist) if len(plist) > 0 else -1
+
+            print("{}\t{}".format(binstr, p_htrans), file=o)
 
 
 if __name__ == '__main__':
