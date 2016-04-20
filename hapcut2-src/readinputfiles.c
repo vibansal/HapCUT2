@@ -6,7 +6,7 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
     int i = 0, j = 0, k = 0, t = 0, t1 = 0;
     int blocks = 0, type = 0, l = 0, biter = 0, offset = 0,dtype=0,isize = 0;
     char buffer[MAXBUF];
-    char blockseq[5000];
+    char blockseq[100000];
     char ch;
 
     FILE* ff = fopen(fragmentfile, "r");

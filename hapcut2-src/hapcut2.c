@@ -36,7 +36,7 @@ int VCFformat = 0;
 // for testing, minq is 0
 int MINQ = 0; // additional base quality filter in hapcut added april 18 2012
 int MAXCUT_ITER = 100; // maximum number of iterations for max-cut algorithm, if this is proportional to 'N' -> complexity is 'N^2', added march 13 2013
-int FOSMIDS = 1; // if this variable is 1, the data is fosmid long read data
+int FOSMIDS = 0; // if this variable is 1, the data is fosmid long read data
 int HIC = 0;
 int SCORING_FUNCTION = 5; // 0 = MEC score, 1 = switches
 float THRESHOLD = 0.8;

@@ -2,7 +2,6 @@
 //#include "printhaplotypes.c"
 #include "find_starting_haplotypes.c"
 #include "MECscore.c"
-#define MAXBUF 10000
 
 extern int VERBOSE;
 
@@ -25,8 +24,8 @@ void add_edges_fosmids(struct fragment* Flist, int fragments, struct SNPfrags* s
     int csnps = 0;
     for (i = 0; i < snps; i++) snpfrag[i].edges = 0;
 
-    int varlist[4096];
-    char allelelist[4096];
+    int varlist[65536];
+    char allelelist[65536];
     int vars = 0;
     for (i = 0; i < fragments; i++) {
         // generate list of variants and alleles 
@@ -36,7 +35,7 @@ void add_edges_fosmids(struct fragment* Flist, int fragments, struct SNPfrags* s
                 varlist[vars] = Flist[i].list[j].offset + k;
                 allelelist[vars] = Flist[i].list[j].hap[k];
                 vars++;
-                if (vars >= 4096) break;
+                if (vars >= 65536) break;
             }
         }
         // add edge between adjacent pair of variants in each fragment 
