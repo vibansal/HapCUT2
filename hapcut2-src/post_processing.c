@@ -451,10 +451,10 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
         assert (a1 == '1' || a1 == '0');
         assert (a2 == '1' || a2 == '0');
         
-        if ((a1 == a2) == (h1 == h2)){
-            MLE_sum[bin] += (1-q1)*q2 + (1-q2)*q1;
-        }else{
-            MLE_sum[bin] += (1-q1)*(1-q2) + q1*q2;
+        if ((a1 == a2) == (h1 == h2)){ // phase match
+            MLE_sum[bin] += ((1-q1)*q2 + (1-q2)*q1);
+        }else{                         // phase mismatch
+            MLE_sum[bin] += ((1-q1)*(1-q2) + q1*q2);
         }            
     }
         
