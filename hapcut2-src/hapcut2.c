@@ -44,6 +44,8 @@ float SPLIT_THRESHOLD = 0.8;
 float HOMOZYGOUS_PRIOR = -80; // in log form. assumed to be really unlikely
 int PRINT_FRAGMENT_SCORES = 0; // output the MEC/switch error score of erroneous reads/fragments to a file for evaluation
 int MAX_MEMORY = 8000;
+int ASSEMBLY_CONVERGE = 1;
+int EM_CONVERGE = 1;
 int CONVERGE = 1; // stop iterations on a given component/block if exceed this many iterations since improvement
 int NEW_CODE = 1; // likelihood based, max-cut calculated using partial likelihoods
 int VERBOSE = 0;
@@ -126,44 +128,22 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
         }
 
         HTRANS_MAXBINS = MAXIS/HTRANS_BINSIZE + 1;
+    }else{
+        HTRANS_MAXBINS = 0;
     }
+    float * MLE_sum;
+    float * MLE_count;
     
-
+    MLE_sum   = calloc(HTRANS_MAXBINS,sizeof(float));
+    MLE_count = calloc(HTRANS_MAXBINS,sizeof(float));
+    
     int hic_iter=0;
     int* IS_cutoffs = (int*) malloc(sizeof(int)*HIC_EM_ITER);
 
-    for (i=0; i < HIC_EM_ITER; i++){
+    for (i=0; i < HIC_EM_ITER-1; i++){
         IS_cutoffs[i] = (int) ((i+1.0) / HIC_EM_ITER * MAXIS);
     }
-    //int IS_cutoffs[12] = {50000,100000,200000,500000,1000000,5000000,10000000,15000000,20000000,25000000,30000000,40000000};
-    //int IS_cutoffs[4] = {10000000,20000000,30000000,40000000};
-    /*
-    if (HIC_EM_ITER > 1){
- 
-        int matefrag_count=0;
-        for (i = 0; i < fragments_ALL; i++){
-            if (Flist_ALL[i].isize >= smallest_bin)
-                matefrag_count ++;
-        }
-        int* sorted_IS = (int*) malloc(sizeof(int)*matefrag_count);
-        int i2 = 0;
-       
-        for (i = 0; i < fragments_ALL; i++){
-            if (Flist_ALL[i].isize >= smallest_bin){
-                sorted_IS[i2] = Flist_ALL[i].isize;
-                i2++;
-            }
-        }
-
-        qsort(sorted_IS,matefrag_count,sizeof(int),*comparison); 
-        
-        IS_cutoffs[0] = smallest_bin;
-        for (i = 1; i < HIC_EM_ITER; i++){
-            IS_cutoffs[i] = sorted_IS[(int)(i*(matefrag_count-1)/(HIC_EM_ITER-1))];
-            fprintf(stderr, "IScutoff %d %d \n", i,IS_cutoffs[i]);
-        }
-        free(sorted_IS);
-    }else */
+    IS_cutoffs[HIC_EM_ITER-1] = MAXIS+1;
 
     struct SNPfrags* snpfrag;
     struct BLOCK* clist;
@@ -190,20 +170,18 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
             fprintf(stderr,"HiC H-trans EM iteration %d\n",hic_iter);
  
             for (i = 0; i < fragments_ALL; i++){
-                Flist_ALL[i].needs_htrans_est = 0;
                 Flist_ALL[i].use_for_htrans_est = 0;
             }
 
             
             if (hic_iter == 0){
-
+                CONVERGE = EM_CONVERGE;
                 fprintf(stderr,"Estimating h-trans for 25%% of insert < %d and all %d <= insert < %d\n",IS_cutoffs[0],IS_cutoffs[0],IS_cutoffs[1]);
 
                 fragments = 0;
 
                 for (i = 0; i < fragments_ALL; i++){
-                    if (Flist_ALL[i].isize < IS_cutoffs[0]){
-                        Flist_ALL[i].needs_htrans_est = 1;
+                    if (Flist_ALL[i].isize <= IS_cutoffs[0]){
                         if (drand48() < 0.75){
                             Flist[fragments] = Flist_ALL[i];
                             Flist[fragments].list = Flist_ALL[i].list;
@@ -211,31 +189,32 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
                         } else {
                             Flist_ALL[i].use_for_htrans_est = 1; // we assemble using 75% of reads and estimate for the other 25%
                         }
-                    }else if(Flist_ALL[i].isize < IS_cutoffs[1]){
+                    }else if(Flist_ALL[i].isize <= IS_cutoffs[1]){
                         Flist_ALL[i].use_for_htrans_est = 1;   // after this assembly step, we will estimate this fragments' htrans probability
-                        Flist_ALL[i].needs_htrans_est = 1;
                     }
                 }
 
             }else if (hic_iter < HIC_EM_ITER-1){
-
+                CONVERGE = EM_CONVERGE;
                 fprintf(stderr,"Estimating h-trans for all %d <= insert < %d\n",IS_cutoffs[hic_iter],IS_cutoffs[hic_iter+1]);
                 fragments = 0;
                 for (i = 0; i < fragments_ALL; i++){
-                    if (Flist_ALL[i].isize < IS_cutoffs[hic_iter]){
+                    if (Flist_ALL[i].isize <= IS_cutoffs[hic_iter]){
                         Flist[fragments] = Flist_ALL[i];
                         Flist[fragments].list = Flist_ALL[i].list;
                         fragments++;
-                    }else if(Flist_ALL[i].isize >= IS_cutoffs[hic_iter] && Flist_ALL[i].isize < IS_cutoffs[hic_iter+1]){
+                    }else if(Flist_ALL[i].isize <= IS_cutoffs[hic_iter+1]){
                         Flist_ALL[i].use_for_htrans_est = 1;   // after this assembly step, we will estimate this fragments' htrans probability
-                        Flist_ALL[i].needs_htrans_est = 1;
                     }
                 }
             }else{
                 fprintf(stderr,"Using estimated H-trans probabilities to assemble all reads...\n");
                 Flist = Flist_ALL;
                 fragments = fragments_ALL;
+                CONVERGE = ASSEMBLY_CONVERGE;
             }
+        }else{
+            CONVERGE = ASSEMBLY_CONVERGE;
         }
 
         snpfrag = (struct SNPfrags*) malloc(sizeof (struct SNPfrags)*snps);
@@ -374,7 +353,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
 
             prune_snps(snps, Flist, snpfrag,HAP1, 0.9); // prune for only very high confidence SNPs
 
-            estimate_htrans_probs(Flist_ALL, fragments_ALL, HAP1, snpfrag, snps, hic_iter);
+            estimate_htrans_probs(Flist_ALL, fragments_ALL, HAP1, snpfrag, hic_iter, MLE_sum, MLE_count);
             for (i=0; i<snps; i++){
                 iters_since_improvement[i] = 0;
                 snpfrag[i].prune_status = 0;
@@ -437,9 +416,10 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
         for (i = 0; i < components; i++) free(clist[i].flist);
         free(snpfrag);
         free(clist);
-        
     }
-
+        free(MLE_sum);
+        free(MLE_count);
+    
     int b=0,f=0;
     if (HIC && HIC_EM_ITER > 1 && strcmp(HTRANS_DATA_OUTFILE,"None") != 0){
         float* p_htrans  = calloc(HTRANS_MAXBINS,sizeof(float));
@@ -449,7 +429,9 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
             if (p_htrans[b] == 0)
                 p_htrans[b] = Flist_ALL[f].htrans_prob;
             
-            assert(p_htrans[b] == Flist_ALL[f].htrans_prob);
+            if (p_htrans[b] != Flist_ALL[f].htrans_prob){
+              fprintf(stderr, "%d\t%f\t%f\n",Flist_ALL[f].isize, Flist_ALL[f].htrans_prob, p_htrans[b]);  
+            }
         }
         FILE* fp;
         fp = fopen(HTRANS_DATA_OUTFILE, "w");
@@ -517,6 +499,9 @@ int main(int argc, char** argv) {
             FOSMIDS = atoi(argv[i + 1]);
         } else if ((strcmp(argv[i], "--converge") == 0) || (strcmp(argv[i], "--c") == 0)) {
             CONVERGE = atoi(argv[i + 1]);
+            ASSEMBLY_CONVERGE = CONVERGE;
+        } else if ((strcmp(argv[i], "--EMconverge") == 0) || (strcmp(argv[i], "--ec") == 0)) {
+            EM_CONVERGE = CONVERGE;
         } else if (strcmp(argv[i], "--MEC") == 0) {
             NEW_CODE = !(atoi(argv[i + 1]));
             if (!NEW_CODE){
