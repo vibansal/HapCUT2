@@ -241,7 +241,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     // maintained OUTSIDE of the clist structure since it gets regenerated frequently
     iters_since_improvement = (int*) calloc(snps,sizeof(int));
     iters_since_split = (int*) calloc(snps,sizeof(int));
-    
+
     /************************** RUN THE MAX_CUT ALGORITHM ITERATIVELY TO IMPROVE MEC SCORE*********************************/
     int hic_iter;
 
@@ -336,7 +336,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
 
     //for (k = 0; k < components; k++) find_bestvariant_segment(Flist, fragments, snpfrag, clist, k, HAP1, HAP2);
 
-    //refhap_heuristic(snps, fragments, Flist, snpfrag, HAP1);
+    refhap_heuristic(snps, fragments, Flist, snpfrag, HAP1);
     prune_snps(snps, Flist, snpfrag, HAP1,THRESHOLD);
 
     fprintf(stdout, "OUTPUTTING PRUNED HAPLOTYPE ASSEMBLY TO FILE %s\n", outputfile);

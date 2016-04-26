@@ -41,7 +41,7 @@ void prune_snps(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char
     for (i=0; i<snps; i++){
         snpfrag[i].prune_status = 0; // reset prune status
     }
-    
+
     for (i = 0; i < snps; i++) {
 
         // get prior probabilities for homozygous and heterozygous genotypes
@@ -165,13 +165,16 @@ void refhap_heuristic(int snps, int fragments, struct fragment* Flist, struct SN
     }
 
     for (i = 0; i < snps; i++){
-        snpfrag[i].prune_status = 0;
 
         if (good[i] == bad[i]){
             snpfrag[i].pruned_refhap_heuristic = 1; // this isn't used to prune, just recorded.
 
             if (REFHAP_HEURISTIC)
                 snpfrag[i].prune_status = 1;
+        }else{
+            snpfrag[i].pruned_refhap_heuristic = 0;
+            if (REFHAP_HEURISTIC)
+                snpfrag[i].prune_status = 0;
         }
     }
 
@@ -403,25 +406,25 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
     float q1=0,q2=0;
     // count the number of consistent vs inconsistent for a given insert size bin
     for (f = 0; f < fragments; f++){
-        
+
         // consider mate pairs only
         if (Flist[f].mate2_ix == -1 || Flist[f].isize == -1){
             continue;
         }
-        
+
         // insert size bin
-        bin = Flist[f].isize / HTRANS_BINSIZE;   
+        bin = Flist[f].isize / HTRANS_BINSIZE;
         total_count[bin]++;  // total number of reads at this IS
-        
+
         // keep things very simple by only sampling 1-snp mates
         if (Flist[f].calls != 2){
             continue;
         }
-        
+
         i1 = Flist[f].list[0].offset;
         a1 = Flist[f].list[0].hap[0];
         q1 = Flist[f].list[0].pv[0];
-        
+
         if (Flist[f].blocks == 1){
             i2 = Flist[f].list[0].offset+1;
             a2 = Flist[f].list[0].hap[1];
@@ -433,31 +436,31 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
         }else{
             fprintf(stderr,"ERROR: Inconsistent block structure in estimate_htrans_probs");
         }
-        
+
         h1 = HAP[i1];
         h2 = HAP[i2];
-        
+
         if (h1 == '-' || h2 == '-'
          || snpfrag[i1].prune_status == 1 || snpfrag[i2].prune_status == 1){
             continue;
         }
-        
+
         MLE_count[bin]++;
-        
-        assert(i1 < Flist[f].mate2_ix); 
+
+        assert(i1 < Flist[f].mate2_ix);
         assert(i2 == Flist[f].mate2_ix);
         assert (h1 == '1' || h1 == '0');
         assert (h2 == '1' || h2 == '0');
         assert (a1 == '1' || a1 == '0');
         assert (a2 == '1' || a2 == '0');
-        
+
         if ((a1 == a2) == (h1 == h2)){
             MLE_sum[bin] += (1-q1)*q2 + (1-q2)*q1;
         }else{
             MLE_sum[bin] += (1-q1)*(1-q2) + q1*q2;
-        }            
+        }
     }
-        
+
     int i_minus = 0;
     int i_plus = 0;
     int e_window_size = HTRANS_BINSIZE; //track the effective window size
@@ -485,7 +488,7 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
             if (e_window_size >= MAX_WINDOW_SIZE) break; // cut off window expansion if it's larger than some amount
         }
     }
-    
+
     // compute the MLE for each bin
     for (i = 0; i < HTRANS_MAXBINS; i++){
         p_htrans[i] = log10(adj_MLE_sum[i] / adj_MLE_count[i]);
@@ -507,12 +510,12 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
         sprintf(outfile, "%s%d",HTRANS_DATA_OUTFILE,EM_iter);
         fp = fopen(outfile, "w");
         fprintf(fp,"InsertSize(bp)\tP(H-trans)\tMLEfragments\tAdjustedMLEfragments\tTotalFragments\n");
-    
+
         // compute the MLE for each bin
         for (i = 0; i < HTRANS_MAXBINS; i++){
             fprintf(fp,"%d-%d\t%f\t%d\t%d\t%d\n",i*HTRANS_BINSIZE,(i+1)*HTRANS_BINSIZE,
                     pow(10,p_htrans[i]),(int)(MLE_count[i]),(int)(adj_MLE_count[i]),total_count[i]);
-        }        
+        }
         fclose(fp);
     }
     free(total_count);
