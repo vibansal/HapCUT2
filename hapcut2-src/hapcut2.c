@@ -225,9 +225,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
         for (i = 0; i < snps; i++) snpfrag[i].elist = (struct edge*) malloc(sizeof (struct edge)*snpfrag[i].edges);
         if (FOSMIDS == 0) add_edges(Flist, fragments, snpfrag, snps, &components);
         else if (FOSMIDS >= 1) add_edges_fosmids(Flist, fragments, snpfrag, snps, &components);
-        //add_edges_fosmids(Flist,fragments,snpfrag,snps,&components);
         for (i = 0; i < snps; i++) snpfrag[i].telist = (struct edge*) malloc(sizeof (struct edge)*snpfrag[i].edges);
-        //add_edges(Flist,fragments,snpfrag,snps,&components);
 
         // this considers only components with at least two nodes
         fprintf(stderr, "fragments %d snps %d component(blocks) %d\n", fragments, snps, components);
@@ -235,14 +233,9 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
         clist = (struct BLOCK*) malloc(sizeof (struct BLOCK)*components);
         generate_clist_structure(Flist, fragments, snpfrag, snps, components, clist);
 
-        /*****************************************************************************************************/
+        read_vcffile(variantfile, snpfrag, snps);
 
-
-
-        if (VCFformat == 0) read_variantfile(variantfile, snpfrag, snps);
-        else read_vcffile(variantfile, snpfrag, snps);
-
-        /*****************************************************************************************************/
+        
         // read in file with estimated probabilities of Hi-C h-trans interactions with distance
 
 
@@ -256,9 +249,6 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
             free(htrans_probs);
         }   
         
-
-
-        /*****************************************************************************************************/
         int count=0;
         if (RANDOM_START == 1) {
             //fprintf(stdout, "starting from a completely random solution\n");
@@ -309,7 +299,6 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
             clist[k].bestLL = clist[k].LL;
         }
 
-
         // counter arrays where iters_since_whatever[i] refers to component at offset i
         // maintained OUTSIDE of the clist structure since it gets regenerated frequently
         iters_since_improvement = (int*) calloc(snps,sizeof(int));
@@ -349,21 +338,19 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
             }
         }
 
-        if (HIC_EM_ITER > 1 && hic_iter != HIC_EM_ITER-1){ // we are doing expectation-maximization for HiC
+        // H-TRANS ESTIMATION FOR HIC
+        if (HIC_EM_ITER > 1 && hic_iter < HIC_EM_ITER-1){ // we are doing expectation-maximization for HiC
 
-            prune_snps(snps, Flist, snpfrag,HAP1, 0.9); // prune for only very high confidence SNPs
+            prune_snps(snps, Flist, snpfrag,HAP1, 0.99); // prune for only very high confidence SNPs
 
             estimate_htrans_probs(Flist_ALL, fragments_ALL, HAP1, snpfrag, hic_iter, MLE_sum, MLE_count);
             for (i=0; i<snps; i++){
                 iters_since_improvement[i] = 0;
                 snpfrag[i].prune_status = 0;
-            }
-
-        } else{
-            break;
+            }   
         }
-   
-        if (HIC_EM_ITER == 1){
+        // BLOCK SPLITTING
+        else if (HIC_EM_ITER == 1){
             new_components = components;
             if (SPLIT_BLOCKS){
                 split_count = 0;
@@ -385,16 +372,17 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
             }
             components = new_components;
         }
-        
+        // PRUNE SNPS AND PRINT OUTPUT FILE
         if (hic_iter == HIC_EM_ITER-1){
             //refhap_heuristic(snps, fragments, Flist, snpfrag, HAP1);
             prune_snps(snps, Flist, snpfrag, HAP1,THRESHOLD);
 
-            fprintf(stdout, "OUTPUTTING PRUNED HAPLOTYPE ASSEMBLY TO FILE %s\n", outputfile);
+            fprintf(stderr, "OUTPUTTING PRUNED HAPLOTYPE ASSEMBLY TO FILE %s\n", outputfile);
             //if (VCFformat ==1) print_haplotypes_vcf(clist,components,HAP1,Flist,fragments,snpfrag,snps,fn);
             print_hapfile(clist, components, HAP1, Flist, fragments, snpfrag, variantfile, miscalls, outputfile);
         }
         
+        // FREE UP MEMORY
         for (i = 0; i < snps; i++) free(snpfrag[i].elist);
         for (i = 0; i < snps; i++) free(snpfrag[i].telist);
         component = 0;
@@ -419,32 +407,6 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     }
         free(MLE_sum);
         free(MLE_count);
-    
-    int b=0,f=0;
-    if (HIC && HIC_EM_ITER > 1 && strcmp(HTRANS_DATA_OUTFILE,"None") != 0){
-        float* p_htrans  = calloc(HTRANS_MAXBINS,sizeof(float));
-        for (f=0;f<fragments_ALL;f++){
-            if(Flist_ALL[f].isize < 0) continue;
-            b = Flist_ALL[f].isize / HTRANS_BINSIZE;
-            if (p_htrans[b] == 0)
-                p_htrans[b] = Flist_ALL[f].htrans_prob;
-            
-            if (p_htrans[b] != Flist_ALL[f].htrans_prob){
-              fprintf(stderr, "%d\t%f\t%f\n",Flist_ALL[f].isize, Flist_ALL[f].htrans_prob, p_htrans[b]);  
-            }
-        }
-        FILE* fp;
-        fp = fopen(HTRANS_DATA_OUTFILE, "w");
-        fprintf(fp,"InsertSize(bp)\tP(H-trans)\n");
-    
-        for (i = 0; i < HTRANS_MAXBINS; i++){
-            fprintf(fp,"%d-%d\t%f\n",i*HTRANS_BINSIZE,(i+1)*HTRANS_BINSIZE, pow(10,p_htrans[i]));
-        }        
-        fclose(fp);
-        free(p_htrans);
-    }
-    
-    
     return 0;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
