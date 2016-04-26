@@ -47,6 +47,8 @@ struct fragment {
     float htrans_prob; // probability of an h-trans interaction for this read
     int mate2_ix;     // snp index of second mate; -1 if this fragment has one mate
     int isize;        // approximate insert size
+    char needs_htrans_est;
+    char use_for_htrans_est;
 };
 
 // haplotype block

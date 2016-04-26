@@ -397,12 +397,13 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
     float* adj_MLE_sum   = calloc(HTRANS_MAXBINS,sizeof(float));
     float* adj_MLE_count = calloc(HTRANS_MAXBINS,sizeof(float));
     int* total_count = calloc(HTRANS_MAXBINS,sizeof(int));
-
+    
     int i1=-1, i2=-1;
     char a1='-', a2='-', h1='-', h2='-';
     float q1=0,q2=0;
     // count the number of consistent vs inconsistent for a given insert size bin
     for (f = 0; f < fragments; f++){
+        if (!Flist[f].use_for_htrans_est) continue;
         
         // consider mate pairs only
         if (Flist[f].mate2_ix == -1 || Flist[f].isize == -1){
@@ -410,7 +411,15 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
         }
         
         // insert size bin
-        bin = Flist[f].isize / HTRANS_BINSIZE;   
+        bin = Flist[f].isize / HTRANS_BINSIZE;
+        if (bin < 0){
+            fprintf(stderr,"ERROR: bin less than 0");
+            exit(1);
+        }
+        if (bin >= HTRANS_MAXBINS){
+            fprintf(stderr,"ERROR: bin greater than HTRANS_MAXBINS");
+            exit(1);
+        }
         total_count[bin]++;  // total number of reads at this IS
         
         // keep things very simple by only sampling 1-snp mates
@@ -438,7 +447,10 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
         h2 = HAP[i2];
         
         if (h1 == '-' || h2 == '-'
-         || snpfrag[i1].prune_status == 1 || snpfrag[i2].prune_status == 1){
+         || snpfrag[i1].prune_status == 1 || snpfrag[i2].prune_status == 1
+         || (snpfrag[i1].bcomp != snpfrag[i2].bcomp)
+         || (snpfrag[i1].bcomp == -1)
+         || (snpfrag[i2].bcomp == -1)){
             continue;
         }
         
@@ -463,6 +475,7 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
     int e_window_size = HTRANS_BINSIZE; //track the effective window size
 
     for (i = 0; i < HTRANS_MAXBINS; i++){
+        if (total_count[i] == 0) continue;
         adj_MLE_count[i] = MLE_count[i];
         adj_MLE_sum[i] = MLE_sum[i];
         i_minus = i;
@@ -488,11 +501,15 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
     
     // compute the MLE for each bin
     for (i = 0; i < HTRANS_MAXBINS; i++){
-        p_htrans[i] = log10(adj_MLE_sum[i] / adj_MLE_count[i]);
+        if (total_count[i] == 0)
+            p_htrans[i] = -80;
+        else
+            p_htrans[i] = log10(adj_MLE_sum[i] / adj_MLE_count[i]);
     }
 
     // assign the probabilities to fragments based in insert size
     for (f = 0; f < fragments; f++){
+        if (!Flist[f].needs_htrans_est) continue;
         // no mate
         if (Flist[f].mate2_ix == -1){
             Flist[f].htrans_prob = -80;
@@ -501,6 +518,7 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
 
         Flist[f].htrans_prob = p_htrans[Flist[f].isize / HTRANS_BINSIZE];
     }
+    
     char outfile[100];
     if (strcmp(HTRANS_DATA_OUTFILE,"None") != 0){
         FILE* fp;
@@ -515,6 +533,7 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
         }        
         fclose(fp);
     }
+
     free(total_count);
     free(MLE_sum);
     free(MLE_count);
