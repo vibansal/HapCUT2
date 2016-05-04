@@ -135,35 +135,6 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     for (i=0; i < HIC_EM_ITER; i++){
         IS_cutoffs[i] = (int) ((i+1.0) / HIC_EM_ITER * MAXIS);
     }
-    //int IS_cutoffs[12] = {50000,100000,200000,500000,1000000,5000000,10000000,15000000,20000000,25000000,30000000,40000000};
-    //int IS_cutoffs[4] = {10000000,20000000,30000000,40000000};
-    /*
-    if (HIC_EM_ITER > 1){
- 
-        int matefrag_count=0;
-        for (i = 0; i < fragments_ALL; i++){
-            if (Flist_ALL[i].isize >= smallest_bin)
-                matefrag_count ++;
-        }
-        int* sorted_IS = (int*) malloc(sizeof(int)*matefrag_count);
-        int i2 = 0;
-       
-        for (i = 0; i < fragments_ALL; i++){
-            if (Flist_ALL[i].isize >= smallest_bin){
-                sorted_IS[i2] = Flist_ALL[i].isize;
-                i2++;
-            }
-        }
-
-        qsort(sorted_IS,matefrag_count,sizeof(int),*comparison); 
-        
-        IS_cutoffs[0] = smallest_bin;
-        for (i = 1; i < HIC_EM_ITER; i++){
-            IS_cutoffs[i] = sorted_IS[(int)(i*(matefrag_count-1)/(HIC_EM_ITER-1))];
-            fprintf(stderr, "IScutoff %d %d \n", i,IS_cutoffs[i]);
-        }
-        free(sorted_IS);
-    }else */
 
     struct SNPfrags* snpfrag;
     struct BLOCK* clist;
@@ -182,7 +153,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     HAP2 = (char*) malloc(snps + 1);
     slist = (int*) malloc(sizeof (int)*snps);
     
-    for (hic_iter = 0; hic_iter < HIC_EM_ITER; hic_iter++){
+    for (hic_iter = 0; hic_iter < HIC_EM_ITER+1; hic_iter++){
                 
         // If we are doing Expectation-Maximization on HiC reads
         if (HIC_EM_ITER > 1){
@@ -217,7 +188,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
                     }
                 }
 
-            }else if (hic_iter < HIC_EM_ITER-1){
+            }else if (hic_iter < HIC_EM_ITER){
 
                 fprintf(stderr,"Estimating h-trans for all %d <= insert < %d\n",IS_cutoffs[hic_iter],IS_cutoffs[hic_iter+1]);
                 fragments = 0;
@@ -370,7 +341,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
             }
         }
 
-        if (HIC_EM_ITER > 1 && hic_iter != HIC_EM_ITER-1){ // we are doing expectation-maximization for HiC
+        if (HIC_EM_ITER > 1 && hic_iter != HIC_EM_ITER){ // we are doing expectation-maximization for HiC
 
             prune_snps(snps, Flist, snpfrag,HAP1, 0.9); // prune for only very high confidence SNPs
 
@@ -407,7 +378,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
             components = new_components;
         }
         
-        if (hic_iter == HIC_EM_ITER-1){
+        if (hic_iter == HIC_EM_ITER){
             //refhap_heuristic(snps, fragments, Flist, snpfrag, HAP1);
             prune_snps(snps, Flist, snpfrag, HAP1,THRESHOLD);
 
@@ -449,7 +420,9 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
             if (p_htrans[b] == 0)
                 p_htrans[b] = Flist_ALL[f].htrans_prob;
             
-            assert(p_htrans[b] == Flist_ALL[f].htrans_prob);
+            if (p_htrans[b] != Flist_ALL[f].htrans_prob){
+                fprintf(stderr,"DISCREPANCY: %d : %f\t%f\n",Flist[f].isize,p_htrans[b],Flist_ALL[f].htrans_prob);
+            }
         }
         FILE* fp;
         fp = fopen(HTRANS_DATA_OUTFILE, "w");
