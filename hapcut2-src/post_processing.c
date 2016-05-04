@@ -30,7 +30,7 @@ int split_block(char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, s
 void split_blocks_old(char* HAP, struct BLOCK* clist, int components, struct fragment* Flist, struct SNPfrags* snpfrag);
 //int maxcut_split_blocks(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1, int iter);
 void improve_hap(char* HAP, struct BLOCK* clist, int components, int snps, int fragments, struct fragment* Flist, struct SNPfrags* snpfrag);
-int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struct SNPfrags* snpfrag, int snps, int EM_iter);
+int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struct SNPfrags* snpfrag, int EM_iter, float* MLE_sum, float* MLE_count);
 
 void prune_snps(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1, float threshold) {
     int i, j, f;
@@ -388,15 +388,12 @@ int split_block(char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, s
 
 
 // estimate probabilities of h-trans to feed back into HapCUT algorithm
-int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struct SNPfrags* snpfrag, int snps, int EM_iter){
+int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struct SNPfrags* snpfrag, int EM_iter, float* MLE_sum, float* MLE_count){
     int i,j,f,bin;
     // consistent counts, inconsistent counts
     float* p_htrans  = calloc(HTRANS_MAXBINS,sizeof(float));
-    float* MLE_sum   = calloc(HTRANS_MAXBINS,sizeof(float));
-    float* MLE_count = calloc(HTRANS_MAXBINS,sizeof(float));
     float* adj_MLE_sum   = calloc(HTRANS_MAXBINS,sizeof(float));
     float* adj_MLE_count = calloc(HTRANS_MAXBINS,sizeof(float));
-    int* total_count = calloc(HTRANS_MAXBINS,sizeof(int));
     
     int i1=-1, i2=-1;
     char a1='-', a2='-', h1='-', h2='-';
@@ -420,7 +417,6 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
             fprintf(stderr,"ERROR: bin greater than HTRANS_MAXBINS");
             exit(1);
         }
-        total_count[bin]++;  // total number of reads at this IS
         
         // keep things very simple by only sampling 1-snp mates
         if (Flist[f].calls != 2){
@@ -475,7 +471,6 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
     int e_window_size = HTRANS_BINSIZE; //track the effective window size
 
     for (i = 0; i < HTRANS_MAXBINS; i++){
-        if (total_count[i] == 0) continue;
         adj_MLE_count[i] = MLE_count[i];
         adj_MLE_sum[i] = MLE_sum[i];
         i_minus = i;
@@ -501,7 +496,7 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
     
     // compute the MLE for each bin
     for (i = 0; i < HTRANS_MAXBINS; i++){
-        if (total_count[i] == 0)
+        if (adj_MLE_count[i] == 0 || adj_MLE_sum[i] == 0)
             p_htrans[i] = -80;
         else
             p_htrans[i] = log10(adj_MLE_sum[i] / adj_MLE_count[i]);
@@ -509,8 +504,7 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
 
     // assign the probabilities to fragments based in insert size
     for (f = 0; f < fragments; f++){
-        if (!Flist[f].needs_htrans_est) continue;
-        // no mate
+
         if (Flist[f].mate2_ix == -1){
             Flist[f].htrans_prob = -80;
             continue;
@@ -528,15 +522,12 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
     
         // compute the MLE for each bin
         for (i = 0; i < HTRANS_MAXBINS; i++){
-            fprintf(fp,"%d-%d\t%f\t%d\t%d\t%d\n",i*HTRANS_BINSIZE,(i+1)*HTRANS_BINSIZE,
-                    pow(10,p_htrans[i]),(int)(MLE_count[i]),(int)(adj_MLE_count[i]),total_count[i]);
+            fprintf(fp,"%d-%d\t%f\n",i*HTRANS_BINSIZE,(i+1)*HTRANS_BINSIZE,
+                    pow(10,p_htrans[i]));
         }        
         fclose(fp);
     }
 
-    free(total_count);
-    free(MLE_sum);
-    free(MLE_count);
     free(adj_MLE_sum);
     free(adj_MLE_count);
     free(p_htrans);
