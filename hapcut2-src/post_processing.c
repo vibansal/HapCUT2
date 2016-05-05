@@ -16,7 +16,7 @@ extern int SPLIT_BLOCKS;
 extern int HTRANS_MLE_COUNT_LOWBOUND;
 extern char HTRANS_DATA_OUTFILE[10000];
 extern int MAX_WINDOW_SIZE;
-
+extern int HIC_STRICT_FILTER;
 // sets snpfrag[i].prune_status:
 // 0 indicates not pruned
 // 1 indicates pruned (leave unphased in output)
@@ -37,10 +37,6 @@ void prune_snps(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char
     char temp1;
     float P_data_H, P_data_Hf, P_data_H00, P_data_H11, total, log_hom_prior, log_het_prior;
     float post_hap, post_hapf, post_00, post_11;
-
-    for (i=0; i<snps; i++){
-        snpfrag[i].prune_status = 0; // reset prune status
-    }
     
     for (i = 0; i < snps; i++) {
 
@@ -165,7 +161,6 @@ void refhap_heuristic(int snps, int fragments, struct fragment* Flist, struct SN
     }
 
     for (i = 0; i < snps; i++){
-        snpfrag[i].prune_status = 0;
 
         if (good[i] == bad[i]){
             snpfrag[i].pruned_refhap_heuristic = 1; // this isn't used to prune, just recorded.
@@ -389,7 +384,7 @@ int split_block(char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, s
 
 // estimate probabilities of h-trans to feed back into HapCUT algorithm
 int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struct SNPfrags* snpfrag, int EM_iter, float* MLE_sum, float* MLE_count){
-    int i,j,f,bin;
+    int i,j,k,f,bin,count, matches, joined, block;
     // consistent counts, inconsistent counts
     float* p_htrans  = calloc(HTRANS_MAXBINS,sizeof(float));
     float* adj_MLE_sum   = calloc(HTRANS_MAXBINS,sizeof(float));
@@ -417,6 +412,34 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
             fprintf(stderr,"ERROR: bin greater than HTRANS_MAXBINS");
             exit(1);
         }
+        
+        // mark reads that aren't supported by the phase
+        count = 0;
+        matches = 0;
+        joined = 1;
+        block = -1;
+        for (j=0; j<Flist[f].blocks; j++){
+            if (!joined) break;
+            for (k=0; k<Flist[f].list[j].len; k++){
+                if (!((Flist[f].list[j].hap[k] == '1' || Flist[f].list[j].hap[k] == '0')
+                    &&(HAP[Flist[f].list[j].offset+k] == '1' || HAP[Flist[f].list[j].offset+k] == '0')))
+                    continue;
+                if (block == -1){
+                    block = snpfrag[Flist[f].list[j].offset+k].bcomp;
+                }else if (block != snpfrag[Flist[f].list[j].offset+k].bcomp){
+                    joined = 0;
+                    break;
+                }
+                
+                count++;
+                if (Flist[f].list[j].hap[k] == HAP[Flist[f].list[j].offset+k])
+                    matches++;
+            }
+        }
+        if ((!joined) || (count >= 2 && !(matches == 0 || matches == count))){
+            Flist[f].hic_strict_filtered = 1;
+        }
+         
         
         // keep things very simple by only sampling 1-snp mates
         if (Flist[f].calls != 2){

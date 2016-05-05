@@ -45,7 +45,7 @@ float HOMOZYGOUS_PRIOR = -80; // in log form. assumed to be really unlikely
 int PRINT_FRAGMENT_SCORES = 0; // output the MEC/switch error score of erroneous reads/fragments to a file for evaluation
 int MAX_MEMORY = 8000;
 int ASSEMBLY_CONVERGE = 1;
-int EM_CONVERGE = 1;
+int HIC_CONVERGE = 1;
 int CONVERGE = 1; // stop iterations on a given component/block if exceed this many iterations since improvement
 int NEW_CODE = 1; // likelihood based, max-cut calculated using partial likelihoods
 int VERBOSE = 0;
@@ -61,7 +61,8 @@ int HTRANS_MAXBINS = 10000; // this value will be overwritten at startup
 int HTRANS_MLE_COUNT_LOWBOUND = 500;
 int MAX_WINDOW_SIZE = 4000000; // maximum window size for h-trans estimation
 char HTRANS_DATA_OUTFILE[10000];
-int HIC_EM_ITER = 1;
+int HIC_NUM_FOLDS = 0;
+int HIC_STRICT_FILTER = 0;
 
 #include "find_maxcut.c"   // function compute_good_cut
 #include "post_processing.c"  // post-processing functions
@@ -136,15 +137,19 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
 
     MLE_sum   = calloc(HTRANS_MAXBINS,sizeof(float));
     MLE_count = calloc(HTRANS_MAXBINS,sizeof(float));
-
+    
     int hic_iter=0;
-    int* IS_cutoffs = (int*) malloc(sizeof(int)*HIC_EM_ITER);
+    int* IS_cutoffs = (int*) malloc(sizeof(int)*(HIC_NUM_FOLDS+1));
 
-    for (i=0; i < HIC_EM_ITER-1; i++){
-        IS_cutoffs[i] = (int) ((i+1.0) / HIC_EM_ITER * MAXIS);
+    for (i=0; i < HIC_NUM_FOLDS; i++){
+        IS_cutoffs[i] = (int) ((i+1.0) / (HIC_NUM_FOLDS+1) * MAXIS);
+    }
+    
+    for (i=0; i < fragments_ALL; i++){
+        Flist_ALL[i].fold = rand() % HIC_NUM_FOLDS;
     }
 
-    IS_cutoffs[HIC_EM_ITER-1] = MAXIS+1;
+    IS_cutoffs[HIC_NUM_FOLDS] = MAXIS+1;
 
     struct SNPfrags* snpfrag;
     struct BLOCK* clist;
@@ -163,58 +168,51 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     HAP2 = (char*) malloc(snps + 1);
     slist = (int*) malloc(sizeof (int)*snps);
 
-    for (hic_iter = 0; hic_iter < HIC_EM_ITER+1; hic_iter++){
+    for (hic_iter = 0; hic_iter < HIC_NUM_FOLDS+1; hic_iter++){
 
         // If we are doing Expectation-Maximization on HiC reads
-        if (HIC_EM_ITER > 1){
+        if (HIC_NUM_FOLDS > 0){
 
-            fprintf(stderr,"HiC H-trans EM iteration %d\n",hic_iter);
+            fprintf(stderr,"HiC H-trans Estimation, fold %d\n",hic_iter);
 
             for (i = 0; i < fragments_ALL; i++){
                 Flist_ALL[i].use_for_htrans_est = 0;
             }
 
-
-            if (hic_iter == 0){
-                CONVERGE = EM_CONVERGE;
-                fprintf(stderr,"Estimating h-trans for 25%% of insert < %d and all %d <= insert < %d\n",IS_cutoffs[0],IS_cutoffs[0],IS_cutoffs[1]);
-
-                fragments = 0;
-
-                for (i = 0; i < fragments_ALL; i++){
-                    if (Flist_ALL[i].isize <= IS_cutoffs[0]){
-                        if (drand48() < 0.75){
-                            Flist[fragments] = Flist_ALL[i];
-                            Flist[fragments].list = Flist_ALL[i].list;
-                            fragments++;
-                        } else {
-                            Flist_ALL[i].use_for_htrans_est = 1; // we assemble using 75% of reads and estimate for the other 25%
-                        }
-                    }else if(Flist_ALL[i].isize <= IS_cutoffs[1]){
-                        Flist_ALL[i].use_for_htrans_est = 1;   // after this assembly step, we will estimate this fragments' htrans probability
-                    }
-                }
-            }else if (hic_iter < HIC_EM_ITER-1){
-                CONVERGE = EM_CONVERGE;
-                fprintf(stderr,"Estimating h-trans for all %d <= insert < %d\n",IS_cutoffs[hic_iter],IS_cutoffs[hic_iter+1]);
+            if (hic_iter < HIC_NUM_FOLDS){
+                CONVERGE = HIC_CONVERGE;
                 fragments = 0;
                 for (i = 0; i < fragments_ALL; i++){
-                    if (Flist_ALL[i].isize <= IS_cutoffs[hic_iter]){
+                    if (Flist_ALL[i].fold == hic_iter){
+                        Flist_ALL[i].use_for_htrans_est = 1;
+                    }else{
                         Flist[fragments] = Flist_ALL[i];
                         Flist[fragments].list = Flist_ALL[i].list;
                         fragments++;
-                    }else if(Flist_ALL[i].isize <= IS_cutoffs[hic_iter+1]){
-                        Flist_ALL[i].use_for_htrans_est = 1;   // after this assembly step, we will estimate this fragments' htrans probability
                     }
                 }
             }else{
                 fprintf(stderr,"Using estimated H-trans probabilities to assemble all reads...\n");
-                Flist = Flist_ALL;
-                fragments = fragments_ALL;
                 CONVERGE = ASSEMBLY_CONVERGE;
+
+                if (HIC_STRICT_FILTER){
+                    fragments = 0;
+                    for (i = 0; i < fragments_ALL; i++){
+                        if (!Flist_ALL[i].hic_strict_filtered){
+                            Flist[fragments] = Flist_ALL[i];
+                            Flist[fragments].list = Flist_ALL[i].list;
+                            fragments++;
+                        }
+                    }
+                }else{
+                    Flist = Flist_ALL;
+                    fragments = fragments_ALL;
+                }
             }
         }else{
             CONVERGE = ASSEMBLY_CONVERGE;
+            Flist = Flist_ALL;
+            fragments = fragments_ALL;
         }
 
         snpfrag = (struct SNPfrags*) malloc(sizeof (struct SNPfrags)*snps);
@@ -235,11 +233,8 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
 
         read_vcffile(variantfile, snpfrag, snps);
 
-
         // read in file with estimated probabilities of Hi-C h-trans interactions with distance
-
-
-        if (HIC_EM_ITER == 1 && strcmp(htrans_file, "None") != 0){
+        if (HIC_NUM_FOLDS == 0 && strcmp(htrans_file, "None") != 0){
             int num_bins        = count_htrans_bins(htrans_file);
             float* htrans_probs = (float*) malloc(sizeof(float) * num_bins);
             read_htrans_file(htrans_file, htrans_probs, num_bins);
@@ -251,7 +246,6 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
 
         int count=0;
         if (RANDOM_START == 1) {
-            //fprintf(stdout, "starting from a completely random solution\n");
             for (i = 0; i < snps; i++) {
                 if (snpfrag[i].frags == 0) {
                     HAP1[i] = '-';
@@ -268,9 +262,6 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
                 }
             }
         }
-
-        //frag_cluster_initialize(Flist, fragments, snpfrag, HAP1, snps, clist, components);
-        //improve_hap(HAP1,clist,components, snps, fragments, Flist, snpfrag);
 
         for (i = 0; i < snps; i++) {
             besthap_mec[i] = HAP1[i];
@@ -339,7 +330,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
         }
 
         // H-TRANS ESTIMATION FOR HIC
-        if (HIC_EM_ITER > 1 && hic_iter < HIC_EM_ITER-1){ // we are doing expectation-maximization for HiC
+        if (HIC_NUM_FOLDS > 0 && hic_iter < HIC_NUM_FOLDS){ // we are doing expectation-maximization for HiC
 
             prune_snps(snps, Flist, snpfrag,HAP1, 0.99); // prune for only very high confidence SNPs
 
@@ -350,7 +341,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
             }
         }
         // BLOCK SPLITTING
-        else if (HIC_EM_ITER == 1){
+        else if (HIC_NUM_FOLDS == 0){
             new_components = components;
             if (SPLIT_BLOCKS){
                 split_count = 0;
@@ -373,8 +364,13 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
             components = new_components;
         }
         // PRUNE SNPS AND PRINT OUTPUT FILE
-        if (hic_iter == HIC_EM_ITER-1){
-            //refhap_heuristic(snps, fragments, Flist, snpfrag, HAP1);
+        if (hic_iter == HIC_NUM_FOLDS){
+            
+            for (i=0; i<snps; i++){
+                snpfrag[i].prune_status = 0; // reset prune status
+            }
+            
+            refhap_heuristic(snps, fragments, Flist, snpfrag, HAP1);
             prune_snps(snps, Flist, snpfrag, HAP1,THRESHOLD);
 
             fprintf(stderr, "OUTPUTTING PRUNED HAPLOTYPE ASSEMBLY TO FILE %s\n", outputfile);
@@ -461,11 +457,11 @@ int main(int argc, char** argv) {
         else if (strcmp(argv[i], "--longreads") == 0 || strcmp(argv[i], "--lr") == 0) // long reads pacbio
         {
             FOSMIDS = atoi(argv[i + 1]);
-        } else if ((strcmp(argv[i], "--converge") == 0) || (strcmp(argv[i], "--c") == 0)) {
+        }else if ((strcmp(argv[i], "--converge") == 0) || (strcmp(argv[i], "--c") == 0)) {
             CONVERGE = atoi(argv[i + 1]);
             ASSEMBLY_CONVERGE = CONVERGE;
-        } else if ((strcmp(argv[i], "--EMconverge") == 0) || (strcmp(argv[i], "--ec") == 0)) {
-            EM_CONVERGE = CONVERGE;
+        } else if ((strcmp(argv[i], "--hic_converge") == 0) || (strcmp(argv[i], "--hc") == 0)) {
+            HIC_CONVERGE = CONVERGE;
         } else if (strcmp(argv[i], "--MEC") == 0) {
             NEW_CODE = !(atoi(argv[i + 1]));
             if (!NEW_CODE){
@@ -477,10 +473,12 @@ int main(int argc, char** argv) {
             NEW_FRAGFILE_FORMAT = 1;
             strcpy(htrans_file, argv[i + 1]);
             HIC = 1;
-        }else if (strcmp(argv[i], "--htrans_EM") == 0 || strcmp(argv[i], "--hEM") == 0){
+        }else if (strcmp(argv[i], "--htrans_folds") == 0 || strcmp(argv[i], "--hf") == 0){
             NEW_FRAGFILE_FORMAT = 1;
-            HIC_EM_ITER = atoi(argv[i + 1]);
+            HIC_NUM_FOLDS = atoi(argv[i + 1]);
             HIC = 1;
+        }else if ((strcmp(argv[i], "--hic_strict_filter") == 0) || (strcmp(argv[i], "--hs") == 0)) {
+            HIC_STRICT_FILTER = atoi(argv[i + 1]);
         }else if (strcmp(argv[i], "--htrans_MLE_count_lowbound") == 0){
             HTRANS_MLE_COUNT_LOWBOUND = atoi(argv[i + 1]);
         }else if (strcmp(argv[i], "--htrans_data_outfile") == 0){
