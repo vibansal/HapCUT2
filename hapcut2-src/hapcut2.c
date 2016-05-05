@@ -97,9 +97,9 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     fclose(ff);
     Flist_ALL = (struct fragment*) malloc(sizeof (struct fragment)* fragments_ALL);
     Flist     = (struct fragment*) malloc(sizeof (struct fragment)* fragments_ALL);
-    
+
     flag = read_fragment_matrix(fragmentfile, Flist_ALL, fragments_ALL);
-        
+
     if (flag < 0) {
         fprintf(stderr, "unable to read fragment matrix file %s \n", fragmentfile);
         return -1;
@@ -133,10 +133,10 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     }
     float * MLE_sum;
     float * MLE_count;
-    
+
     MLE_sum   = calloc(HTRANS_MAXBINS,sizeof(float));
     MLE_count = calloc(HTRANS_MAXBINS,sizeof(float));
-    
+
     int hic_iter=0;
     int* IS_cutoffs = (int*) malloc(sizeof(int)*HIC_EM_ITER);
 
@@ -156,24 +156,24 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     int split_occured;
     int trueMEC = 0, converged_count=0, split_count, new_components, component;
 
-    
+
     HAP1 = (char*) malloc(snps + 1);
     besthap_mec = (char*) malloc(snps + 1);
     HAP2 = (char*) malloc(snps + 1);
     slist = (int*) malloc(sizeof (int)*snps);
-    
+
     for (hic_iter = 0; hic_iter < HIC_EM_ITER; hic_iter++){
-                
+
         // If we are doing Expectation-Maximization on HiC reads
         if (HIC_EM_ITER > 1){
-            
+
             fprintf(stderr,"HiC H-trans EM iteration %d\n",hic_iter);
- 
+
             for (i = 0; i < fragments_ALL; i++){
                 Flist_ALL[i].use_for_htrans_est = 0;
             }
 
-            
+
             if (hic_iter == 0){
                 CONVERGE = EM_CONVERGE;
                 fprintf(stderr,"Estimating h-trans for 25%% of insert < %d and all %d <= insert < %d\n",IS_cutoffs[0],IS_cutoffs[0],IS_cutoffs[1]);
@@ -214,6 +214,8 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
                 CONVERGE = ASSEMBLY_CONVERGE;
             }
         }else{
+            Flist = Flist_ALL;
+            fragments = fragments_ALL;
             CONVERGE = ASSEMBLY_CONVERGE;
         }
 
@@ -235,7 +237,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
 
         read_vcffile(variantfile, snpfrag, snps);
 
-        
+
         // read in file with estimated probabilities of Hi-C h-trans interactions with distance
 
 
@@ -247,8 +249,8 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
                 Flist[i].htrans_prob = log10(htrans_probs[Flist[i].isize / HTRANS_BINSIZE]);
             }
             free(htrans_probs);
-        }   
-        
+        }
+
         int count=0;
         if (RANDOM_START == 1) {
             //fprintf(stdout, "starting from a completely random solution\n");
@@ -341,13 +343,13 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
         // H-TRANS ESTIMATION FOR HIC
         if (HIC_EM_ITER > 1 && hic_iter < HIC_EM_ITER-1){ // we are doing expectation-maximization for HiC
 
-            prune_snps(snps, Flist, snpfrag,HAP1, 0.99); // prune for only very high confidence SNPs
+            prune_snps(snps, Flist, snpfrag,HAP1, 0.999); // prune for only very high confidence SNPs
 
             estimate_htrans_probs(Flist_ALL, fragments_ALL, HAP1, snpfrag, hic_iter, MLE_sum, MLE_count);
             for (i=0; i<snps; i++){
                 iters_since_improvement[i] = 0;
                 snpfrag[i].prune_status = 0;
-            }   
+            }
         }
         // BLOCK SPLITTING
         else if (HIC_EM_ITER == 1){
@@ -374,14 +376,17 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
         }
         // PRUNE SNPS AND PRINT OUTPUT FILE
         if (hic_iter == HIC_EM_ITER-1){
-            //refhap_heuristic(snps, fragments, Flist, snpfrag, HAP1);
+            for (i=0; i<snps; i++){
+                snpfrag[i].prune_status = 0; // reset prune status
+            }
+            refhap_heuristic(snps, fragments, Flist, snpfrag, HAP1);
             prune_snps(snps, Flist, snpfrag, HAP1,THRESHOLD);
 
             fprintf(stderr, "OUTPUTTING PRUNED HAPLOTYPE ASSEMBLY TO FILE %s\n", outputfile);
             //if (VCFformat ==1) print_haplotypes_vcf(clist,components,HAP1,Flist,fragments,snpfrag,snps,fn);
             print_hapfile(clist, components, HAP1, Flist, fragments, snpfrag, variantfile, miscalls, outputfile);
         }
-        
+
         // FREE UP MEMORY
         for (i = 0; i < snps; i++) free(snpfrag[i].elist);
         for (i = 0; i < snps; i++) free(snpfrag[i].telist);
@@ -391,13 +396,13 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
             free(snpfrag[i].alist);
             free(snpfrag[i].jlist);
             free(snpfrag[i].klist);
-            
+
             if (snpfrag[i].component == i && snpfrag[i].csize > 1) // root node of component
             {
                 free(clist[component].slist);
                 component++;
             }
-            
+
         }
         free(iters_since_improvement);
         free(iters_since_split);
