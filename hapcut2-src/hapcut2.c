@@ -151,7 +151,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
 
     IS_cutoffs[HIC_NUM_FOLDS] = MAXIS+1;
 
-    struct SNPfrags* snpfrag;
+    struct SNPfrags* snpfrag = NULL;
     struct BLOCK* clist;
     char* HAP1;
     char* besthap_mec;
@@ -161,7 +161,6 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     time_t now;
     int split_occured;
     int trueMEC = 0, converged_count=0, split_count, new_components, component;
-
 
     HAP1 = (char*) malloc(snps + 1);
     besthap_mec = (char*) malloc(snps + 1);
@@ -194,6 +193,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
             }else{
                 fprintf(stderr,"Using estimated H-trans probabilities to assemble all reads...\n");
                 CONVERGE = ASSEMBLY_CONVERGE;
+                combine_htrans_probs(Flist_ALL, fragments_ALL, HAP1, snpfrag, MLE_sum, MLE_count);
 
                 if (HIC_STRICT_FILTER){
                     fragments = 0;
@@ -336,7 +336,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
 
             prune_snps(snps, Flist, snpfrag,HAP1, 0.999); // prune for only very high confidence SNPs
 
-            estimate_htrans_probs(Flist_ALL, fragments_ALL, HAP1, snpfrag, hic_iter, MLE_sum, MLE_count);
+            estimate_htrans_probs(Flist_ALL, fragments_ALL, HAP1, snpfrag, MLE_sum, MLE_count);
             for (i=0; i<snps; i++){
                 iters_since_improvement[i] = 0;
                 snpfrag[i].prune_status = 0;

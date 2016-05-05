@@ -30,7 +30,8 @@ int split_block(char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, s
 void split_blocks_old(char* HAP, struct BLOCK* clist, int components, struct fragment* Flist, struct SNPfrags* snpfrag);
 //int maxcut_split_blocks(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1, int iter);
 void improve_hap(char* HAP, struct BLOCK* clist, int components, int snps, int fragments, struct fragment* Flist, struct SNPfrags* snpfrag);
-int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struct SNPfrags* snpfrag, int EM_iter, float* MLE_sum, float* MLE_count);
+int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struct SNPfrags* snpfrag, float* MLE_sum, float* MLE_count);
+int combine_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struct SNPfrags* snpfrag, float* MLE_sum, float* MLE_count);
 
 void prune_snps(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1, float threshold) {
     int i, j, f;
@@ -387,13 +388,9 @@ int split_block(char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, s
 
 
 // estimate probabilities of h-trans to feed back into HapCUT algorithm
-int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struct SNPfrags* snpfrag, int EM_iter, float* MLE_sum, float* MLE_count){
-    int i,j,k,f,bin,count, matches, joined, block;
+int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struct SNPfrags* snpfrag, float* MLE_sum, float* MLE_count){
+    int j,k,f,bin,count, matches, joined, block;
     // consistent counts, inconsistent counts
-    float* p_htrans  = calloc(HTRANS_MAXBINS,sizeof(float));
-    float* adj_MLE_sum   = calloc(HTRANS_MAXBINS,sizeof(float));
-    float* adj_MLE_count = calloc(HTRANS_MAXBINS,sizeof(float));
-
     int i1=-1, i2=-1;
     char a1='-', a2='-', h1='-', h2='-';
     float q1=0,q2=0;
@@ -493,9 +490,15 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
             MLE_sum[bin] += ((1-q1)*(1-q2) + q1*q2);
         }
     }
+    return 0;
+}
 
-    int i_minus = 0;
-    int i_plus = 0;
+// estimate probabilities of h-trans to feed back into HapCUT algorithm
+int combine_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struct SNPfrags* snpfrag, float* MLE_sum, float* MLE_count){
+    float* p_htrans      = calloc(HTRANS_MAXBINS,sizeof(float));
+    float* adj_MLE_sum   = calloc(HTRANS_MAXBINS,sizeof(float));
+    float* adj_MLE_count = calloc(HTRANS_MAXBINS,sizeof(float));
+    int i_minus = 0, i_plus = 0, i=0, j=0, f=0;
     int e_window_size = HTRANS_BINSIZE; //track the effective window size
 
     for (i = 0; i < HTRANS_MAXBINS; i++){
@@ -532,22 +535,16 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
 
     // assign the probabilities to fragments based in insert size
     for (f = 0; f < fragments; f++){
-
         if (Flist[f].mate2_ix == -1){
             Flist[f].htrans_prob = -80;
             continue;
         }
-
         Flist[f].htrans_prob = p_htrans[Flist[f].isize / HTRANS_BINSIZE];
     }
 
-    char outfile[100];
     if (strcmp(HTRANS_DATA_OUTFILE,"None") != 0){
         FILE* fp;
-        sprintf(outfile, "%s%d",HTRANS_DATA_OUTFILE,EM_iter);
-        fp = fopen(outfile, "w");
-        fprintf(fp,"InsertSize(bp)\tP(H-trans)\tMLEfragments\tAdjustedMLEfragments\tTotalFragments\n");
-
+        fp = fopen(HTRANS_DATA_OUTFILE, "w");
         // compute the MLE for each bin
         for (i = 0; i < HTRANS_MAXBINS; i++){
             fprintf(fp,"%d-%d\t%f\n",i*HTRANS_BINSIZE,(i+1)*HTRANS_BINSIZE,
@@ -559,6 +556,5 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
     free(adj_MLE_sum);
     free(adj_MLE_count);
     free(p_htrans);
-
     return 0;
 }

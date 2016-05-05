@@ -29,7 +29,9 @@ void print_hapcut_options() {
 
     fprintf(stderr, "\nHi-C Specific Options:\n");
     fprintf(stderr, "--HiC_htrans_file, --htrans <FILENAME> file where the second column specifies h-trans probabilities for insert size bins 0-50Kb, 50Kb-100Kb, etc.\n");
-    fprintf(stderr, "--htrans_EM, --hEM <int> Expectation-Maximization approach to HiC phasing (argument is number of EM iterations, 5 recommended)\n");
+    fprintf(stderr, "--htrans_folds, --hf <int> number of folds k to use for estimating H-trans interaction probabilities and filtering suspicious HiC reads (choose a large enough value that you'd expect a good assembly using a (k-1)/k sample of all reads!\n");
+    fprintf(stderr, "--htrans_strict_filter, --hs <int> (if --hf greater than 1) filter out any HiC read that doesn't perfectly match the phasing when it is held out.\n");
+    fprintf(stderr, "--htrans_data_outfile <FILENAME> output estimated htrans distribution to this file\n");
     fprintf(stderr, "--htrans_MLE_count_lowbound <0/1> minimum number of fragments to estimate P(htrans) at a given insert size.\n");
     fprintf(stderr, "  HiC Notes:");
     fprintf(stderr, "  (1) use the --HiC option in extracthairs, or a large value for the maxIS option");
