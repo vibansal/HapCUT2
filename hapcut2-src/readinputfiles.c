@@ -7,6 +7,8 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
     int blocks = 0, type = 0, l = 0, biter = 0, offset = 0,dtype=0,isize = 0;
     char buffer[MAXBUF];
     char blockseq[100000];
+    for (i=0;i<MAXBUF;i++) buffer[i] = 0;
+    for (i=0;i<100000;i++) blockseq[i] = 0;
     char ch;
 
     FILE* ff = fopen(fragmentfile, "r");
@@ -14,9 +16,12 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
         fprintf(stderr, "couldn't open fragment file \n");
         return -1;
     }
+
     for (i = 0; i < fragments; i++) {
         //		fprintf(stdout,"%s \n",buffer);
         Flist[i].data_type = 0; // default data type
+        Flist[i].htrans_prob = -80;
+        Flist[i].hic_strict_filtered = 0;
         j = 0;
         ch = fgetc(ff);
         while (ch != '\n') {
@@ -118,6 +123,7 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
                 
                 type = 6;
             } else if (type == 6){
+
                 // read in the absolute insert size
                 if (blockseq[0] == '-'){ // negative index means no mate 2
                     Flist[i].isize = -1;

@@ -16,7 +16,7 @@ extern int SPLIT_BLOCKS;
 extern int HTRANS_MLE_COUNT_LOWBOUND;
 extern char HTRANS_DATA_OUTFILE[10000];
 extern int MAX_WINDOW_SIZE;
-
+extern int HIC_STRICT_FILTER;
 // sets snpfrag[i].prune_status:
 // 0 indicates not pruned
 // 1 indicates pruned (leave unphased in output)
@@ -30,17 +30,13 @@ int split_block(char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, s
 void split_blocks_old(char* HAP, struct BLOCK* clist, int components, struct fragment* Flist, struct SNPfrags* snpfrag);
 //int maxcut_split_blocks(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1, int iter);
 void improve_hap(char* HAP, struct BLOCK* clist, int components, int snps, int fragments, struct fragment* Flist, struct SNPfrags* snpfrag);
-int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struct SNPfrags* snpfrag, int snps, int EM_iter);
+int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struct SNPfrags* snpfrag, int EM_iter, float* MLE_sum, float* MLE_count);
 
 void prune_snps(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1, float threshold) {
     int i, j, f;
     char temp1;
     float P_data_H, P_data_Hf, P_data_H00, P_data_H11, total, log_hom_prior, log_het_prior;
     float post_hap, post_hapf, post_00, post_11;
-
-    for (i=0; i<snps; i++){
-        snpfrag[i].prune_status = 0; // reset prune status
-    }
 
     for (i = 0; i < snps; i++) {
 
@@ -391,21 +387,20 @@ int split_block(char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, s
 
 
 // estimate probabilities of h-trans to feed back into HapCUT algorithm
-int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struct SNPfrags* snpfrag, int snps, int EM_iter){
-    int i,j,f,bin;
+int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struct SNPfrags* snpfrag, int EM_iter, float* MLE_sum, float* MLE_count){
+    int i,j,k,f,bin,count, matches, joined, block;
     // consistent counts, inconsistent counts
     float* p_htrans  = calloc(HTRANS_MAXBINS,sizeof(float));
-    float* MLE_sum   = calloc(HTRANS_MAXBINS,sizeof(float));
-    float* MLE_count = calloc(HTRANS_MAXBINS,sizeof(float));
     float* adj_MLE_sum   = calloc(HTRANS_MAXBINS,sizeof(float));
     float* adj_MLE_count = calloc(HTRANS_MAXBINS,sizeof(float));
-    int* total_count = calloc(HTRANS_MAXBINS,sizeof(int));
 
     int i1=-1, i2=-1;
     char a1='-', a2='-', h1='-', h2='-';
     float q1=0,q2=0;
     // count the number of consistent vs inconsistent for a given insert size bin
     for (f = 0; f < fragments; f++){
+
+        if (!Flist[f].use_for_htrans_est) continue;
 
         // consider mate pairs only
         if (Flist[f].mate2_ix == -1 || Flist[f].isize == -1){
@@ -414,7 +409,42 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
 
         // insert size bin
         bin = Flist[f].isize / HTRANS_BINSIZE;
-        total_count[bin]++;  // total number of reads at this IS
+
+        if (bin < 0){
+            fprintf(stderr,"ERROR: bin less than 0");
+            exit(1);
+        }
+        if (bin >= HTRANS_MAXBINS){
+            fprintf(stderr,"ERROR: bin greater than HTRANS_MAXBINS");
+            exit(1);
+        }
+
+        // mark reads that aren't supported by the phase
+        count = 0;
+        matches = 0;
+        joined = 1;
+        block = -1;
+        for (j=0; j<Flist[f].blocks; j++){
+            if (!joined) break;
+            for (k=0; k<Flist[f].list[j].len; k++){
+                if (!((Flist[f].list[j].hap[k] == '1' || Flist[f].list[j].hap[k] == '0')
+                    &&(HAP[Flist[f].list[j].offset+k] == '1' || HAP[Flist[f].list[j].offset+k] == '0')))
+                    continue;
+                if (block == -1){
+                    block = snpfrag[Flist[f].list[j].offset+k].bcomp;
+                }else if (block != snpfrag[Flist[f].list[j].offset+k].bcomp){
+                    joined = 0;
+                    break;
+                }
+
+                count++;
+                if (Flist[f].list[j].hap[k] == HAP[Flist[f].list[j].offset+k])
+                    matches++;
+            }
+        }
+        if ((!joined) || (count >= 2 && !(matches == 0 || matches == count))){
+            Flist[f].hic_strict_filtered = 1;
+        }
 
         // keep things very simple by only sampling 1-snp mates
         if (Flist[f].calls != 2){
@@ -441,7 +471,10 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
         h2 = HAP[i2];
 
         if (h1 == '-' || h2 == '-'
-         || snpfrag[i1].prune_status == 1 || snpfrag[i2].prune_status == 1){
+         || snpfrag[i1].prune_status == 1 || snpfrag[i2].prune_status == 1
+         || (snpfrag[i1].bcomp != snpfrag[i2].bcomp)
+         || (snpfrag[i1].bcomp == -1)
+         || (snpfrag[i2].bcomp == -1)){
             continue;
         }
 
@@ -454,10 +487,10 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
         assert (a1 == '1' || a1 == '0');
         assert (a2 == '1' || a2 == '0');
 
-        if ((a1 == a2) == (h1 == h2)){
-            MLE_sum[bin] += (1-q1)*q2 + (1-q2)*q1;
-        }else{
-            MLE_sum[bin] += (1-q1)*(1-q2) + q1*q2;
+        if ((a1 == a2) == (h1 == h2)){ // phase match
+            MLE_sum[bin] += ((1-q1)*q2 + (1-q2)*q1);
+        }else{                         // phase mismatch
+            MLE_sum[bin] += ((1-q1)*(1-q2) + q1*q2);
         }
     }
 
@@ -491,12 +524,15 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
 
     // compute the MLE for each bin
     for (i = 0; i < HTRANS_MAXBINS; i++){
-        p_htrans[i] = log10(adj_MLE_sum[i] / adj_MLE_count[i]);
+        if (adj_MLE_count[i] == 0 || adj_MLE_sum[i] == 0)
+            p_htrans[i] = -80;
+        else
+            p_htrans[i] = log10(adj_MLE_sum[i] / adj_MLE_count[i]);
     }
 
     // assign the probabilities to fragments based in insert size
     for (f = 0; f < fragments; f++){
-        // no mate
+
         if (Flist[f].mate2_ix == -1){
             Flist[f].htrans_prob = -80;
             continue;
@@ -504,6 +540,7 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
 
         Flist[f].htrans_prob = p_htrans[Flist[f].isize / HTRANS_BINSIZE];
     }
+
     char outfile[100];
     if (strcmp(HTRANS_DATA_OUTFILE,"None") != 0){
         FILE* fp;
@@ -513,14 +550,12 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
 
         // compute the MLE for each bin
         for (i = 0; i < HTRANS_MAXBINS; i++){
-            fprintf(fp,"%d-%d\t%f\t%d\t%d\t%d\n",i*HTRANS_BINSIZE,(i+1)*HTRANS_BINSIZE,
-                    pow(10,p_htrans[i]),(int)(MLE_count[i]),(int)(adj_MLE_count[i]),total_count[i]);
+            fprintf(fp,"%d-%d\t%f\n",i*HTRANS_BINSIZE,(i+1)*HTRANS_BINSIZE,
+                    pow(10,p_htrans[i]));
         }
         fclose(fp);
     }
-    free(total_count);
-    free(MLE_sum);
-    free(MLE_count);
+
     free(adj_MLE_sum);
     free(adj_MLE_count);
     free(p_htrans);
