@@ -21,6 +21,7 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
         //		fprintf(stdout,"%s \n",buffer);
         Flist[i].data_type = 0; // default data type
         Flist[i].htrans_prob = -80;
+        Flist[i].hic_strict_filtered = 0;
         j = 0;
         ch = fgetc(ff);
         while (ch != '\n') {

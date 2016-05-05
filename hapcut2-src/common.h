@@ -48,6 +48,8 @@ struct fragment {
     int mate2_ix;     // snp index of second mate; -1 if this fragment has one mate
     int isize;        // approximate insert size
     char use_for_htrans_est;
+    char fold; // for hic htrans estimation, which "fold" read belongs to
+    char hic_strict_filtered;
 };
 
 // haplotype block
