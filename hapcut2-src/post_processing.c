@@ -89,10 +89,12 @@ void prune_snps(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char
 
         // change the status of SNPs that are above/below threshold
         if (post_00 > log10(threshold)){
-            snpfrag[i].prune_status = 2; // 2 specifies 00 homozygous
+            //snpfrag[i].prune_status = 2; // 2 specifies 00 homozygous
+            snpfrag[i].prune_status = 1;
             snpfrag[i].post_hap = post_00;
         }else if (post_11 > log10(threshold)){
-            snpfrag[i].prune_status = 3; // 3 specifies 11 homozygous
+            //snpfrag[i].prune_status = 3; // 3 specifies 11 homozygous
+            snpfrag[i].prune_status = 1;
             snpfrag[i].post_hap = post_11;
         }else if (post_hapf > log10(threshold)){
             flip(HAP1[i]);                // SNP should be flipped
