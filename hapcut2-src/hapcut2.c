@@ -133,6 +133,18 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     }else{
         HTRANS_MAXBINS = 0;
     }
+    
+    // read in file with estimated probabilities of Hi-C h-trans interactions with distance
+    if (strcmp(htrans_file, "None") != 0){
+        int num_bins        = count_htrans_bins(htrans_file);
+        float* htrans_probs = (float*) malloc(sizeof(float) * num_bins);
+        read_htrans_file(htrans_file, htrans_probs, num_bins);
+        for (i=0; i<fragments;i++){
+            Flist[i].htrans_prob = log10(htrans_probs[Flist[i].isize / HTRANS_BINSIZE]);
+        }
+        free(htrans_probs);
+    }
+    
     float * MLE_sum;
     float * MLE_count;
 
@@ -163,7 +175,6 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
 
     for (hic_iter = 0; hic_iter < HIC_NUM_FOLDS+1; hic_iter++){
 
-        // If we are doing Expectation-Maximization on HiC reads
         if (HIC_NUM_FOLDS > 0){
 
             fprintf(stderr,"HiC H-trans Estimation, fold %d\n",hic_iter);
@@ -231,31 +242,22 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
 
         read_vcffile(variantfile, snpfrag, snps);
 
-        // read in file with estimated probabilities of Hi-C h-trans interactions with distance
-        if (HIC_NUM_FOLDS == 0 && strcmp(htrans_file, "None") != 0){
-            int num_bins        = count_htrans_bins(htrans_file);
-            float* htrans_probs = (float*) malloc(sizeof(float) * num_bins);
-            read_htrans_file(htrans_file, htrans_probs, num_bins);
-            for (i=0; i<fragments;i++){
-                Flist[i].htrans_prob = log10(htrans_probs[Flist[i].isize / HTRANS_BINSIZE]);
-            }
-            free(htrans_probs);
-        }
-
         int count=0;
-        if (RANDOM_START == 1) {
-            for (i = 0; i < snps; i++) {
-                if (snpfrag[i].frags == 0) {
-                    HAP1[i] = '-';
-                    HAP2[i] = '-';
-                } else {
-                    count++;
-                    if (drand48() < 0.5) {
-                        HAP1[i] = '0';
-                        HAP2[i] = '1';
+        if (HIC_NUM_FOLDS == 0 || hic_iter < HIC_NUM_FOLDS){
+            if (RANDOM_START == 1) {
+                for (i = 0; i < snps; i++) {
+                    if (snpfrag[i].frags == 0) {
+                        HAP1[i] = '-';
+                        HAP2[i] = '-';
                     } else {
-                        HAP1[i] = '1';
-                        HAP2[i] = '0';
+                        count++;
+                        if (drand48() < 0.5) {
+                            HAP1[i] = '0';
+                            HAP2[i] = '1';
+                        } else {
+                            HAP1[i] = '1';
+                            HAP2[i] = '0';
+                        }
                     }
                 }
             }
