@@ -139,18 +139,11 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     MLE_count = calloc(HTRANS_MAXBINS,sizeof(float));
 
     int hic_iter=0;
-    int* IS_cutoffs = (int*) malloc(sizeof(int)*(HIC_NUM_FOLDS+1));
-
-    for (i=0; i < HIC_NUM_FOLDS; i++){
-        IS_cutoffs[i] = (int) ((i+1.0) / (HIC_NUM_FOLDS+1) * MAXIS);
+    if (HIC_NUM_FOLDS > 0){
+        for (i=0; i < fragments_ALL; i++){
+            Flist_ALL[i].fold = rand() % HIC_NUM_FOLDS;
+        }
     }
-
-    for (i=0; i < fragments_ALL; i++){
-        Flist_ALL[i].fold = rand() % HIC_NUM_FOLDS;
-    }
-
-    IS_cutoffs[HIC_NUM_FOLDS] = MAXIS+1;
-
     struct SNPfrags* snpfrag = NULL;
     struct BLOCK* clist;
     char* HAP1;
@@ -210,8 +203,6 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
                 }
             }
         }else{
-            Flist = Flist_ALL;
-            fragments = fragments_ALL;
             CONVERGE = ASSEMBLY_CONVERGE;
             Flist = Flist_ALL;
             fragments = fragments_ALL;
