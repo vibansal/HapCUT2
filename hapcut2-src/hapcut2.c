@@ -63,6 +63,7 @@ int MAX_WINDOW_SIZE = 4000000; // maximum window size for h-trans estimation
 char HTRANS_DATA_OUTFILE[10000];
 int HIC_NUM_FOLDS = 0;
 int HIC_STRICT_FILTER = 0;
+int HIC_MEDIUM_FILTER = 0;
 
 #include "find_maxcut.c"   // function compute_good_cut
 #include "post_processing.c"  // post-processing functions
@@ -188,7 +189,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
                 CONVERGE = ASSEMBLY_CONVERGE;
                 combine_htrans_probs(Flist_ALL, fragments_ALL, HAP1, snpfrag, MLE_sum, MLE_count);
 
-                if (HIC_STRICT_FILTER){
+                if (HIC_STRICT_FILTER || HIC_MEDIUM_FILTER){
                     fragments = 0;
                     for (i = 0; i < fragments_ALL; i++){
                         if (!Flist_ALL[i].hic_strict_filtered){
@@ -472,6 +473,8 @@ int main(int argc, char** argv) {
             HIC = 1;
         }else if ((strcmp(argv[i], "--hic_strict_filter") == 0) || (strcmp(argv[i], "--hs") == 0)) {
             HIC_STRICT_FILTER = atoi(argv[i + 1]);
+        }else if ((strcmp(argv[i], "--hic_medium_filter") == 0) || (strcmp(argv[i], "--hm") == 0)) {
+            HIC_MEDIUM_FILTER = atoi(argv[i + 1]);
         }else if (strcmp(argv[i], "--htrans_MLE_count_lowbound") == 0){
             HTRANS_MLE_COUNT_LOWBOUND = atoi(argv[i + 1]);
         }else if (strcmp(argv[i], "--htrans_data_outfile") == 0){

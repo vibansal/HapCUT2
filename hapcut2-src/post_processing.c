@@ -17,6 +17,7 @@ extern int HTRANS_MLE_COUNT_LOWBOUND;
 extern char HTRANS_DATA_OUTFILE[10000];
 extern int MAX_WINDOW_SIZE;
 extern int HIC_STRICT_FILTER;
+extern int HIC_MEDIUM_FILTER;
 // sets snpfrag[i].prune_status:
 // 0 indicates not pruned
 // 1 indicates pruned (leave unphased in output)
@@ -422,27 +423,47 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
         count = 0;
         matches = 0;
         joined = 1;
-        block = -1;
-        for (j=0; j<Flist[f].blocks; j++){
-            if (!joined) break;
-            for (k=0; k<Flist[f].list[j].len; k++){
-                if (!((Flist[f].list[j].hap[k] == '1' || Flist[f].list[j].hap[k] == '0')
-                    &&(HAP[Flist[f].list[j].offset+k] == '1' || HAP[Flist[f].list[j].offset+k] == '0')))
-                    continue;
-                if (block == -1){
-                    block = snpfrag[Flist[f].list[j].offset+k].bcomp;
-                }else if (block != snpfrag[Flist[f].list[j].offset+k].bcomp){
-                    joined = 0;
-                    break;
-                }
+        block = -2;
+        if (HIC_STRICT_FILTER){
+            for (j=0; j<Flist[f].blocks; j++){
+                if (!joined) break;
+                for (k=0; k<Flist[f].list[j].len; k++){
+                    if (!((Flist[f].list[j].hap[k] == '1' || Flist[f].list[j].hap[k] == '0')
+                        &&(HAP[Flist[f].list[j].offset+k] == '1' || HAP[Flist[f].list[j].offset+k] == '0')))
+                        continue;
+                    if (block == -2){
+                        block = snpfrag[Flist[f].list[j].offset+k].bcomp;
+                    }else if (block != snpfrag[Flist[f].list[j].offset+k].bcomp){
+                        joined = 0;
+                        break;
+                    }
 
-                count++;
-                if (Flist[f].list[j].hap[k] == HAP[Flist[f].list[j].offset+k])
-                    matches++;
+                    count++;
+                    if (Flist[f].list[j].hap[k] == HAP[Flist[f].list[j].offset+k])
+                        matches++;
+                }
             }
-        }
-        if ((!joined) || (count >= 2 && !(matches == 0 || matches == count))){
-            Flist[f].hic_strict_filtered = 1;
+            
+            if ((!joined) || (count >= 2 && !(matches == 0 || matches == count))){
+                Flist[f].hic_strict_filtered = 1;
+            }
+        }else if (HIC_MEDIUM_FILTER){
+            for (j=0; j<Flist[f].blocks; j++){
+                if (!joined) break;
+                for (k=0; k<Flist[f].list[j].len; k++){
+
+                    if (block == -2){
+                        block = snpfrag[Flist[f].list[j].offset+k].bcomp;
+                    }else if (block != snpfrag[Flist[f].list[j].offset+k].bcomp){
+                        joined = 0;
+                        break;
+                    }
+                }
+            }
+            
+            if (!joined){
+                Flist[f].hic_strict_filtered = 1;
+            }
         }
 
         // keep things very simple by only sampling 1-snp mates
