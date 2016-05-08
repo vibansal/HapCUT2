@@ -180,6 +180,9 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
             }
 
             if (hic_iter < HIC_NUM_FOLDS){
+                if (strcmp(htrans_file, "None") == 0){
+                    HIC = 0; // save computation time on k-fold assemblies since we don't have H-Trans data anyway
+                }
                 CONVERGE = HIC_CONVERGE;
                 fragments = 0;
                 for (i = 0; i < fragments_ALL; i++){
@@ -194,6 +197,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
             }else{
                 fprintf(stderr,"Using estimated H-trans probabilities to assemble all reads...\n");
                 CONVERGE = ASSEMBLY_CONVERGE;
+                HIC = 1;
                 combine_htrans_probs(Flist_ALL, fragments_ALL, HAP1, snpfrag, MLE_sum, MLE_count);
 
                 if (HIC_STRICT_FILTER || HIC_MEDIUM_FILTER){
