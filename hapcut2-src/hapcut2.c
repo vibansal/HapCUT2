@@ -51,6 +51,7 @@ int NEW_CODE = 1; // likelihood based, max-cut calculated using partial likeliho
 int VERBOSE = 0;
 int SPLIT_BLOCKS = 0;
 int SPLIT_BLOCKS_MAXCUT = 0;
+int SPLIT_BLOCKS_MAXCUT_FINAL = 0;
 int REFHAP_HEURISTIC = 0;
 int ERROR_ANALYSIS_MODE = 0;
 int* iters_since_improvement;
@@ -133,7 +134,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     }else{
         HTRANS_MAXBINS = 0;
     }
-    
+
     // read in file with estimated probabilities of Hi-C h-trans interactions with distance
     if (strcmp(htrans_file, "None") != 0){
         int num_bins        = count_htrans_bins(htrans_file);
@@ -144,7 +145,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
         }
         free(htrans_probs);
     }
-    
+
     float * MLE_sum;
     float * MLE_count;
 
@@ -171,6 +172,10 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     HAP1 = (char*) malloc(snps + 1);
     besthap_mec = (char*) malloc(snps + 1);
     HAP2 = (char*) malloc(snps + 1);
+    for (i=0; i<snps; i++){
+        HAP1[i] = '-';
+        HAP2[i] = '-';
+    }
     slist = (int*) malloc(sizeof (int)*snps);
 
     for (hic_iter = 0; hic_iter < HIC_NUM_FOLDS+1; hic_iter++){
@@ -201,6 +206,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
             }else{
                 fprintf(stderr,"Using estimated H-trans probabilities to assemble all reads...\n");
                 CONVERGE = ASSEMBLY_CONVERGE;
+                SPLIT_BLOCKS_MAXCUT = SPLIT_BLOCKS_MAXCUT_FINAL;
                 HIC = 1;
                 combine_htrans_probs(Flist_ALL, fragments_ALL, HAP1, snpfrag, MLE_sum, MLE_count);
 
@@ -243,21 +249,19 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
         read_vcffile(variantfile, snpfrag, snps);
 
         int count=0;
-        if (HIC_NUM_FOLDS == 0 || hic_iter < HIC_NUM_FOLDS){
-            if (RANDOM_START == 1) {
-                for (i = 0; i < snps; i++) {
-                    if (snpfrag[i].frags == 0) {
-                        HAP1[i] = '-';
-                        HAP2[i] = '-';
+        if (RANDOM_START == 1) {
+            for (i = 0; i < snps; i++) {
+                if (snpfrag[i].frags == 0) {
+                    HAP1[i] = '-';
+                    HAP2[i] = '-';
+                } else if (HAP1[i] == '-'){
+                    count++;
+                    if (drand48() < 0.5) {
+                        HAP1[i] = '0';
+                        HAP2[i] = '1';
                     } else {
-                        count++;
-                        if (drand48() < 0.5) {
-                            HAP1[i] = '0';
-                            HAP2[i] = '1';
-                        } else {
-                            HAP1[i] = '1';
-                            HAP2[i] = '0';
-                        }
+                        HAP1[i] = '1';
+                        HAP2[i] = '0';
                     }
                 }
             }
@@ -496,7 +500,7 @@ int main(int argc, char** argv) {
         else if (strcmp(argv[i], "--maxmem") == 0) MAX_MEMORY = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--mbq") == 0) MINQ = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--splitblocks") == 0) SPLIT_BLOCKS = atoi(argv[i + 1]);
-        else if (strcmp(argv[i], "--splitblocks_maxcut") == 0) SPLIT_BLOCKS_MAXCUT = atoi(argv[i + 1]);
+        else if (strcmp(argv[i], "--splitblocks_maxcut") == 0) SPLIT_BLOCKS_MAXCUT_FINAL = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--verbose") == 0 || strcmp(argv[i], "--v") == 0) VERBOSE = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--refhap_heuristic") == 0 || strcmp(argv[i], "--rh") == 0) REFHAP_HEURISTIC = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--error_analysis_mode") == 0 || strcmp(argv[i], "--ea") == 0) ERROR_ANALYSIS_MODE = atoi(argv[i + 1]);

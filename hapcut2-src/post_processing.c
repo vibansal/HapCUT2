@@ -443,7 +443,7 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
                         matches++;
                 }
             }
-            
+
             if ((!joined) || (count >= 2 && !(matches == 0 || matches == count))){
                 Flist[f].hic_strict_filtered = 1;
             }
@@ -451,7 +451,9 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
             for (j=0; j<Flist[f].blocks; j++){
                 if (!joined) break;
                 for (k=0; k<Flist[f].list[j].len; k++){
-
+                    if (!((Flist[f].list[j].hap[k] == '1' || Flist[f].list[j].hap[k] == '0')
+                        &&(HAP[Flist[f].list[j].offset+k] == '1' || HAP[Flist[f].list[j].offset+k] == '0')))
+                        continue;
                     if (block == -2){
                         block = snpfrag[Flist[f].list[j].offset+k].bcomp;
                     }else if (block != snpfrag[Flist[f].list[j].offset+k].bcomp){
@@ -460,7 +462,7 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
                     }
                 }
             }
-            
+
             if (!joined){
                 Flist[f].hic_strict_filtered = 1;
             }

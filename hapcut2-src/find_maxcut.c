@@ -106,7 +106,7 @@ int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, str
         return 1; // return 1 only if converged
     }
     int i = 0, j = 0, t = 0, first_in, first_out, count1, count2;
-    
+
     float cutvalue, post;
     /*
        i=0;for (j=clist[k].offset;j<clist[k].offset+clist[k].length;j++)
@@ -159,6 +159,20 @@ int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, str
         ||(SPLIT_BLOCKS_MAXCUT && post >= log10(SPLIT_THRESHOLD))){// revert to old haplotype
         // we aren't splitting blocks, or cut is above threshold
         // flip back the SNPs in the cut
+        if (SPLIT_BLOCKS_MAXCUT && post >= log10(SPLIT_THRESHOLD)){
+
+            count1 = 0; count2 = 0; // counts for size of each side of cut
+            for (j = 0; j < clist[k].phased; j++){
+                if (slist[j] > 0){
+                    count1++;
+                }else{
+                    count2++;
+                }
+            }
+
+            fprintf(stderr, "NOT splitting blk at %d. Side1: %d Side2: %d Score: %f\n",clist[k].offset,count1,count2,pow(10,post));
+        }
+
         iters_since_improvement[clist[k].offset]++;
         for (i = 0; i < clist[k].phased; i++) {
             if (slist[i] > 0 && HAP1[slist[i]] == '1') HAP1[slist[i]] = '0';
@@ -201,6 +215,8 @@ int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, str
                 count2++;
             }
         }
+
+        fprintf(stderr, "splitting blk at %d. Side1: %d Side2: %d Score: %f\n",clist[k].offset,count1,count2,pow(10,post));
 
         iters_since_improvement[first_in] = CONVERGE+1;
         iters_since_improvement[first_out] = CONVERGE+1;
