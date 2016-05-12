@@ -38,7 +38,7 @@ struct fragment {
     float currscore;
     int calls;
     float ll;
-    int vbits;
+    //int vbits;
     char sb; // single base fragment not useful for phasing 
     float scores[4]; // added 03/02/15
     float htscores[4]; // scores assuming a hi-c h-trans interaction added 3/6/16

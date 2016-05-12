@@ -167,7 +167,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     char buf[80];
     time_t now;
     int split_occured;
-    int trueMEC = 0, converged_count=0, split_count, new_components, component;
+    int converged_count=0, split_count, new_components, component;
 
     HAP1 = (char*) malloc(snps + 1);
     besthap_mec = (char*) malloc(snps + 1);
@@ -226,6 +226,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
             }
         }else{
             CONVERGE = ASSEMBLY_CONVERGE;
+            SPLIT_BLOCKS_MAXCUT = SPLIT_BLOCKS_MAXCUT_FINAL;
             Flist = Flist_ALL;
             fragments = fragments_ALL;
         }
@@ -235,10 +236,10 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
 
         // 10/25/2014, edges are only added between adjacent nodes in each fragment and used for determining connected components...
         // elist data structure is not used in hapcut algorithm anymore...
-        for (i = 0; i < snps; i++) snpfrag[i].elist = (struct edge*) malloc(sizeof (struct edge)*snpfrag[i].edges);
+        for (i = 0; i < snps; i++) snpfrag[i].elist = (struct edge*) malloc(sizeof (struct edge)*(snpfrag[i].edges+1));
         if (FOSMIDS == 0) add_edges(Flist, fragments, snpfrag, snps, &components);
         else if (FOSMIDS >= 1) add_edges_fosmids(Flist, fragments, snpfrag, snps, &components);
-        for (i = 0; i < snps; i++) snpfrag[i].telist = (struct edge*) malloc(sizeof (struct edge)*snpfrag[i].edges);
+        for (i = 0; i < snps; i++) snpfrag[i].telist = (struct edge*) malloc(sizeof (struct edge)*(snpfrag[i].edges+1));
 
         // this considers only components with at least two nodes
         fprintf(stderr, "fragments %d snps %d component(blocks) %d\n", fragments, snps, components);
@@ -302,8 +303,8 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
         /************************** RUN THE MAX_CUT ALGORITHM ITERATIVELY TO IMPROVE MEC SCORE*********************************/
 
         for (iter = 0; iter < maxiter_hapcut; iter++) {
-            trueMEC = mecscore(Flist, fragments, HAP1, &ll, &calls, &miscalls);
-            if (SCORING_FUNCTION == 5) miscalls = trueMEC;
+            //trueMEC = mecscore(Flist, fragments, HAP1, &ll, &calls, &miscalls);
+            //if (SCORING_FUNCTION == 5) miscalls = trueMEC;
             time(&now);
             ts1 = localtime(&now);
             strftime(buf, sizeof (buf), "%a %Y-%m-%d %H:%M:%S %Z", ts1);
@@ -321,10 +322,13 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
             }
 
             if (split_occured){
+
                 // regenerate clist because there are newly split blocks
                 free(clist);
+
                 clist = (struct BLOCK*) malloc(sizeof (struct BLOCK)*new_components);
                 generate_clist_structure(Flist, fragments, snpfrag, snps, new_components, clist);
+
                 components = new_components;
             }
             if (converged_count == components) {

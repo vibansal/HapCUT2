@@ -26,7 +26,7 @@ float edge_weight(char* hap, int i, int j, char* p, struct fragment* Flist, int 
 }
 
 // compute MECSCORE of the fragment matrix compared to a haplotype 'h' 
-
+/*
 int mecscore(struct fragment* Flist, int fragments, char* h, float* ll, float* calls, float* miscalls) {
     float trueMEC = 0;
     //	fprintf(stderr,"QVoffset is now %d \n",QVoffset);
@@ -119,7 +119,7 @@ int mecscore(struct fragment* Flist, int fragments, char* h, float* ll, float* c
     if (SCORING_FUNCTION == 5) return ((int) trueMEC);
     return *calls;
 }
-
+*/
 // function to print comparison of fragment to haplotype | format is 45333 000:010:BAF  (fragment block):(hap block):(qscore block)
 /*
 int print_fragment_MEC(struct fragment* Flist, int f, char* h, FILE* outfile) {

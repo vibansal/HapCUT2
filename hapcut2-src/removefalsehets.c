@@ -1,11 +1,11 @@
 
 // code written april 6 2012 //
 // for each connected component, calculate the likelihood change for each variant 
-
+/*
 void find_bestvariant_segment(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, char* HAP1, char* HAP2);
 int removevariants(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int maxiter, char* HAP1, char* HAP2, struct BLOCK* clist, int components);
 float evaluate_variant(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int v, char* HAP1);
-
+*/
 // phase each component individually
 /*
 void find_bestvariant_segment(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, char* HAP1, char* HAP2) {
@@ -21,7 +21,7 @@ void find_bestvariant_segment(struct fragment* Flist, int fragments, struct SNPf
     }
 }
 */
-
+/*
 // calculate how much is MEC score reduced by removing a variant 
 
 float calculate_reduction_mecscore(struct fragment* Flist, int f, char* h, int variant) {
@@ -191,14 +191,14 @@ float evaluate_variant(struct fragment* Flist, int fragments, struct SNPfrags* s
     return delta;
 }
 
-
+*/
+/*
 // not used for now april 9 2012
 
 int removevariants(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int maxiter, char* HAP1, char* HAP2, struct BLOCK* clist, int components) {
     int iter = 0; //k = 0;
     float calls = 0, miscalls = 0, ll = 0, bestll = 0;
     //int switches =0; int prev = 0;
-    /*****************************************************************************************************/
     //for (i=0;i<snps;i++) fprintf(stdout,"first fragment for SNP %d %d \n",i,snpfrag[i].ff);
     mecscore(Flist, fragments, HAP1, &ll, &calls, &miscalls);
     bestll = ll;
@@ -212,3 +212,4 @@ int removevariants(struct fragment* Flist, int fragments, struct SNPfrags* snpfr
     }
     return 1;
 }
+*/

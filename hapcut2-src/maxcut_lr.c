@@ -12,6 +12,7 @@ where H_new is new haplotype formed by flipping the phase of vertices in shore2 
 score of a variant snpfrag[node].score = log10( P(R|H) + P(R | complement(H)) - log10( P(R|H_new) + P(R | complement(H_new) )
  */
 #include "common.h"
+#include "math.h"
 extern int HIC;
 // simple calculation for difference between likelihood of old and new solution based on the Flist[f].scores used for building max-cut
 
@@ -223,7 +224,6 @@ void update_fragment_scores(struct SNPfrags* snpfrag, struct fragment* Flist, ch
 
         prob = QVoffset - (int) Flist[f].list[j].qv[k];
         prob /= 10; // log10(e)
-        //prob1 = 1.0 - pow(10,prob); prob2 = log10(prob1);
         prob2 = Flist[f].list[j].p1[k];
 
         if (snpfrag[node].parent == startnode){ // if node is added to 'startnode', original and new likelihoods are updated identically
@@ -383,9 +383,10 @@ void update_fragment_scores(struct SNPfrags* snpfrag, struct fragment* Flist, ch
                     }
 
                     snpfrag[node].score += Lo - Ln; // add new delta LL for variant
-
+                    
                     if (fabsf(oldscore) > fabsf(snpfrag[node].score)){ // score decreased
                         pmaxHeapify(pheap, snpfrag[node].heaploc, snpfrag, slist);
+
                     } else pbubbleUp(pheap, snpfrag[node].heaploc, snpfrag, slist);
                 }
             }

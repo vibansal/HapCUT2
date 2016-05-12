@@ -14,6 +14,8 @@ extern int SPLIT_BLOCKS_MAXCUT;
 extern int* iters_since_improvement;
 extern int* iters_since_split;
 
+int SBM_CONVERGE = 20;
+
 /* edge weights
    weight 334 373 hap 10 alleles 01 W 3.048192
    weight 334 375 hap 11 alleles 00 W 3.523493
@@ -102,7 +104,7 @@ void single_variant_flips(struct fragment* Flist, struct SNPfrags* snpfrag, stru
 int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1, int iter, int* components_ptr) {
     clist[k].split = 0;
 
-    if (iters_since_improvement[clist[k].offset] > CONVERGE && (!SPLIT_BLOCKS_MAXCUT || iters_since_split[clist[k].offset] > CONVERGE)) {
+    if (iters_since_improvement[clist[k].offset] > CONVERGE && (!SPLIT_BLOCKS_MAXCUT || iters_since_split[clist[k].offset] > SBM_CONVERGE)) {
         return 1; // return 1 only if converged
     }
     int i = 0, j = 0, t = 0, first_in, first_out, count1, count2;
@@ -139,6 +141,7 @@ int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, str
     cutvalue = 10;
 
     if (clist[k].MEC > 0) cutvalue = compute_goodcut(snpfrag, HAP1, slist, &clist[k], Flist, MINCUTALGO);
+
     // flip the subset of columns in slist with positive value
     //if (cutvalue <= 3 || MINCUTALGO == 2) { //getchar();
     for (i = 0; i < clist[k].phased; i++) {
@@ -155,22 +158,24 @@ int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, str
 
     post = (-1.0*clist[k].bestMEC)-(addlogs((-1.0*clist[k].bestMEC), (-1.0*clist[k].MEC)));
 
+    count1 = 0; count2 = 0; // counts for size of each side of cut
+    for (j = 0; j < clist[k].phased; j++){
+        if (slist[j] > 0){
+            count1++;
+        }else{
+            count2++;
+        }
+    }
+
     if ((iters_since_improvement[clist[k].offset] <= CONVERGE && clist[k].MEC >= clist[k].bestMEC)
-        ||(SPLIT_BLOCKS_MAXCUT && post >= log10(SPLIT_THRESHOLD))){// revert to old haplotype
+        ||(iters_since_improvement[clist[k].offset] > CONVERGE && SPLIT_BLOCKS_MAXCUT && (post > log10(SPLIT_THRESHOLD) || count1 <= 1|| count2 <= 1))){// revert to old haplotype
         // we aren't splitting blocks, or cut is above threshold
         // flip back the SNPs in the cut
         if (SPLIT_BLOCKS_MAXCUT && post >= log10(SPLIT_THRESHOLD)){
 
-            count1 = 0; count2 = 0; // counts for size of each side of cut
-            for (j = 0; j < clist[k].phased; j++){
-                if (slist[j] > 0){
-                    count1++;
-                }else{
-                    count2++;
-                }
-            }
+            //fprintf(stderr, "NOT splitting blk at %d. Side1: %d Side2: %d Score: %e\n",clist[k].offset,count1,count2,pow(10,post));
+            //fprintf(stderr, "\t%f\t%f\n",clist[k].bestMEC,clist[k].MEC);
 
-            fprintf(stderr, "NOT splitting blk at %d. Side1: %d Side2: %d Score: %f\n",clist[k].offset,count1,count2,pow(10,post));
         }
 
         iters_since_improvement[clist[k].offset]++;
@@ -183,15 +188,15 @@ int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, str
             update_fragscore(Flist, clist[k].flist[i], HAP1);
             clist[k].MEC += Flist[clist[k].flist[i]].currscore;
         }
-    }else if (SPLIT_BLOCKS_MAXCUT && iters_since_improvement[clist[k].offset] > CONVERGE && post < log10(SPLIT_THRESHOLD)){
+    }else if (SPLIT_BLOCKS_MAXCUT && iters_since_improvement[clist[k].offset] > CONVERGE && post <= log10(SPLIT_THRESHOLD)){ //post < log10(SPLIT_THRESHOLD)
         // solution has converged so we are trying to split blocks
         // this cut is under the threshold so we cut it out as a separate block
         clist[k].split = 1;
+
         iters_since_split[clist[k].offset] = 0;
 
         first_in = -1;  // first element in the cut
         first_out = -1; // first element not in the cut
-        count1 = 0; count2 = 0; // counts for size of each side of cut
 
         for (j = 0; j < clist[k].phased; j++){
 
@@ -203,7 +208,6 @@ int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, str
                 }
                 snpfrag[slist[j]].component = first_in;
                 snpfrag[first_in].csize ++;
-                count1++;
             }else{
                 // j is not in the cut
                 if (first_out == -1){
@@ -212,11 +216,10 @@ int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, str
                 }
                 snpfrag[clist[k].slist[j]].component = first_out;
                 snpfrag[first_out].csize ++;
-                count2++;
             }
         }
 
-        fprintf(stderr, "splitting blk at %d. Side1: %d Side2: %d Score: %f\n",clist[k].offset,count1,count2,pow(10,post));
+        //fprintf(stderr, "splitting blk at %d. Side1: %d Side2: %d Score: %e\n",clist[k].offset,count1,count2,pow(10,post));
 
         iters_since_improvement[first_in] = CONVERGE+1;
         iters_since_improvement[first_out] = CONVERGE+1;
@@ -287,6 +290,7 @@ float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, struct BL
             }
         }
     }
+
     /* CODE TO find 'K' biggest edges in MEC graph, negative weight edges in graph  */
     int K = 5;
     int smallest = 0;
@@ -357,6 +361,7 @@ float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, struct BL
     //for (iter=0;iter<totaledges*(int)(log2(totaledges));iter++)
     for (iter = 0; iter < maxiter + K; iter++) {
         pheap.length = N - 2;
+
         V = N - 2;
         if (iter < K) {
             startnode = edgelist[iter].s;
@@ -420,17 +425,20 @@ float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, struct BL
         }
 
         pbuildmaxheap(&pheap, snpfrag, slist);
+
         //V = N-2;
         while (V > 0) // more than two clusters, this loop is O(N^2)
         {
             snp_add = pheap.elements[0];
             premovemax(&pheap, snpfrag, slist);
+ 
             fixheap = 0;
             //if (N < 30) fprintf(stdout,"standard best score %f snp %d %d V %d\n",snpfrag[slist[snp_add]].score,snp_add,slist[snp_add],V);
             if (snpfrag[slist[snp_add]].score > 0) snpfrag[slist[snp_add]].parent = startnode;
             else if (snpfrag[slist[snp_add]].score < 0) {
                 if (secondnode < 0) {
                     secondnode = slist[snp_add];
+              
                     //fprintf(stderr,"secondnode found %d %f V %d N %d\n",secondnode,snpfrag[slist[snp_add]].score,V,N);
                 }
 
@@ -444,7 +452,9 @@ float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, struct BL
             V--;
 
             if (NEW_CODE == 1) {
+
                 update_fragment_scores(snpfrag, Flist, hap, startnode, secondnode, slist[snp_add], &pheap, slist);
+
                 for (i = 0; i < N; i++) {
                     if (DEBUG) fprintf(stdout, "score %d %f hap %c \n", slist[i], snpfrag[slist[i]].score, hap[slist[i]]);
                 }
@@ -494,6 +504,7 @@ float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, struct BL
         //exit(0);
 
     }
+
     for (i = 0; i < N; i++) {
         if (bestmincut[i] == '1') slist[i] = -1 * slist[i] - 1;
     }

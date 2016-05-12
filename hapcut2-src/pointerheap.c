@@ -40,9 +40,17 @@ void pmaxHeapify(PHEAP* heap, int node, struct SNPfrags* snpfrag, int* slist) {
 void pbubbleUp(PHEAP* heap, int node, struct SNPfrags* snpfrag, int* slist) // score of a node is increased, check if the node needs to be bubbled up the heap 
 {
     int parent, temp;
+    
     while (node > 0) {
         parent = (node - 1);
-        parent /= 2;
+        parent /= 2;/*
+        fprintf(stderr,"spot1\n");
+        fprintf(stderr,"%d\n",node);
+        fprintf(stderr,"%d\n",heap->elements[node]);
+        fprintf(stderr,"%d\n",slist[heap->elements[node]]);
+        fprintf(stderr,"spot2\n");*/
+        //fprintf(stderr,"%f\n",fabsf(snpfrag[slist[heap->elements[parent]]].score));
+        //fprintf(stderr,"spot3");
         //printf("node %d score %f parent %d %f \n",node,heap->harray[node].score,parent,heap->harray[parent].score);
         if (fabsf(snpfrag[slist[heap->elements[node]]].score) > fabsf(snpfrag[slist[heap->elements[parent]]].score)) {
             //temp = snpfrag[slist[node]].heaploc; snpfrag[slist[node]].heaploc = snpfrag[slist[parent]].heaploc; snpfrag[slist[parent]].heaploc = temp;
@@ -76,7 +84,7 @@ int premovemax(PHEAP* heap, struct SNPfrags* snpfrag, int* slist) {
 }
 
 void pinitheap(PHEAP* heap, int size) {
-    heap->elements = (int*) malloc(sizeof (int)*size);
+    heap->elements = (int*) calloc(size,sizeof (int));
     heap->length = size; //heap->maxlength = size; 
 }
 
