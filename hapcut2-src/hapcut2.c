@@ -56,15 +56,15 @@ int REFHAP_HEURISTIC = 0;
 int ERROR_ANALYSIS_MODE = 0;
 int* iters_since_improvement;
 int* iters_since_split;
-int HTRANS_BINSIZE = 50000;
+int HTRANS_BINSIZE = 5000;
 int NEW_FRAGFILE_FORMAT = 0;
 int HTRANS_MAXBINS = 10000; // this value will be overwritten at startup
 int HTRANS_MLE_COUNT_LOWBOUND = 500;
 int MAX_WINDOW_SIZE = 4000000; // maximum window size for h-trans estimation
 char HTRANS_DATA_OUTFILE[10000];
 int HIC_NUM_FOLDS = 0;
+int HIC_EM_ITER = 0;
 int HIC_STRICT_FILTER = 0;
-int HIC_MEDIUM_FILTER = 0;
 
 #include "find_maxcut.c"   // function compute_good_cut
 #include "post_processing.c"  // post-processing functions
@@ -178,7 +178,20 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
     }
     slist = (int*) malloc(sizeof (int)*snps);
 
-    for (hic_iter = 0; hic_iter < HIC_NUM_FOLDS+1; hic_iter++){
+    if(HIC_EM_ITER > 0){
+        for (i = 0; i < fragments_ALL; i++){
+            Flist_ALL[i].use_for_htrans_est = 1;
+        }
+    }
+
+    int HIC_ITER = 1;
+    if (HIC_NUM_FOLDS > 0){
+        HIC_ITER = HIC_NUM_FOLDS+1;
+    }else if(HIC_EM_ITER > 0){
+        HIC_ITER = HIC_EM_ITER;
+    }
+
+    for (hic_iter = 0; hic_iter < HIC_ITER; hic_iter++){
 
         if (HIC_NUM_FOLDS > 0){
 
@@ -210,7 +223,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
                 HIC = 1;
                 combine_htrans_probs(Flist_ALL, fragments_ALL, HAP1, snpfrag, MLE_sum, MLE_count);
 
-                if (HIC_STRICT_FILTER || HIC_MEDIUM_FILTER){
+                if (HIC_STRICT_FILTER){
                     fragments = 0;
                     for (i = 0; i < fragments_ALL; i++){
                         if (!Flist_ALL[i].hic_strict_filtered){
@@ -338,18 +351,21 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
         }
 
         // H-TRANS ESTIMATION FOR HIC
-        if (HIC_NUM_FOLDS > 0 && hic_iter < HIC_NUM_FOLDS){ // we are doing expectation-maximization for HiC
+        if ((HIC_NUM_FOLDS > 0 && hic_iter < HIC_NUM_FOLDS)||(HIC_EM_ITER > 0)){
 
-            prune_snps(snps, Flist, snpfrag,HAP1, 0.999); // prune for only very high confidence SNPs
+            prune_snps(snps, Flist, snpfrag,HAP1, 0.99); // prune for only very high confidence SNPs
 
             estimate_htrans_probs(Flist_ALL, fragments_ALL, HAP1, snpfrag, MLE_sum, MLE_count);
             for (i=0; i<snps; i++){
                 iters_since_improvement[i] = 0;
                 snpfrag[i].prune_status = 0;
             }
+            if (HIC_EM_ITER > 0){
+                combine_htrans_probs(Flist_ALL, fragments_ALL, HAP1, snpfrag, MLE_sum, MLE_count);
+            }
         }
         // BLOCK SPLITTING
-        else if (HIC_NUM_FOLDS == 0){
+        else if (HIC_NUM_FOLDS == 0 && HIC_EM_ITER == 0){
             new_components = components;
             if (SPLIT_BLOCKS){
                 split_count = 0;
@@ -372,7 +388,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, int snps, char* ou
             components = new_components;
         }
         // PRUNE SNPS AND PRINT OUTPUT FILE
-        if (hic_iter == HIC_NUM_FOLDS){
+        if (hic_iter == HIC_ITER - 1){
 
             for (i=0; i<snps; i++){
                 snpfrag[i].prune_status = 0; // reset prune status
@@ -485,10 +501,12 @@ int main(int argc, char** argv) {
             NEW_FRAGFILE_FORMAT = 1;
             HIC_NUM_FOLDS = atoi(argv[i + 1]);
             HIC = 1;
+        }else if (strcmp(argv[i], "--htrans_EM") == 0 || strcmp(argv[i], "--hEM") == 0){
+            NEW_FRAGFILE_FORMAT = 1;
+            HIC_EM_ITER = atoi(argv[i + 1]);
+            HIC = 1;
         }else if ((strcmp(argv[i], "--hic_strict_filter") == 0) || (strcmp(argv[i], "--hs") == 0)) {
             HIC_STRICT_FILTER = atoi(argv[i + 1]);
-        }else if ((strcmp(argv[i], "--hic_medium_filter") == 0) || (strcmp(argv[i], "--hm") == 0)) {
-            HIC_MEDIUM_FILTER = atoi(argv[i + 1]);
         }else if (strcmp(argv[i], "--htrans_MLE_count_lowbound") == 0){
             HTRANS_MLE_COUNT_LOWBOUND = atoi(argv[i + 1]);
         }else if (strcmp(argv[i], "--htrans_data_outfile") == 0){

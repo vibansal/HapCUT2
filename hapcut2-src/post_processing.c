@@ -17,7 +17,7 @@ extern int HTRANS_MLE_COUNT_LOWBOUND;
 extern char HTRANS_DATA_OUTFILE[10000];
 extern int MAX_WINDOW_SIZE;
 extern int HIC_STRICT_FILTER;
-extern int HIC_MEDIUM_FILTER;
+
 // sets snpfrag[i].prune_status:
 // 0 indicates not pruned
 // 1 indicates pruned (leave unphased in output)
@@ -447,29 +447,10 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
             if ((!joined) || (count >= 2 && !(matches == 0 || matches == count))){
                 Flist[f].hic_strict_filtered = 1;
             }
-        }else if (HIC_MEDIUM_FILTER){
-            for (j=0; j<Flist[f].blocks; j++){
-                if (!joined) break;
-                for (k=0; k<Flist[f].list[j].len; k++){
-                    if (!((Flist[f].list[j].hap[k] == '1' || Flist[f].list[j].hap[k] == '0')
-                        &&(HAP[Flist[f].list[j].offset+k] == '1' || HAP[Flist[f].list[j].offset+k] == '0')))
-                        continue;
-                    if (block == -2){
-                        block = snpfrag[Flist[f].list[j].offset+k].bcomp;
-                    }else if (block != snpfrag[Flist[f].list[j].offset+k].bcomp){
-                        joined = 0;
-                        break;
-                    }
-                }
-            }
-
-            if (!joined){
-                Flist[f].hic_strict_filtered = 1;
-            }
         }
 
         // keep things very simple by only sampling 1-snp mates
-        if (Flist[f].calls != 2){
+        if (Flist[f].calls < 2){
             continue;
         }
 
@@ -477,16 +458,15 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
         a1 = Flist[f].list[0].hap[0];
         q1 = Flist[f].list[0].pv[0];
 
-        if (Flist[f].blocks == 1){
-            i2 = Flist[f].list[0].offset+1;
-            a2 = Flist[f].list[0].hap[1];
-            q2 = Flist[f].list[0].pv[1];
-        }else if (Flist[f].blocks == 2){
-            i2 = Flist[f].list[1].offset;
-            a2 = Flist[f].list[1].hap[0];
-            q2 = Flist[f].list[1].pv[0];
-        }else{
-            fprintf(stderr,"ERROR: Inconsistent block structure in estimate_htrans_probs");
+        i2 = Flist[f].mate2_ix;
+        for (j=0; j<Flist[f].blocks; j++){
+            for (k=0; k<Flist[f].list[j].len; k++){
+                if (Flist[f].list[j].offset+k == Flist[f].mate2_ix){
+                    a2 = Flist[f].list[j].hap[k];
+                    q2 = Flist[f].list[j].pv[k];
+                    break;
+                }
+            }
         }
 
         h1 = HAP[i1];
@@ -496,7 +476,9 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
          || snpfrag[i1].prune_status == 1 || snpfrag[i2].prune_status == 1
          || (snpfrag[i1].bcomp != snpfrag[i2].bcomp)
          || (snpfrag[i1].bcomp == -1)
-         || (snpfrag[i2].bcomp == -1)){
+         || (snpfrag[i2].bcomp == -1)
+         || (snpfrag[i1].frags == 1)
+         || (snpfrag[i2].frags == 1)){
             continue;
         }
 
