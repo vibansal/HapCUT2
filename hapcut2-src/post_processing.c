@@ -6,45 +6,35 @@
 #include <float.h>
 #include <assert.h>     /* assert */
 
-extern int REFHAP_HEURISTIC;
+extern float THRESHOLD;
+extern int DISCRETE_PRUNING;
 extern int ERROR_ANALYSIS_MODE;
 extern int HTRANS_MAXBINS;
 extern int HTRANS_BINSIZE;
 extern float HOMOZYGOUS_PRIOR;
 extern float SPLIT_THRESHOLD;
 extern int SPLIT_BLOCKS;
-extern int HTRANS_MLE_COUNT_LOWBOUND;
+extern int HTRANS_READ_LOWBOUND;
 extern char HTRANS_DATA_OUTFILE[10000];
-extern int MAX_WINDOW_SIZE;
-extern int HIC_STRICT_FILTER;
+extern int HTRANS_MAX_WINDOW;
 
-// sets snpfrag[i].prune_status:
-// 0 indicates not pruned
-// 1 indicates pruned (leave unphased in output)
-// 2 indicates called homozygous 00
-// 3 indicates called homozygous 11
-// the posterior probability cutoff is defined by THRESHOLD
+float HIC_EM_THRESHOLD = 0.99; // use a strict-ish threshold for the HiC haplotype SNPs that we'll estimate h-trans from
 
-void prune_snps(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1, float threshold);
-void refhap_heuristic(int snps, int fragments, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1);
+void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1, char* HAP2, int allow_homozygous);
+void discrete_pruning(int snps, int fragments, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1);
 int split_block(char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, struct SNPfrags* snpfrag, int* components_ptr);
 void split_blocks_old(char* HAP, struct BLOCK* clist, int components, struct fragment* Flist, struct SNPfrags* snpfrag);
 //int maxcut_split_blocks(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1, int iter);
 void improve_hap(char* HAP, struct BLOCK* clist, int components, int snps, int fragments, struct fragment* Flist, struct SNPfrags* snpfrag);
-int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struct SNPfrags* snpfrag, float* MLE_sum, float* MLE_count);
-int combine_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struct SNPfrags* snpfrag, float* MLE_sum, float* MLE_count);
+int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struct SNPfrags* snpfrag);
 
-void prune_snps(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1, float threshold) {
+void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1, char* HAP2, int call_homozygous) {
     int i, j, f;
     char temp1;
     float P_data_H, P_data_Hf, P_data_H00, P_data_H11, total, log_hom_prior, log_het_prior;
     float post_hap, post_hapf, post_00, post_11;
 
     for (i = 0; i < snps; i++) {
-
-        // get prior probabilities for homozygous and heterozygous genotypes
-        log_hom_prior = snpfrag[i].homozygous_prior;
-        log_het_prior = subtractlogs(log10(0.5), log_hom_prior);
 
         // we only care about positions that are haplotyped
         if (!(HAP1[i] == '1' || HAP1[i] == '0')) continue;
@@ -67,47 +57,77 @@ void prune_snps(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char
             // haplotypes with i flipped
             flip(HAP1[i]);
             P_data_Hf += fragment_ll(Flist, f, HAP1, -1, -1);
-            // haplotypes with i homozygous 00
-            HAP1[i] = '0';
-            P_data_H00 += fragment_ll(Flist, f, HAP1, i, -1);
-            // haplotypes with i homozygous 11
-            HAP1[i] = '1';
-            P_data_H11 += fragment_ll(Flist, f, HAP1, i, -1);
+
+            if (call_homozygous){
+                // haplotypes with i homozygous 00
+                HAP1[i] = '0';
+                P_data_H00 += fragment_ll(Flist, f, HAP1, i, -1);
+                // haplotypes with i homozygous 11
+                HAP1[i] = '1';
+                P_data_H11 += fragment_ll(Flist, f, HAP1, i, -1);
+            }
+
             //return haplotype to original value
             HAP1[i] = temp1;
         }
 
-        // denominator of posterior probabilities;
-        // sum of all 4 data probabilities times their priors
-        total = addlogs(
-                addlogs((log_het_prior + P_data_H), (log_het_prior + P_data_Hf)),
-                addlogs((log_hom_prior + P_data_H00), (log_hom_prior + P_data_H11)));
 
-        post_hap = log_het_prior + P_data_H - total;
-        post_hapf = log_het_prior + P_data_Hf - total;
-        post_00 = log_hom_prior + P_data_H00 - total;
-        post_11 = log_hom_prior + P_data_H11 - total;
 
-        // change the status of SNPs that are above/below threshold
-        if (post_00 > log10(threshold)){
-            snpfrag[i].prune_status = 2; // 2 specifies 00 homozygous
-            snpfrag[i].post_hap = post_00;
-        }else if (post_11 > log10(threshold)){
-            snpfrag[i].prune_status = 3; // 3 specifies 11 homozygous
-            snpfrag[i].post_hap = post_11;
-        }else if (post_hapf > log10(threshold)){
-            flip(HAP1[i]);                // SNP should be flipped
-            snpfrag[i].post_hap = post_hapf;
-        }else if (post_hap < log10(threshold)){
-            if (!REFHAP_HEURISTIC && !ERROR_ANALYSIS_MODE)
-                snpfrag[i].prune_status = 1; // remove the SNP entirely
-            snpfrag[i].post_hap = post_hap;
+        if (call_homozygous){
+
+            // get prior probabilities for homozygous and heterozygous genotypes
+            log_hom_prior = snpfrag[i].homozygous_prior;
+            log_het_prior = subtractlogs(log10(0.5), log_hom_prior);
+
+            // denominator of posterior probabilities;
+            // sum of all 4 data probabilities times their priors
+            total = addlogs(
+                    addlogs((log_het_prior + P_data_H), (log_het_prior + P_data_Hf)),
+                    addlogs((log_hom_prior + P_data_H00), (log_hom_prior + P_data_H11)));
+
+            post_hap = log_het_prior + P_data_H - total;
+            post_hapf = log_het_prior + P_data_Hf - total;
+            post_00 = log_hom_prior + P_data_H00 - total;
+            post_11 = log_hom_prior + P_data_H11 - total;
+
+            // change the status of SNPs that are above/below threshold
+            if (post_00 > log10(THRESHOLD)){
+                HAP1[i] = '0';
+                HAP2[i] = '0';
+                snpfrag[i].post_hap = post_00;
+            }else if (post_11 > log10(THRESHOLD)){
+                HAP1[i] = '1';
+                HAP2[i] = '1';
+                snpfrag[i].post_hap = post_11;
+            }else if (post_hapf > log10(THRESHOLD)){
+                flip(HAP1[i]);                // SNP should be flipped
+                snpfrag[i].post_hap = post_hapf;
+            }else if (post_hap < log10(THRESHOLD)){
+                snpfrag[i].post_hap = post_hap;
+            }
+        } else {
+
+            // get prior probabilities for homozygous and heterozygous genotypes
+            log_het_prior = log10(0.5);
+
+            total = addlogs((log_het_prior + P_data_H), (log_het_prior + P_data_Hf));
+
+            post_hap = log_het_prior + P_data_H - total;
+            post_hapf = log_het_prior + P_data_Hf - total;
+
+            // change the status of SNPs that are above/below threshold
+            if (post_hapf > log10(THRESHOLD)){
+                flip(HAP1[i]);                // SNP should be flipped
+                snpfrag[i].post_hap = post_hapf;
+            }else if (post_hap < log10(THRESHOLD)){
+                snpfrag[i].post_hap = post_hap;
+            }
         }
     }
 }
 
-// the refhap heuristic for pruning SNPs
-void refhap_heuristic(int snps, int fragments, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1) {
+// the discrete heuristic for pruning SNPs (introduced by RefHap, used by ProbHap)
+void discrete_pruning(int snps, int fragments, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1) {
     int i, j, f, k, snp_ix, frag_assign;
     float prob, prob2, p0, p1;
     int* good = (int*) malloc(snps*sizeof(int)); // good[i] is the number of frag bases consistent with phasing at SNP i
@@ -164,165 +184,11 @@ void refhap_heuristic(int snps, int fragments, struct fragment* Flist, struct SN
 
     for (i = 0; i < snps; i++){
 
-        if (good[i] == bad[i]){
-            snpfrag[i].pruned_refhap_heuristic = 1; // this isn't used to prune, just recorded.
+        snpfrag[i].pruned_discrete_heuristic = (int)(good[i] == bad[i]);
 
-            if (REFHAP_HEURISTIC)
-                snpfrag[i].prune_status = 1;
-        }else{
-            snpfrag[i].pruned_refhap_heuristic = 0;
-            if (REFHAP_HEURISTIC)
-                snpfrag[i].prune_status = 0;
-        }
     }
 
     free(good); free(bad);
-}
-
-// create an array of a random permutation of integers 1..size
-int* create_randperm(int size){
-    int* array = (int*) malloc(size * sizeof(int));
-    int i, swap_ix, temp;
-    for (i = 0; i < size; i++){
-        array[i] = i;
-    }
-    for (i = size-1; i > 0; i--){
-        swap_ix = (int)((double)rand() / ((double)RAND_MAX + 1) * i); //credit to http://c-faq.com/lib/randrange.html
-        temp = array[i];
-        array[i] = array[swap_ix];
-        array[swap_ix] = temp;
-    }
-    return array;
-}
-
-void improve_hap(char* HAP, struct BLOCK* clist, int components, int snps, int fragments, struct fragment* Flist, struct SNPfrags* snpfrag) {
-
-    int iter;
-    int i, j, f, c, s, a;
-    char temp1;
-    float P_data_H, P_data_Hf, P_data_Hsw, new_ll, old_ll;
-    int* randperm;
-    // get initial log likelihood
-    new_ll = 0;
-    for (i = 0; i < fragments; i++) {
-        new_ll += fragment_ll(Flist, i, HAP, -1, -1);
-    }
-    // iterate until convergence or 100 iters
-    for (iter = 0; iter < 100; iter++) {
-
-        for (c = 0; c < components; c++) {
-            // we want to consider snps in random order
-            randperm = create_randperm(clist[c].phased);
-            for (s = 0; s < clist[c].phased; s++) {
-                i = clist[c].slist[randperm[s]]; // i is the current SNP index being considered.
-
-                // skip ahead if positions aren't haplotyped
-                if (!(HAP[i] == '1' || HAP[i] == '0')) {
-                    continue;
-                }
-
-                // hold on to original haplotype values
-                temp1 = HAP[i];
-                // set probabilities to zero
-                P_data_H = 0; P_data_Hf = 0; P_data_Hsw = 0; // switch error at i
-
-                //looping over fragments overlapping i and sum up read probabilities
-                for (j = 0; j < clist[c].frags; j++) {
-
-                    //f = snpfrag[i].flist[j];
-                    f = clist[c].flist[j];
-                    // normal haplotypes
-                    P_data_H += fragment_ll(Flist, f, HAP, -1, -1);
-                    // haplotype with switch error starting at i
-                    P_data_Hsw += fragment_ll(Flist, f, HAP, -1, i);
-                    // haplotype with i flipped
-                    flip(HAP[i]);
-                    P_data_Hf += fragment_ll(Flist, f, HAP, -1, -1);
-                    //return haplotype to original value
-                    HAP[i] = temp1;
-                }
-
-                // flip the haplotype at this position if necessary
-                if (P_data_Hsw > P_data_H) {
-                    // block should be switched here
-                    if (randperm[s] > clist[c].phased/2){
-                        // it is less work to move forward and flip SNPs (starting with s)
-                        for (a = randperm[s]; a < clist[c].phased; a++) {
-                            j = clist[c].slist[a];
-                            // need to switch this position
-                            flip(HAP[i]);
-                        }
-                    }else{
-                        // it is less work to move backwards and flip all previous SNPs in block
-                        for (a = randperm[s]-1; a >= 0; a--) {
-                            j = clist[c].slist[a];
-                            // need to switch this position
-                            flip(HAP[i]);
-                        }
-                    }
-                }else if (P_data_Hf > P_data_H) {
-                    flip(HAP[i]);
-                }
-            }
-            free(randperm);
-        }
-
-        old_ll = new_ll;
-        new_ll = 0;
-        for (i = 0; i < fragments; i++) {
-            new_ll += fragment_ll(Flist, i, HAP, -1, -1);
-        }
-
-        if (new_ll <= old_ll) break;
-    }
-}
-
-// ideally we'd have a snpfrag field for which frags cross the snp, gaps or not.
-// then it would be valid to simply compute the posterior from those alone
-// and not the whole component.
-void split_blocks_old(char* HAP, struct BLOCK* clist, int components, struct fragment* Flist, struct SNPfrags* snpfrag) {
-    int i, j, f, c, s, blocks_since_split=0;
-    float P_data_H, P_data_Hsw, post_sw;
-
-    for (c = 0; c < components; c++) {
-        //post_sw_total = FLT_MIN;
-        blocks_since_split=0;
-        for (s = 0; s < clist[c].phased; s++) {
-
-            i = clist[c].slist[s]; // i is the current SNP index being considered
-            if (snpfrag[i].prune_status == 1 || HAP[i] == '-' || blocks_since_split < 3){
-                blocks_since_split++;
-                continue;
-            }// set probabilities to zero
-            P_data_H = 0;
-            P_data_Hsw = 0; // switch at i
-
-            //looping over fragments in component c and sum up read probabilities
-            for (j = 0; j < clist[c].frags; j++) {
-                // normal haplotype
-                f = clist[c].flist[j];
-                P_data_H += fragment_ll(Flist, f, HAP, -1, -1);
-                // haplotype with switch error starting at i
-                P_data_Hsw += fragment_ll(Flist, f, HAP, -1, i);
-            }
-            // posterior probability of no switch error
-            post_sw = P_data_Hsw - addlogs(P_data_H, P_data_Hsw);
-            //post_sw_total = addlogs(post_sw_total, post_sw);
-            snpfrag[i].post_notsw = subtractlogs(0,post_sw);
-            //snpfrag[i].post_notsw_total = subtractlogs(0,post_sw_total);
-            // flip the haplotype at this position if necessary
-            if (!ERROR_ANALYSIS_MODE){
-                if (snpfrag[i].post_notsw < log10(SPLIT_THRESHOLD)) {
-                    // block should be split here
-                    snpfrag[i].split = 1;
-                    blocks_since_split = 0;
-                    //post_sw_total = FLT_MIN;
-                }else{
-                    blocks_since_split++;
-                }
-            }
-        }
-    }
 }
 
 int split_block(char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, struct SNPfrags* snpfrag, int* components_ptr) {
@@ -389,16 +255,24 @@ int split_block(char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, s
 
 
 // estimate probabilities of h-trans to feed back into HapCUT algorithm
-int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struct SNPfrags* snpfrag, float* MLE_sum, float* MLE_count){
-    int j,k,f,bin,count, matches, joined, block;
+int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struct SNPfrags* snpfrag){
+    
+    float* MLE_sum   = calloc(HTRANS_MAXBINS,sizeof(float));
+    float* MLE_count = calloc(HTRANS_MAXBINS,sizeof(float));
+    float* p_htrans      = calloc(HTRANS_MAXBINS,sizeof(float));
+    float* adj_MLE_sum   = calloc(HTRANS_MAXBINS,sizeof(float));
+    float* adj_MLE_count = calloc(HTRANS_MAXBINS,sizeof(float));
+    
+    int i=0,j=0,k=0,f=0,bin;
+    int i_minus = 0, i_plus = 0;
+    int e_window_size = HTRANS_BINSIZE; //track the effective window size
+    
     // consistent counts, inconsistent counts
     int i1=-1, i2=-1;
     char a1='-', a2='-', h1='-', h2='-';
     float q1=0,q2=0;
     // count the number of consistent vs inconsistent for a given insert size bin
     for (f = 0; f < fragments; f++){
-
-        if (!Flist[f].use_for_htrans_est) continue;
 
         // consider mate pairs only
         if (Flist[f].mate2_ix == -1 || Flist[f].isize == -1){
@@ -415,36 +289,6 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
         if (bin >= HTRANS_MAXBINS){
             fprintf(stderr,"ERROR: bin greater than HTRANS_MAXBINS");
             exit(1);
-        }
-
-        // mark reads that aren't supported by the phase
-        count = 0;
-        matches = 0;
-        joined = 1;
-        block = -2;
-        if (HIC_STRICT_FILTER){
-            for (j=0; j<Flist[f].blocks; j++){
-                if (!joined) break;
-                for (k=0; k<Flist[f].list[j].len; k++){
-                    if (!((Flist[f].list[j].hap[k] == '1' || Flist[f].list[j].hap[k] == '0')
-                        &&(HAP[Flist[f].list[j].offset+k] == '1' || HAP[Flist[f].list[j].offset+k] == '0')))
-                        continue;
-                    if (block == -2){
-                        block = snpfrag[Flist[f].list[j].offset+k].bcomp;
-                    }else if (block != snpfrag[Flist[f].list[j].offset+k].bcomp){
-                        joined = 0;
-                        break;
-                    }
-
-                    count++;
-                    if (Flist[f].list[j].hap[k] == HAP[Flist[f].list[j].offset+k])
-                        matches++;
-                }
-            }
-
-            if ((!joined) || (count >= 2 && !(matches == 0 || matches == count))){
-                Flist[f].hic_strict_filtered = 1;
-            }
         }
 
         // keep things very simple by only sampling 1-snp mates
@@ -471,7 +315,7 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
         h2 = HAP[i2];
 
         if (h1 == '-' || h2 == '-'
-         || snpfrag[i1].prune_status == 1 || snpfrag[i2].prune_status == 1
+         || snpfrag[i1].post_hap < log10(HIC_EM_THRESHOLD)|| snpfrag[i2].post_hap < log10(HIC_EM_THRESHOLD)
          || (snpfrag[i1].bcomp != snpfrag[i2].bcomp)
          || (snpfrag[i1].bcomp == -1)
          || (snpfrag[i2].bcomp == -1)
@@ -495,17 +339,8 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
             MLE_sum[bin] += ((1-q1)*(1-q2) + q1*q2);
         }
     }
-    return 0;
-}
-
-// estimate probabilities of h-trans to feed back into HapCUT algorithm
-int combine_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struct SNPfrags* snpfrag, float* MLE_sum, float* MLE_count){
-    float* p_htrans      = calloc(HTRANS_MAXBINS,sizeof(float));
-    float* adj_MLE_sum   = calloc(HTRANS_MAXBINS,sizeof(float));
-    float* adj_MLE_count = calloc(HTRANS_MAXBINS,sizeof(float));
-    int i_minus = 0, i_plus = 0, i=0, j=0, f=0;
-    int e_window_size = HTRANS_BINSIZE; //track the effective window size
-
+    
+    
     for (i = 0; i < HTRANS_MAXBINS; i++){
         adj_MLE_count[i] = MLE_count[i];
         adj_MLE_sum[i] = MLE_sum[i];
@@ -513,7 +348,7 @@ int combine_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struc
         i_plus = i;
         e_window_size = HTRANS_BINSIZE; //track the effective window size
         for (j = 0; j< 100000; j++){
-            if (adj_MLE_count[i] >= HTRANS_MLE_COUNT_LOWBOUND) break;
+            if (adj_MLE_count[i] >= HTRANS_READ_LOWBOUND) break;
             i_minus--;
             i_plus++;
             if (i_minus >= 0){
@@ -526,7 +361,7 @@ int combine_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struc
                 adj_MLE_sum[i] += MLE_sum[i_plus];
                 e_window_size += HTRANS_BINSIZE;
             }
-            if (e_window_size >= MAX_WINDOW_SIZE) break; // cut off window expansion if it's larger than some amount
+            if (e_window_size >= HTRANS_MAX_WINDOW) break; // cut off window expansion if it's larger than some amount
         }
     }
 
@@ -558,8 +393,11 @@ int combine_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struc
         fclose(fp);
     }
 
+    free(MLE_sum);
+    free(MLE_count);
     free(adj_MLE_sum);
     free(adj_MLE_count);
-    free(p_htrans);
+    free(p_htrans);    
     return 0;
 }
+

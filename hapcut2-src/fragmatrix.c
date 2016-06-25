@@ -1,10 +1,7 @@
 #include "fragmatrix.h"
-//#include "printhaplotypes.c"
-#include "find_starting_haplotypes.c"
-#include "MECscore.c"
 
 extern int VERBOSE;
-
+extern int LONG_READS;
 //////////////////////////////////////// edge list is only used in the two functions below add_edges (Feb 4 2013) //////////////////////////////
 
 void label_node(struct SNPfrags* snpfrag, int node, int comp) // DFS search routine for connected component 
@@ -16,6 +13,12 @@ void label_node(struct SNPfrags* snpfrag, int node, int comp) // DFS search rout
         snpfrag[comp].csize++;
         for (i = 0; i < snpfrag[node].edges; i++) label_node(snpfrag, snpfrag[node].elist[i].snp, comp);
     }
+}
+
+int edge_compare(const void *a, const void *b) {
+    const struct edge *ia = (const struct edge*) a;
+    const struct edge *ib = (const struct edge*) b;
+    return ia->snp - ib->snp;
 }
 
 void add_edges_fosmids(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int* components) {
@@ -201,12 +204,9 @@ void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snp
     // find the first fragment whose endpoint lies at snp 'i' or beyond
     for (i = 0; i < snps; i++) {
         snpfrag[i].frags = 0;
-        snpfrag[i].ff = -1;
-        snpfrag[i].split = 0;
-        snpfrag[i].prune_status = 0;
         snpfrag[i].post_notsw = 0;
         snpfrag[i].post_hap = 0;
-        snpfrag[i].pruned_refhap_heuristic = 0;
+        snpfrag[i].pruned_discrete_heuristic = 0;
     }
     for (i = 0; i < fragments; i++) {
         j = Flist[i].list[0].offset;
@@ -233,7 +233,6 @@ void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snp
         snpfrag[i].csize = 1;
         snpfrag[i].frags = 0;
         snpfrag[i].edges = 0;
-        snpfrag[i].best_mec = 10000;
     }
    
     for (f = 0; f < fragments; f++) {
@@ -258,7 +257,7 @@ void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snp
             }
         }
 
-        if (FOSMIDS == 1) // long reads 
+        if (LONG_READS == 1) // long reads 
         {
             // 2 edges for every node in fragment ( 00000----0---[1]----10011 ) adjacent left and right
             for (j = 0; j < Flist[f].blocks; j++) {

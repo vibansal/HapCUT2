@@ -15,7 +15,6 @@ T=test
 # below is the path to CUnit directory, change if need be
 CUNIT=/usr/include/CUnit
 
-
 all: $(B)/extractHAIRS $(B)/extractFOSMID $(B)/HAPCUT2
 
 # if samtools makefile not present, then submodules have not yet been downloaded (init & updated)
@@ -46,15 +45,6 @@ $(B)/extractHAIRS: $(B)/bamread.o $(B)/hashtable.o $(B)/readvariant.o $(B)/readf
 $(B)/extractFOSMID: $(B)/bamread.o $(B)/hashtable.o $(B)/readvariant.o $(B)/readfasta.o $(B)/hapfragments.o $(H)/extracthairs.c $(H)/fosmidbam_hairs.c $(H)/print_clusters.c $(SAMTOOLS)/libbam.a $(HTSLIB)/libhts.a | $(B)
 	$(CC) -I$(SAMTOOLS) -I$(HTSLIB) -g $(B)/bamread.o $(B)/hapfragments.o $(B)/hashtable.o $(B)/readfasta.o $(B)/readvariant.o -o $(B)/extractFOSMID $(H)/extracthairs.c  -L$(SAMTOOLS) -L$(HTSLIB) -pthread -lhts -lbam -lm -lz
 
-#INDELCOUNTS: $(B)/bamread.o $(B)/hashtable.o $(B)/readvariant.o $(B)/readfasta.o $(B)/hapfragments.o $(H)/indelcounts.c | $(B)
-#	$(CC) -I$(SAMTOOLS) -g -O2 $(B)/bamread.o $(B)/hapfragments.o $(B)/hashtable.o $(B)/readfasta.o $(B)/readvariant.o -o $(B)/INDELCOUNTS $(H)/indelcounts.c -L$(SAMTOOLS) -lbam -lm -lz
-
-#(B)/calculateGLL: $(B)/bamread.o $(B)/hashtable.o $(B)/readvariant.o $(B)/readfasta.o $(B)/hapfragments.o $(H)/calculateGLL.c | $(B)
-#	$(CC) -I$(SAMTOOLS) -g -O2 $(B)/bamread.o $(B)/hapfragments.o $(B)/hashtable.o $(B)/readfasta.o $(B)/readvariant.o -o $(B)/calculateGLL $(H)/calculateGLL.c  -L$(SAMTOOLS) -lbam -lm -lz
-
-#(B)/PCR: $(B)/bamread.o $(B)/hashtable.o $(B)/readvariant.o $(B)/readfasta.o $(B)/hapfragments.o $(H)/calculateGLL.c | $(B)
-#	$(CC) -I$(SAMTOOLS) -g -O2 $(B)/bamread.o $(B)/hapfragments.o $(B)/hashtable.o $(B)/readfasta.o $(B)/readvariant.o -o $(B)/PCR $(H)/PCRdups.c  -L$(SAMTOOLS) -lbam -lm -lz
-
 $(B)/hapfragments.o: $(H)/hapfragments.c $(H)/hapfragments.h $(H)/readvariant.h | $(B)
 	$(CC) -c $(H)/hapfragments.c -o $(B)/hapfragments.o
 
@@ -75,7 +65,7 @@ $(B)/readfasta.o: $(H)/readfasta.c $(H)/readfasta.h | $(B)
 $(B)/HAPCUT2: $(B)/fragmatrix.o $(B)/readinputfiles.o $(B)/pointerheap.o $(X)/hapcut2.c $(X)/find_maxcut.c | $(B)
 	$(CC) $(B)/fragmatrix.o $(B)/readinputfiles.o $(B)/pointerheap.o -o $(B)/HAPCUT2 -lm $(X)/hapcut2.c
 
-$(B)/fragmatrix.o: $(X)/fragmatrix.h $(X)/fragmatrix.c $(X)/common.h $(X)/printhaplotypes.c $(X)/find_starting_haplotypes.c | $(B)
+$(B)/fragmatrix.o: $(X)/fragmatrix.h $(X)/fragmatrix.c $(X)/common.h $(X)/printhaplotypes.c | $(B)
 	$(CC) -c $(X)/fragmatrix.c -o $(B)/fragmatrix.o
 
 $(B)/readinputfiles.o: $(X)/readinputfiles.h $(X)/readinputfiles.c $(X)/common.h $(X)/fragmatrix.h | $(B)

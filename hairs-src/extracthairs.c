@@ -36,7 +36,7 @@ int VARIANTS = 0;
 int VCFformat = 0;
 int PARSEINDELS = 0;
 int SINGLEREADS = 0;
-int FOSMIDS = 0;
+int LONG_READS = 0;
 //int QVoffset = 33; declared in samread.h
 FILE* logfile;
 int PFLAG = 1;
@@ -253,7 +253,7 @@ int main(int argc, char** argv) {
         else if (strcmp(argv[i], "--maxfragments") == 0) MAXFRAG = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--noquality") == 0) MISSING_QV = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--triallelic") == 0) TRI_ALLELIC = atoi(argv[i + 1]);
-        else if (strcmp(argv[i], "--fosmids") == 0 || strcmp(argv[i], "--fosmid") == 0) FOSMIDS = 1;
+        else if (strcmp(argv[i], "--fosmids") == 0 || strcmp(argv[i], "--fosmid") == 0) LONG_READS = 1;
         else if (strcmp(argv[i], "--groupname") == 0) {
             GROUPNAME = (char*) malloc(1024);
             strcpy(GROUPNAME, argv[i + 1]);
@@ -317,23 +317,12 @@ int main(int argc, char** argv) {
     }
     if (readsorted == 0 && bamfiles > 0) {
         for (i = 0; i < bamfiles; i++) {
-            if (FOSMIDS == 0) parse_bamfile_sorted(bamfilelist[i], &ht, chromvars, varlist, reflist);
+            if (LONG_READS == 0) parse_bamfile_sorted(bamfilelist[i], &ht, chromvars, varlist, reflist);
             else parse_bamfile_fosmid(bamfilelist[i], &ht, chromvars, varlist, reflist); // fosmid pool bam file
         }
     }
     if (logfile != NULL) fclose(logfile);
     if (fragment_file != NULL && fragment_file != stdout) fclose(fragment_file);
 
-
-    // need to free up all memory before we exit the program
-    /*
-    int xor = pow(2,16)-1;
-    for (i=0;i<variants;i++)
-    {
-            //if (varlist[i].type ==0) continue;
-            if (varlist[i].genotype[0] == varlist[i].genotype[2]) continue;
-            fprintf(stdout,"variant %d %s %d %d %s %s %d:%d %d:%d \n",i+1,varlist[i].genotype,varlist[i].position-1,varlist[i].type,varlist[i].RA,varlist[i].AA,varlist[i].A1>>16,varlist[i].A1 & xor,varlist[i].A2>>16,varlist[i].A2 & xor);
-    }
-     */
     return 0;
 }

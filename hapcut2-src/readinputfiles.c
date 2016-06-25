@@ -2,6 +2,16 @@
 extern int HOMOZYGOUS_PRIOR;
 extern int NEW_FRAGFILE_FORMAT;
 
+int fragment_compare(const void *a, const void *b) {
+    const struct fragment *ia = (const struct fragment*) a;
+    const struct fragment *ib = (const struct fragment*) b;
+    if (ia->list[0].offset == ib->list[0].offset) {
+        return ia->list[ia->blocks - 1].offset + ia->list[ia->blocks - 1].len - ib->list[ib->blocks - 1].offset - ib->list[ib->blocks - 1].len;
+        //return ia->blocks - ib->blocks;
+    } else return ia->list[0].offset - ib->list[0].offset;
+}
+
+
 int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragments) {
     int i = 0, j = 0, k = 0, t = 0, t1 = 0;
     int blocks = 0, type = 0, l = 0, biter = 0, offset = 0,dtype=0,isize = 0;
@@ -21,7 +31,6 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
         //		fprintf(stdout,"%s \n",buffer);
         Flist[i].data_type = 0; // default data type
         Flist[i].htrans_prob = -80;
-        Flist[i].hic_strict_filtered = 0;
         j = 0;
         ch = fgetc(ff);
         while (ch != '\n') {
@@ -91,14 +100,7 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
                 Flist[i].list[biter].p1 = (float*) malloc(sizeof (float)*Flist[i].list[biter].len);
 
                 for (l = 0; l < t; l++) Flist[i].list[biter].hap[l] = blockseq[l];
-                //for (l=0;l<t;l++) Flist[i].list[biter].pv[l] = 0.005; for (l=0;l<t;l++) Flist[i].list[biter].qv[l] = 'A';
 
-                //for (l=0;l<t;l+=2) Flist[i].list[biter].qv[l/2] = blockseq[l+1];
-                //for (l=0;l<t;l+=2) Flist[i].list[biter].pv[l/2] = pow(0.1,(float)(blockseq[l+1]-QVoffset)/10); 
-                //for (t1=0;t1<Flist[i].list[biter].len;t1++) Flist[i].list[biter].pv[t1] = 0.01;
-
-                //Flist[i].list[biter].post = (float*)malloc(sizeof(float)*Flist[i].list[biter].len); // how many times it matches 
-                //for (t1=0;t1<Flist[i].list[biter].len;t1++) Flist[i].list[biter].post[t1] =0;
                 type = 2;
                 biter++;
             } else if (type == 4){
@@ -142,9 +144,7 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
     }
     fclose(ff);
     qsort(Flist, fragments, sizeof (struct fragment), fragment_compare);
-    //for (i=0;i<fragments;i++)  fprintf(stdout,"fragment %d blocks %d offset %d\n",i,Flist[i].blocks,Flist[i].list[0].offset);
-    /****************************** READ FRAGMENT QUALITY FILE*************************************************/
-    //	ff = fopen(qualityfile,"r"); if (ff == NULL || QV == -1) fprintf(stderr,"couldn't open fragment QV file \n");
+
     return fragments;
 }
 
@@ -308,39 +308,6 @@ int count_variants(char* variantfile) {
     return snps;
 }
 
-int read_variantfile(char* variantfile, struct SNPfrags* snpfrag, int snps) {
-    // more ../../../Haplotype-assembly/Dec8hairs/NA18507.variants.sorted.chr6 | awk 'BEGIN {i =1; } {split($6,g,"/"); if (g[1] != g[2]) {print $1"_"i,$2,$3,$4,$5,$6,$7; i++;} }' > NA18507.chr6.hetvariants.inputforhapcut
-    // read initial variant file in format:  vartype varid chrom position allele1 allele2 genotype score 
-    // the number of lines in this file should be === snps unless we want to allow homozygous variants in this file 
-    // the samfile parser can also read this same file for extracting the fragment matrix 
-    int i = 0;
-    char varid[256];
-    char chromosome[256];
-    char allele0[256];
-    char allele1[256];
-    char genotype[64];
-    int score;
-    // need to allocate memory for variables id, chromosome, allele0, allele1 
-    FILE* sf = fopen(variantfile, "r");
-    for (i = 0; i < snps; i++) {
-        fscanf(sf, "%s %s %d %s %s %s %d \n", varid, chromosome, &snpfrag[i].position, allele0, allele1, genotype, &score);
-        snpfrag[i].id = (char*) malloc(strlen(varid));
-        strcpy(snpfrag[i].id, varid);
-        snpfrag[i].chromosome = (char*) malloc(strlen(chromosome));
-        strcpy(snpfrag[i].chromosome, chromosome);
-        snpfrag[i].allele0 = (char*) malloc(strlen(allele0));
-        strcpy(snpfrag[i].allele0, allele0);
-        snpfrag[i].allele1 = (char*) malloc(strlen(allele1));
-        strcpy(snpfrag[i].allele1, allele1);
-        snpfrag[i].genotypes = (char*) malloc(strlen(genotype));
-        strcpy(snpfrag[i].genotypes, genotype);
-    }
-    //	for (i=0;i<snps;i++) fscanf(sf,"%s %s %d %s %s %s %d \n",snpfrag[i].id,snpfrag[i].chromosome,&snpfrag[i].position,snpfrag[i].allele0,snpfrag[i].allele1,genotype,&score);
-    fprintf(stderr, "read variants from variantfile %s \n", variantfile);
-    fclose(sf); // bug fixed feb 1 2012 
-    return 1;
-}
-
 int read_haplotypefile(char* hapfile, struct SNPfrags* snpfrag, int snps, char* HAP1, char* initHAP, int* bn) {
     /****************************** READ HAPLOTYPE SOLUTION*************************************************/
     int i = 0, j = 0;
@@ -381,7 +348,6 @@ int read_haplotypefile(char* hapfile, struct SNPfrags* snpfrag, int snps, char* 
                     HAP1[offset + i - 1] = c1;
                     bn[offset + i - 1] = offset;
                     initHAP[offset + i - 1] = c1;
-                    snpfrag[offset + i - 1].blockno = j;
                 }
                 strcpy(snpfrag[offset + i - 1].id, id); // IMPORTANT copy SNP id from haplotype solution to SNP ID 
                 // offset is the id of each block since it is supposed to be unique  

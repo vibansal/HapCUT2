@@ -21,7 +21,7 @@ float cut_score(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* 
     float oldLL = 0, newLL = 0;
     float scores[4];   // normal scores
     float htscores[4]; // h-trans scores
-    float Ln, fL, chimeric_ll, Ln_htrans;
+    float Ln, fL, Ln_htrans;
     // use the 4 values fragment.scores[] to calculate the likelihoods
     for (i = 0; i < component->frags; i++) {
         f = component->flist[i];
@@ -35,14 +35,13 @@ float cut_score(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* 
             Ln = addlogs(Ln+subtractlogs(0,Flist[f].htrans_prob), Ln_htrans+Flist[f].htrans_prob);
         }
 
-        calculate_fragscore(Flist, f, hap, &fL, &chimeric_ll);
+        calculate_fragscore(Flist, f, hap, &fL);
         oldLL += fL; // ready to go with h-trans calculations
         newLL += Ln;
 
     }
-    if (newLL > oldLL && DEBUG) fprintf(stderr, "component %d old %f new %f %f \n", component->phased, oldLL, newLL, component->MEC);
-    if (DEBUG) fprintf(stdout, "FRAG component %d old %f new %f %f \n\n", component->phased, oldLL, newLL, component->MEC);
-    //fprintf(stderr,"component %d current LL %f oldLL %f newLL %f \n",component->phased,component->LL,oldLL,newLL);
+    if (newLL > oldLL && DEBUG) fprintf(stderr, "component %d old %f new %f %f \n", component->phased, oldLL, newLL, component->SCORE);
+    if (DEBUG) fprintf(stdout, "FRAG component %d old %f new %f %f \n\n", component->phased, oldLL, newLL, component->SCORE);
     return oldLL - newLL;
 }
 

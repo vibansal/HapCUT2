@@ -1,115 +1,90 @@
 
 #include "common.h"
 // THIS FUNCTION PRINTS THE CURRENT HAPLOTYPE ASSEMBLY in a new file block by block
+extern int DISCRETE_PRUNING;
+extern int ERROR_ANALYSIS_MODE;
+extern float THRESHOLD;
 
 void print_hapcut_options() {
-    fprintf(stdout, "\nHAPCUT: haplotype assembly using cut computations, last updated 09/11/13 \n\n");
-    fprintf(stdout, "USAGE : ./HAPCUT --fragments fragment_file --VCF variantcalls.vcf --output haplotype_output_file > hapcut.log\n\n");
-    fprintf(stderr, "=============== PROGRAM OPTIONS ======================================== \n\n");
-    fprintf(stderr, "--fragments <FILENAME>: file with haplotype-informative reads generated using the extracthairs program\n");
-    //fprintf(stderr,"--variants : variant file in hapCUT format (same file as used for extracthairs)\n");
-    fprintf(stderr, "--VCF <FILENAME>: variant file in VCF format (use EXACT SAME file that was used for the extracthairs program)\n");
-    fprintf(stderr, "--output <FILENAME> : file to which phased haplotype segments/blocks will be output | the program will write best current haplotypes to this file after every 10 iterations\n");
-    fprintf(stderr, "--maxiter <int> : maximum number of global iterations for HAPCUT, default is 100\n");
-    fprintf(stderr, "--converge <int>: cut off iterations for a block if no improvement after this many iterations\n");
-    fprintf(stderr, "--threshold, --t <float>: posterior probability cutoff for pruning SNPs (closer to 1 prunes a lot, closer to 0.5 prunes few. default: 0.8)\n");
-    fprintf(stderr, "--new_format, --nf <0/1>: use new fragment matrix file format for HiC where col 3 is data type, col 4 is index of mate 2, col 5 is absolute insert size\n");
-    fprintf(stderr, "--split_threshold, --st <float>: posterior probability cutoff for splitting blocks (closer to 1 splits many blocks, closer to 0.5 splits few. default: 0.99)\n");
-    fprintf(stderr, "--splitblocks <0/1>: split blocks using simple log-likelihood score to reduce switch errors\n");
-    fprintf(stderr, "--splitblocks_maxcut <0/1>: split blocks using extra maxcut computations (NOT RECOMMENDED)\n");
-    fprintf(stderr, "--refhap_heuristic, --rh <0/1>: use refhap's discrete heuristic to prune SNPs rather than HapCUT's log-likelihood based strategy (not recommended unless read quality scores are very inaccurate)\n");
-    fprintf(stderr, "--verbose, --v <0/1>: Verbose mode: print extra information to stdout and stderr.\n");
-    fprintf(stderr, "--error_analysis_mode, --ea <0/1>: for analyzing switch errors/mismatches. print posterior probability of errors to file but don't split blocks or prune. (needless slowdown)\n");
-    fprintf(stderr, "--MEC <0/1>: (NOT RECOMMENDED) Use old MEC-based method rather than Log-likelihood based.\n");
-    fprintf(stderr, "--qvoffset <33/48/64> : quality value offset for base quality scores, default is 33 (use same value as for extracthairs)\n");
-    fprintf(stderr, "--maxcutiter <int> : maximum number of iterations to find max cut for each haplotype block in a given iteration, default value is 100 | if this is set to -1, the number of iterations = N/10 where N is the number of nodes in the block\n");
-    fprintf(stderr, "--longreads <0/1> : set to 1 for phasing long read data if program uses too much memory, default is 0\n");
-    //fprintf(stderr,"--fosmids <0/1> : set to 1 for phasing fosmid pooled sequencing data, default is 0\n");
-    //fprintf(stderr, "--sf <0/1> : scoring function for comparing reads against haplotypes: default is 0 (MEC score), set to 1 (switch error rate) for fosmid data\n");
+    fprintf(stdout, "\nHapCUT2: robust and accurate haplotype assembly for diverse sequencing technologies\n\n");
+    fprintf(stdout, "USAGE : ./HAPCUT2 --fragments fragment_file --vcf variantcalls.vcf --output haplotype_output_file\n\n");
+    fprintf(stderr, "Basic Options:\n");
+    fprintf(stderr, "--fragments, --f <FILENAME>:        file with haplotype-informative reads generated using the extracthairs program\n");
+    fprintf(stderr, "--vcf <FILENAME>:                   variant file in VCF format (use EXACT SAME file that was used for the extracthairs program)\n");
+    fprintf(stderr, "--output, --o <FILENAME> :          file to which phased haplotype segments/blocks will be output\n");
+    fprintf(stderr, "--converge, --c <int>:              cut off iterations (global or maxcut) after this many iterations with no improvement. default: 5\n");
+    fprintf(stderr, "--verbose, --v <0/1>:               verbose mode: print extra information to stdout and stderr. default: 0\n");
+    
+    fprintf(stderr, "\nRead Technology Options:\n");
+    fprintf(stderr, "--hic <0/1> :                       increases accuracy on HiC data; models h-trans errors directly from the data. default: 0\n");
+    fprintf(stderr, "--long_reads, --lr <0/1> :          set to 1 to reduce memory when phasing long read data with many SNPs per read, default is 0\n");
+    fprintf(stderr, "--qv_offset, --qo <33/48/64> :      quality value offset for base quality scores, default: 33 (use same value as for extracthairs)\n");
+    fprintf(stderr, "--hic_htrans_file, --hf <FILENAME>  optional tab-delimited input file where second column specifies h-trans error probabilities for insert size bins 0-50Kb, 50Kb-100Kb, etc.\n");
 
-    fprintf(stderr, "\nHi-C Specific Options:\n");
-    fprintf(stderr, "--HiC_htrans_file, --htrans <FILENAME> file where the second column specifies h-trans probabilities for insert size bins 0-50Kb, 50Kb-100Kb, etc.\n");
-    fprintf(stderr, "--htrans_folds, --hf <int> number of folds k to use for estimating H-trans interaction probabilities and filtering suspicious HiC reads (choose a large enough value that you'd expect a good assembly using a (k-1)/k sample of all reads!\n");
-    fprintf(stderr, "--htrans_strict_filter, --hs <int> (if --hf greater than 1) filter out any HiC read that doesn't perfectly match the phasing when it is held out.\n");
-    fprintf(stderr, "--htrans_data_outfile <FILENAME> output estimated htrans distribution to this file\n");
-    fprintf(stderr, "--htrans_MLE_count_lowbound <0/1> minimum number of fragments to estimate P(htrans) at a given insert size.\n");
-    fprintf(stderr, "  HiC Notes:");
-    fprintf(stderr, "  (1) use the --HiC option in extracthairs, or a large value for the maxIS option");
-    fprintf(stderr, "  (2) set --converge to at least 5, --maxcutiter to 100 \n ");
-    fprintf(stderr, "  (3) use --htrans_EM if P(htrans) unknown, otherwise use --HiC_htrans_file\n ");
-    fprintf(stderr, "\n");
+    fprintf(stderr, "\nHaplotype Post-Processing Options:\n");
+    fprintf(stderr, "--threshold, --t <float>:           threshold for pruning low-confidence SNPs (closer to 1 prunes more, closer to 0.5 prunes less). default: 0.8\n");
+    fprintf(stderr, "--split_blocks, --sb <0/1>:         split blocks using simple likelihood score to reduce switch errors. default: 0\n");
+    fprintf(stderr, "--split_threshold, --st <float>:    threshold for splitting blocks (closer to 1 splits more, closer to 0.5 splits less). default: 0.8\n");
+    fprintf(stderr, "--call_homozygous, --ch <0/1>:      call positions as homozygous if they appear to be false heterozygotes. default: 0\n");
+    fprintf(stderr, "--discrete_pruning, --dp <0/1>:     use discrete heuristic to prune SNPs. default: 0\n");
+    fprintf(stderr, "--error_analysis_mode, --ea <0/1>:  print confidence scores to haplotype file but don't split blocks or prune. default: 0\n");
+        
+    fprintf(stderr, "\nAdvanced Options:\n");
+    fprintf(stderr, "--new_format, --nf <0/1>:           use new HiC fragment matrix file format (but don't do h-trans error modeling). default: 0\n");
+    fprintf(stderr, "--max_iter, --mi <int> :            maximum number of global iterations. Preferable to tweak --converge option instead. default: 10000\n");
+    fprintf(stderr, "--maxcut_iter, --mc <int> :         maximum number of max-likelihood-cut iterations. Preferable to tweak --converge option instead. default: 10000\n");
+    fprintf(stderr, "--htrans_read_lowbound, --hrl <int> with --HiC on, h-trans probability estimation will require this many matepairs per window. default: 500\n");
+    fprintf(stderr, "--htrans_max_window, --hmw <int>    with --HiC on, the insert-size window for h-trans probability estimation will not expand larger than this many basepairs. default: 4000000\n");
 
-    fprintf(stderr, "  *For phasing fosmid data or synthetic long read data, use the options \"--fosmids 1 --sf 1\"\n");
-
+    fprintf(stderr, "\n\nHiC-specific Notes:\n");
+    fprintf(stderr, "  (1) When running extractHAIRS, must use --HiC 1 option to create a fragment matrix in the new HiC format.\n");
+    fprintf(stderr, "  (2) When running HapCUT2, use --HiC 1 if h-trans probabilities are unknown. Use --HiC_htrans_file if they are known\n");
+    fprintf(stderr, "  (3) Using --HiC_htrans_file is faster than --HiC and may yield better results at low read coverage (>30x).\n");
+    fprintf(stderr, "  (4) Set --converge to a larger value if possible/reasonable.\n ");
     fprintf(stderr, "\n");
 
 }
 
-int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* fname, int score, char* outfile) {
+int print_hapfile(struct BLOCK* clist, int blocks, char* h1, char* h2, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* fname, int score, char* outfile) {
     // print a new file containing one block phasing and the corresponding fragments
     int i = 0, t = 0, k = 0, span = 0;
-    char c=0, c1=0, c2=0;
+    char c1=0, c2=0;
     //char fn[200]; sprintf(fn,"%s-%d.phase",fname,score);
     FILE* fp;
     fp = fopen(outfile, "w");
-    float delta = 0;
 
     for (i = 0; i < blocks; i++) {
         span = snpfrag[clist[i].lastvar].position - snpfrag[clist[i].offset].position;
         fprintf(fp, "BLOCK: offset: %d len: %d phased: %d ", clist[i].offset + 1, clist[i].length, clist[i].phased);
-        fprintf(fp, "SPAN: %d MECscore %2.2f fragments %d\n", span, clist[i].bestMEC, clist[i].frags);
+        fprintf(fp, "SPAN: %d fragments %d\n", span, clist[i].frags);
         for (k = 0; k < clist[i].phased; k++) {
 
-            t = clist[i].slist[k];
-            //fprintf(fp,"frags %d | ",snpfrag[t].frags);
-            //if (clist[i].haplotype[k] =='-') fprintf(fp,"%s_%s_%d_%s_%s_%s\t%10c\t%10c\n",snpfrag[t].id,snpfrag[t].chromosome,snpfrag[t].position,snpfrag[t].allele0,snpfrag[t].allele1,snpfrag[t].genotypes,'-','-');
-            // changed code here to use the component
-            //if (snpfrag[clist[i].offset+k].component == snpfrag[clist[i].offset].component)	fprintf(fp,"%d\t%c\t%c\t%s\t%d\t%s\t%s\t%s\n",t+1,'-','-',snpfrag[t].chromosome,snpfrag[t].position,snpfrag[t].allele0,snpfrag[t].allele1,snpfrag[t].genotypes);
-            //if (snpfrag[clist[i].offset+k].component == snpfrag[clist[i].offset].component)
-            {
-                if (h1[t] == '0') c = '1';
-                else if (h1[t] == '1') c = '0';
-                delta = snpfrag[t].L00 - snpfrag[t].L01;
-                if (snpfrag[t].L11 - snpfrag[t].L01 > delta) delta = snpfrag[t].L11 - snpfrag[t].L01;
-                // print this line to keep consistency with old format
-                // if SNP was pruned then print '-'s
-                if (snpfrag[t].prune_status == 1)
-                    fprintf(fp, "%d\t-\t-\t", t + 1);
-                else if (snpfrag[t].prune_status == 2)
-                    fprintf(fp, "%d\t0\t0\t", t + 1);
-                else if (snpfrag[t].prune_status == 3)
-                    fprintf(fp, "%d\t1\t1\t", t + 1);
-                else {
-                    if (snpfrag[t].genotypes[0] == '2' || snpfrag[t].genotypes[2] == '2') {
-                        //fprintf(stderr,"tri-allelic variant %d:%d %s \n",t,snpfrag[t].position,snpfrag[t].genotypes);
-                        if (h1[t] == '0') {
-                            c1 = snpfrag[t].genotypes[0];
-                            c2 = snpfrag[t].genotypes[2];
-                        } else if (h1[t] == '1') {
-                            c2 = snpfrag[t].genotypes[0];
-                            c1 = snpfrag[t].genotypes[2];
-                        }
-                        fprintf(fp, "%d\t%c\t%c\t", t + 1, c1, c2); // two alleles that are phased in VCF like format
-                    } else {
-                        fprintf(fp, "%d\t%c\t%c\t", t + 1, h1[t], c);
+            t = clist[i].slist[k]; 
+
+            // print this line to keep consistency with old format
+            // if SNP was pruned then print '-'s
+            if ((!ERROR_ANALYSIS_MODE)
+                &&((snpfrag[t].post_hap < log10(THRESHOLD) && !DISCRETE_PRUNING)
+                ||(snpfrag[t].pruned_discrete_heuristic && DISCRETE_PRUNING))){       
+                fprintf(fp, "%d\t-\t-\t", t + 1);
+            }else {
+                if (snpfrag[t].genotypes[0] == '2' || snpfrag[t].genotypes[2] == '2') {
+
+                    if (h1[t] == '0') {
+                        c1 = snpfrag[t].genotypes[0];
+                        c2 = snpfrag[t].genotypes[2];
+                    } else if (h1[t] == '1') {
+                        c2 = snpfrag[t].genotypes[0];
+                        c1 = snpfrag[t].genotypes[2];
                     }
+                    fprintf(fp, "%d\t%c\t%c\t", t + 1, c1, c2); // two alleles that are phased in VCF like format
+                } else {
+                    fprintf(fp, "%d\t%c\t%c\t", t + 1, h1[t], h2[t]);
                 }
-
-                // changed 07/20/2015, last value is likelihood of current phase vs flip 0|1 -> 1|0
-                //fprintf(fp, "%s\t%d\t%s\t%s\t%s\t%d,%d:%0.1f,%0.1f,%0.1f:%0.1f:%0.1f:%0.2f", snpfrag[t].chromosome, snpfrag[t].position, snpfrag[t].allele0, snpfrag[t].allele1, snpfrag[t].genotypes, snpfrag[t].R0, snpfrag[t].R1, snpfrag[t].L00, snpfrag[t].L01, snpfrag[t].L11, delta, snpfrag[t].rMEC, snpfrag[t].L01 - snpfrag[t].L10);
-                fprintf(fp, "%s\t%d\t%s\t%s\t%s\t", snpfrag[t].chromosome, snpfrag[t].position, snpfrag[t].allele0, snpfrag[t].allele1, snpfrag[t].genotypes);
-                //if (delta >= 3 && snpfrag[t].rMEC >= 2) fprintf(fp, ":FV");
-
-                //if (ERROR_ANALYSIS_MODE)
-                fprintf(fp, "%d\t%0.6f\t%0.6f", snpfrag[t].pruned_refhap_heuristic, snpfrag[t].post_notsw, snpfrag[t].post_hap);
-
-                // print genotype read counts and likelihoods
-                //if (snpfrag[t].G00 < 0 || snpfrag[t].G01 < 0 || snpfrag[t].G11 < 0) fprintf(fp, "\t%d,%d:%0.1f,%0.1f,%0.1f\n", snpfrag[t].A0, snpfrag[t].A1, snpfrag[t].G00, snpfrag[t].G01, snpfrag[t].G11);
-                //else
-                fprintf(fp, "\n");
-                //fprintf(fp,"%s_%s_%d_%s_%s_%s\t%10c\t%10c\tDELTA:%f\n",snpfrag[t].id,snpfrag[t].chromosome,snpfrag[t].position,snpfrag[t].allele0,snpfrag[t].allele1,snpfrag[t].genotypes,h1[t],c,snpfrag[t].deltaLL);
-                //fprintf(fp,"%s\t%c\t%c \n",snpfrag[t].id,h1[t],c);
             }
+
+            fprintf(fp, "%s\t%d\t%s\t%s\t%s\t%d\t%0.6f\t%0.6f\n", snpfrag[t].chromosome, snpfrag[t].position, snpfrag[t].allele0, snpfrag[t].allele1, snpfrag[t].genotypes, snpfrag[t].pruned_discrete_heuristic, snpfrag[t].post_notsw, snpfrag[t].post_hap);
+
         }
         if (i < blocks - 1) fprintf(fp, "******** \n");
     }
@@ -117,7 +92,6 @@ int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
     return 1;
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // important NOTE: to get from SNP i to its component in 'clist', we have variable snpfrag[i].bcomp, feb 1 2012
 
 void print_haplotypes_vcf(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, char* outfile) {
@@ -146,7 +120,7 @@ void print_haplotypes_vcf(struct BLOCK* clist, int blocks, char* h1, struct frag
                 }
                 span = snpfrag[clist[k].lastvar].position - snpfrag[clist[k].offset].position;
                 fprintf(fp, "SP:%c|%c:%d ", c1, c2, clist[k].offset + 1);
-                fprintf(fp, "BLOCKlength: %d phased %d SPAN: %d MECscore %2.2f fragments %d\n", clist[k].length, clist[k].phased, span, clist[k].bestMEC, clist[k].frags);
+                fprintf(fp, "BLOCKlength: %d phased %d SPAN: %d MECscore %2.2f fragments %d\n", clist[k].length, clist[k].phased, span, clist[k].bestSCORE, clist[k].frags);
             } else {
                 if (h1[i] == '0') {
                     c1 = '0';
