@@ -258,6 +258,7 @@ float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, struct BL
     int wf = 0; //if (drand48() < 0.5) wf=1;
     float W = 0;
     int N = component->phased;
+    int iters_since_improved_cut = 0;
 
     /* CODE TO set up the read-haplotype consistency graph */
     for (i = 0; i < N; i++) {
@@ -431,14 +432,14 @@ float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, struct BL
         {
             snp_add = pheap.elements[0];
             premovemax(&pheap, snpfrag, slist);
- 
+
             fixheap = 0;
             //if (N < 30) fprintf(stdout,"standard best score %f snp %d %d V %d\n",snpfrag[slist[snp_add]].score,snp_add,slist[snp_add],V);
             if (snpfrag[slist[snp_add]].score > 0) snpfrag[slist[snp_add]].parent = startnode;
             else if (snpfrag[slist[snp_add]].score < 0) {
                 if (secondnode < 0) {
                     secondnode = slist[snp_add];
-              
+
                     //fprintf(stderr,"secondnode found %d %f V %d N %d\n",secondnode,snpfrag[slist[snp_add]].score,V,N);
                 }
 
@@ -500,9 +501,12 @@ float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, struct BL
                 if (snpfrag[slist[i]].parent == 1) bestmincut[i] = '1';
                 else bestmincut[i] = '0';
             }
+        }else{
+            iters_since_improved_cut++;
         }
-        //exit(0);
-
+        if (iters_since_improved_cut > CONVERGE){
+            break;
+        }
     }
 
     for (i = 0; i < N; i++) {

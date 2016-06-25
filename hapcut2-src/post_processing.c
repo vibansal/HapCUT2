@@ -17,7 +17,7 @@ extern int HTRANS_MLE_COUNT_LOWBOUND;
 extern char HTRANS_DATA_OUTFILE[10000];
 extern int MAX_WINDOW_SIZE;
 extern int HIC_STRICT_FILTER;
-
+extern int ALLOW_HOMOZYGOUS;
 // sets snpfrag[i].prune_status:
 // 0 indicates not pruned
 // 1 indicates pruned (leave unphased in output)
@@ -42,10 +42,6 @@ void prune_snps(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char
 
     for (i = 0; i < snps; i++) {
 
-        // get prior probabilities for homozygous and heterozygous genotypes
-        log_hom_prior = snpfrag[i].homozygous_prior;
-        log_het_prior = subtractlogs(log10(0.5), log_hom_prior);
-
         // we only care about positions that are haplotyped
         if (!(HAP1[i] == '1' || HAP1[i] == '0')) continue;
 
@@ -67,43 +63,71 @@ void prune_snps(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char
             // haplotypes with i flipped
             flip(HAP1[i]);
             P_data_Hf += fragment_ll(Flist, f, HAP1, -1, -1);
-            // haplotypes with i homozygous 00
-            HAP1[i] = '0';
-            P_data_H00 += fragment_ll(Flist, f, HAP1, i, -1);
-            // haplotypes with i homozygous 11
-            HAP1[i] = '1';
-            P_data_H11 += fragment_ll(Flist, f, HAP1, i, -1);
+
+            if (ALLOW_HOMOZYGOUS){
+                // haplotypes with i homozygous 00
+                HAP1[i] = '0';
+                P_data_H00 += fragment_ll(Flist, f, HAP1, i, -1);
+                // haplotypes with i homozygous 11
+                HAP1[i] = '1';
+                P_data_H11 += fragment_ll(Flist, f, HAP1, i, -1);
+            }
+            
             //return haplotype to original value
             HAP1[i] = temp1;
         }
 
         // denominator of posterior probabilities;
         // sum of all 4 data probabilities times their priors
-        total = addlogs(
-                addlogs((log_het_prior + P_data_H), (log_het_prior + P_data_Hf)),
-                addlogs((log_hom_prior + P_data_H00), (log_hom_prior + P_data_H11)));
+        if (ALLOW_HOMOZYGOUS){
 
-        post_hap = log_het_prior + P_data_H - total;
-        post_hapf = log_het_prior + P_data_Hf - total;
-        post_00 = log_hom_prior + P_data_H00 - total;
-        post_11 = log_hom_prior + P_data_H11 - total;
+            // get prior probabilities for homozygous and heterozygous genotypes
+            log_hom_prior = snpfrag[i].homozygous_prior;
+            log_het_prior = subtractlogs(log10(0.5), log_hom_prior);
 
-        // change the status of SNPs that are above/below threshold
-        if (post_00 > log10(threshold)){
-            //snpfrag[i].prune_status = 2; // 2 specifies 00 homozygous
-            snpfrag[i].prune_status = 1;
-            snpfrag[i].post_hap = post_00;
-        }else if (post_11 > log10(threshold)){
-            //snpfrag[i].prune_status = 3; // 3 specifies 11 homozygous
-            snpfrag[i].prune_status = 1;
-            snpfrag[i].post_hap = post_11;
-        }else if (post_hapf > log10(threshold)){
-            flip(HAP1[i]);                // SNP should be flipped
-            snpfrag[i].post_hap = post_hapf;
-        }else if (post_hap < log10(threshold)){
-            if (!REFHAP_HEURISTIC && !ERROR_ANALYSIS_MODE)
-                snpfrag[i].prune_status = 1; // remove the SNP entirely
-            snpfrag[i].post_hap = post_hap;
+            total = addlogs(
+                    addlogs((log_het_prior + P_data_H), (log_het_prior + P_data_Hf)),
+                    addlogs((log_hom_prior + P_data_H00), (log_hom_prior + P_data_H11)));
+
+            post_hap = log_het_prior + P_data_H - total;
+            post_hapf = log_het_prior + P_data_Hf - total;
+            post_00 = log_hom_prior + P_data_H00 - total;
+            post_11 = log_hom_prior + P_data_H11 - total;
+
+            // change the status of SNPs that are above/below threshold
+            if (post_00 > log10(threshold)){
+                snpfrag[i].prune_status = 2; // 2 specifies 00 homozygous
+                snpfrag[i].post_hap = post_00;
+            }else if (post_11 > log10(threshold)){
+                snpfrag[i].prune_status = 3; // 3 specifies 11 homozygous
+                snpfrag[i].post_hap = post_11;
+            }else if (post_hapf > log10(threshold)){
+                flip(HAP1[i]);                // SNP should be flipped
+                snpfrag[i].post_hap = post_hapf;
+            }else if (post_hap < log10(threshold)){
+                if (!REFHAP_HEURISTIC && !ERROR_ANALYSIS_MODE)
+                    snpfrag[i].prune_status = 1; // remove the SNP entirely
+                snpfrag[i].post_hap = post_hap;
+            }
+        } else {
+
+            // get prior probabilities for homozygous and heterozygous genotypes
+            log_het_prior = log10(0.5);
+
+            total = addlogs((log_het_prior + P_data_H), (log_het_prior + P_data_Hf));
+
+            post_hap = log_het_prior + P_data_H - total;
+            post_hapf = log_het_prior + P_data_Hf - total;
+
+            // change the status of SNPs that are above/below threshold
+            if (post_hapf > log10(threshold)){
+                flip(HAP1[i]);                // SNP should be flipped
+                snpfrag[i].post_hap = post_hapf;
+            }else if (post_hap < log10(threshold)){
+                if (!REFHAP_HEURISTIC && !ERROR_ANALYSIS_MODE)
+                    snpfrag[i].prune_status = 1; // remove the SNP entirely
+                snpfrag[i].post_hap = post_hap;
+            }
         }
     }
 }

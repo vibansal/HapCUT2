@@ -41,6 +41,7 @@ int HIC = 0;
 int SCORING_FUNCTION = 5; // 0 = MEC score, 1 = switches
 float THRESHOLD = 0.8;
 float SPLIT_THRESHOLD = 0.8;
+int ALLOW_HOMOZYGOUS = 0;
 float HOMOZYGOUS_PRIOR = -80; // in log form. assumed to be really unlikely
 int PRINT_FRAGMENT_SCORES = 0; // output the MEC/switch error score of erroneous reads/fragments to a file for evaluation
 int MAX_MEMORY = 8000;
@@ -481,6 +482,8 @@ int main(int argc, char** argv) {
         else if (strcmp(argv[i], "--longreads") == 0 || strcmp(argv[i], "--lr") == 0) // long reads pacbio
         {
             FOSMIDS = atoi(argv[i + 1]);
+        }else if (strcmp(argv[i], "--allow_homozygous") == 0 || strcmp(argv[i], "--ah") == 0){ // allow homozygous calls
+            ALLOW_HOMOZYGOUS = atoi(argv[i + 1]);
         }else if ((strcmp(argv[i], "--converge") == 0) || (strcmp(argv[i], "--c") == 0)) {
             CONVERGE = atoi(argv[i + 1]);
             ASSEMBLY_CONVERGE = CONVERGE;
