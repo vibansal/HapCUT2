@@ -111,9 +111,6 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
         return -1;
     }
 
-    snpfrag = (struct SNPfrags*) malloc(sizeof (struct SNPfrags)*snps);
-    update_snpfrags(Flist, fragments, snpfrag, snps, &components);
-
     float mean_snps_per_read = 0;
     if (AUTODETECT_LONGREADS){
         for (i = 0; i < fragments; i++){
@@ -126,6 +123,9 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
             LONG_READS = 0;
         }
     }
+
+    snpfrag = (struct SNPfrags*) malloc(sizeof (struct SNPfrags)*snps);
+    update_snpfrags(Flist, fragments, snpfrag, snps, &components);
 
     // 10/25/2014, edges are only added between adjacent nodes in each fragment and used for determining connected components...
     for (i = 0; i < snps; i++) snpfrag[i].elist = (struct edge*) malloc(sizeof (struct edge)*(snpfrag[i].edges+1));
