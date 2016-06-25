@@ -20,7 +20,9 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
     for (i=0;i<MAXBUF;i++) buffer[i] = 0;
     for (i=0;i<100000;i++) blockseq[i] = 0;
     char ch;
-
+    int num_fields;
+    int expected_num_fields;
+    
     FILE* ff = fopen(fragmentfile, "r");
     if (ff == NULL) {
         fprintf(stderr, "couldn't open fragment file \n");
@@ -33,10 +35,14 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
         Flist[i].htrans_prob = -80;
         j = 0;
         ch = fgetc(ff);
+        num_fields = 1;
         while (ch != '\n') {
             buffer[j] = ch;
             j++;
             ch = fgetc(ff);
+            if (ch == ' '){
+                num_fields++;
+            }
         }
         buffer[j] = '\0';
         k = 0;
@@ -62,7 +68,24 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
                 Flist[i].blocks = blocks;
                 Flist[i].list = (struct block*) malloc(sizeof (struct block)*(blocks));
                 biter = 0;
-                //printf("blocks %d \n",blocks);
+
+                if (NEW_FRAGFILE_FORMAT){
+                    expected_num_fields = (6 + 2*blocks);
+                }else{
+                    expected_num_fields = (3 + 2*blocks);
+                }
+                
+                if (num_fields < expected_num_fields){
+                    fprintf(stderr, "ERROR: Invalid fragment file, too few fields at line %d.\n",i);
+                    if (NEW_FRAGFILE_FORMAT)
+                        fprintf(stderr, "If this is Hi-C data, are you using the new format for Hi-C data with extractHAIRS --HiC 1 option?\n");
+                    exit(1);
+                }else if (num_fields > expected_num_fields){
+                    fprintf(stderr, "ERROR: Invalid fragment file, too many fields at line %d.\n",i);
+                    if (!NEW_FRAGFILE_FORMAT)
+                        fprintf(stderr, "If the file is the new HiC-related format (from extractHAIRS --hic option), be sure to use --hic, --hic_htrans_file, or --nf HapCUT2 options.\n");
+                    exit(1);
+                }
             } else if (type == 1) // read the fragment id, changed to allow dynamic length feb202011
             {
                 Flist[i].id = (char*) malloc(t + 1);
@@ -171,7 +194,7 @@ int count_variants_vcf(char* vcffile) {
     return variants;
 }
 
-// 1000 genmes file have large deletions, need to allow longer VCF line
+// 1000 genomes file have large deletions, need to allow longer VCF line
 // this function is distinct from the function used to read VCF file for parsing haplotype informative reads, why ???
 // read variants from VCF file, this code doesn't check the vcf file and assumes that column 10 contains the genotypes for the individual we are interested in phasing
 

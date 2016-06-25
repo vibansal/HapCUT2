@@ -76,7 +76,8 @@ void print_options() {
     fprintf(stderr, "--qvoffset <33/64> : quality value offset, 33/64 depending on how quality values were encoded, default is 33 \n");
     fprintf(stderr, "--mbq <INT> : minimum base quality to consider a base for haplotype fragment, default 13\n");
     fprintf(stderr, "--mmq <INT> : minimum read mapping quality to consider a read for phasing, default 20\n");
-    fprintf(stderr, "--HiC <0/1> : sets default maxIS to 40MB, prints matrix in new HiC format\n");
+    fprintf(stderr, "--hic <0/1> : sets default maxIS to 40MB, prints matrix in new HiC format\n");
+    fprintf(stderr, "--new_format, --nf <0/1> : prints matrix in new format. Requires --new_format option when running HapCUT2.\n");
     fprintf(stderr, "--VCF <FILENAME> : variant file with genotypes for a single individual in VCF format\n");
     fprintf(stderr, "--variants : variant file in hapCUT format (use this option or --VCF option but not both), this option will be phased out in future releases\n");
     fprintf(stderr, "--maxIS <INT> : maximum insert size for a paired-end read to be considered as a single fragment for phasing, default 1000\n");
@@ -236,11 +237,14 @@ int main(int argc, char** argv) {
         } else if (strcmp(argv[i], "--sorted") == 0) readsorted = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--mbq") == 0) MINQ = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--mmq") == 0) MIN_MQ = atoi(argv[i + 1]);
-        else if (strcmp(argv[i], "--HiC") == 0){
-            MAX_IS = 40000000;
-            NEW_FORMAT = 1;
-            DATA_TYPE = 1;
+        else if (strcmp(argv[i], "--HiC") == 0 || strcmp(argv[i], "--hic") == 0){
+            if (atoi(argv[i + 1])){
+                MAX_IS = 40000000;
+                NEW_FORMAT = 1;
+                DATA_TYPE = 1;
+            }
         }
+        else if (strcmp(argv[i], "--new_format") == 0 || strcmp(argv[i], "--nf") == 0) NEW_FORMAT = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--maxIS") == 0) MAX_IS = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--minIS") == 0) MIN_IS = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--PEonly") == 0) PEONLY = 1; // discard single end mapped reads
