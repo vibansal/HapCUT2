@@ -47,6 +47,7 @@ int SPLIT_BLOCKS = 0;
 int DISCRETE_PRUNING = 0;
 int ERROR_ANALYSIS_MODE = 0;
 
+int AUTODETECT_LONGREADS = 1;
 int LONG_READS = 0; // if this variable is 1, the data contains long read data
 
 // HiC-related global variables
@@ -79,7 +80,6 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
     struct SNPfrags* snpfrag = NULL;
     struct BLOCK* clist;
     char* HAP1;
-    char* HAP2;
     float HIC_LL_SCORE = -80;
     float OLD_HIC_LL_SCORE = -80;
     int converged_count=0, split_count, new_components, component;
@@ -114,6 +114,19 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
     snpfrag = (struct SNPfrags*) malloc(sizeof (struct SNPfrags)*snps);
     update_snpfrags(Flist, fragments, snpfrag, snps, &components);
 
+    float mean_snps_per_read = 0;
+    if (AUTODETECT_LONGREADS){
+        for (i = 0; i < fragments; i++){
+            mean_snps_per_read += Flist[i].calls;
+        }
+        mean_snps_per_read /= fragments;     
+        if (mean_snps_per_read >= 3){
+            LONG_READS = 1;
+        }else{
+            LONG_READS = 0;
+        }
+    }
+
     // 10/25/2014, edges are only added between adjacent nodes in each fragment and used for determining connected components...
     for (i = 0; i < snps; i++) snpfrag[i].elist = (struct edge*) malloc(sizeof (struct edge)*(snpfrag[i].edges+1));
     if (LONG_READS ==0){
@@ -136,17 +149,13 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
 
     // INITIALIZE RANDOM HAPLOTYPES
     HAP1 = (char*) malloc(snps + 1);
-    HAP2 = (char*) malloc(snps + 1);
     for (i = 0; i < snps; i++) {
         if (snpfrag[i].frags == 0) {
             HAP1[i] = '-';
-            HAP2[i] = '-';
         } else if (drand48() < 0.5) {
             HAP1[i] = '0';
-            HAP2[i] = '1';
         } else {
             HAP1[i] = '1';
-            HAP2[i] = '0';
         }
     }
 
@@ -202,7 +211,8 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
 
     OLD_HIC_LL_SCORE = bestscore;
     for (hic_iter = 0; hic_iter < MAX_HIC_EM_ITER; hic_iter++){
-        fprintf(stdout, "HIC ITER %d\n", hic_iter);
+        if (VERBOSE)
+            fprintf(stdout, "HIC ITER %d\n", hic_iter);
         for (k = 0; k < components; k++){
             clist[k].iters_since_improvement = 0;
         }
@@ -212,8 +222,8 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
         // RUN THE MAX_CUT ALGORITHM ITERATIVELY TO IMPROVE LIKELIHOOD
 
         for (iter = 0; iter < MAXITER; iter++) {
-            fprintf(stdout, "GLOBAL ITER %d\n", iter);
-
+            if (VERBOSE)
+                fprintf(stdout, "PHASING ITER %d\n", iter);
             converged_count = 0;
             for (k = 0; k < components; k++){
                 if(VERBOSE && iter == 0)
@@ -242,19 +252,10 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
             }
             OLD_HIC_LL_SCORE = HIC_LL_SCORE;
             
-            likelihood_pruning(snps, Flist, snpfrag, HAP1, HAP2, 0); // prune for only very high confidence SNPs
+            likelihood_pruning(snps, Flist, snpfrag, HAP1, 0); // prune for only very high confidence SNPs
             // estimate the h-trans probabilities for the next round
             estimate_htrans_probs(Flist, fragments, HAP1, snpfrag);
         }
-    }
-    
-    // MAKE HAP2 THE COMPLEMENT OF HAP1
-    for (i=0; i<snps; i++){
-        if (HAP1[i] == '0')
-            HAP2[i] = '1';
-        else if (HAP1[i] == '1')
-            HAP2[i] = '0';
-        else HAP2[i] = HAP1[i]; 
     }
 
     // BLOCK SPLITTING
@@ -281,11 +282,11 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
     
     // PRUNE SNPS
     discrete_pruning(snps, fragments, Flist, snpfrag, HAP1);
-    likelihood_pruning(snps, Flist, snpfrag, HAP1, HAP2, CALL_HOMOZYGOUS);
+    likelihood_pruning(snps, Flist, snpfrag, HAP1, CALL_HOMOZYGOUS);
 
     // PRINT OUTPUT FILE
     fprintf(stderr, "OUTPUTTING PRUNED HAPLOTYPE ASSEMBLY TO FILE %s\n", outputfile);
-    print_hapfile(clist, components, HAP1, HAP2, Flist, fragments, snpfrag, variantfile, miscalls, outputfile);
+    print_hapfile(clist, components, HAP1, Flist, fragments, snpfrag, variantfile, miscalls, outputfile);
     
     // FREE UP MEMORY
     for (i = 0; i < snps; i++) free(snpfrag[i].elist);
@@ -355,6 +356,7 @@ int main(int argc, char** argv) {
             }
         }else if (strcmp(argv[i], "--long_reads") == 0 || strcmp(argv[i], "--lr") == 0){
             LONG_READS = atoi(argv[i + 1]);
+            AUTODETECT_LONGREADS = 0;
         }else if (strcmp(argv[i], "--QV_offset") == 0 || strcmp(argv[i], "--qv_offset") == 0 || strcmp(argv[i], "--qo") == 0){
             QVoffset = atoi(argv[i + 1]);
         }else if (strcmp(argv[i], "--hic_htrans_file") == 0 || strcmp(argv[i], "--hf") == 0){

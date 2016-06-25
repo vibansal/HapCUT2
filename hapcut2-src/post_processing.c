@@ -20,7 +20,7 @@ extern int HTRANS_MAX_WINDOW;
 
 float HIC_EM_THRESHOLD = 0.99; // use a strict-ish threshold for the HiC haplotype SNPs that we'll estimate h-trans from
 
-void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1, char* HAP2, int allow_homozygous);
+void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1, int call_homozygous);
 void discrete_pruning(int snps, int fragments, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1);
 int split_block(char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, struct SNPfrags* snpfrag, int* components_ptr);
 void split_blocks_old(char* HAP, struct BLOCK* clist, int components, struct fragment* Flist, struct SNPfrags* snpfrag);
@@ -28,7 +28,7 @@ void split_blocks_old(char* HAP, struct BLOCK* clist, int components, struct fra
 void improve_hap(char* HAP, struct BLOCK* clist, int components, int snps, int fragments, struct fragment* Flist, struct SNPfrags* snpfrag);
 int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struct SNPfrags* snpfrag);
 
-void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1, char* HAP2, int call_homozygous) {
+void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1, int call_homozygous) {
     int i, j, f;
     char temp1;
     float P_data_H, P_data_Hf, P_data_H00, P_data_H11, total, log_hom_prior, log_het_prior;
@@ -92,13 +92,13 @@ void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfr
 
             // change the status of SNPs that are above/below threshold
             if (post_00 > log10(THRESHOLD)){
-                HAP1[i] = '0';
-                HAP2[i] = '0';
-                snpfrag[i].post_hap = post_00;
+                snpfrag[i].genotypes[0] = '0';
+                snpfrag[i].genotypes[2] = '0';                       
+                snpfrag[i].post_hap     = post_00;
             }else if (post_11 > log10(THRESHOLD)){
-                HAP1[i] = '1';
-                HAP2[i] = '1';
-                snpfrag[i].post_hap = post_11;
+                snpfrag[i].genotypes[0] = '1';
+                snpfrag[i].genotypes[2] = '1'; 
+                snpfrag[i].post_hap     = post_11;
             }else if (post_hapf > log10(THRESHOLD)){
                 flip(HAP1[i]);                // SNP should be flipped
                 snpfrag[i].post_hap = post_hapf;

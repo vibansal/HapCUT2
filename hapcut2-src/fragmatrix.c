@@ -25,10 +25,16 @@ void add_edges_fosmids(struct fragment* Flist, int fragments, struct SNPfrags* s
     int i = 0, j = 0, k = 0, maxdeg = 0, avgdeg = 0, t1 = 0, t2 = 0;
     //char allele;
     int csnps = 0;
+    int max_vars = 65536;
     for (i = 0; i < snps; i++) snpfrag[i].edges = 0;
 
-    int varlist[65536];
-    char allelelist[65536];
+    int varlist[max_vars];
+    char allelelist[max_vars];
+
+    for (i = 0; i < max_vars; i++){
+        varlist[i] = 0;
+        allelelist[i] = 0;
+    }
     int vars = 0;
     for (i = 0; i < fragments; i++) {
         // generate list of variants and alleles 

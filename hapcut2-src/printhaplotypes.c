@@ -17,9 +17,9 @@ void print_hapcut_options() {
     
     fprintf(stderr, "\nRead Technology Options:\n");
     fprintf(stderr, "--hic <0/1> :                       increases accuracy on HiC data; models h-trans errors directly from the data. default: 0\n");
-    fprintf(stderr, "--long_reads, --lr <0/1> :          set to 1 to reduce memory when phasing long read data with many SNPs per read, default is 0\n");
-    fprintf(stderr, "--qv_offset, --qo <33/48/64> :      quality value offset for base quality scores, default: 33 (use same value as for extracthairs)\n");
     fprintf(stderr, "--hic_htrans_file, --hf <FILENAME>  optional tab-delimited input file where second column specifies h-trans error probabilities for insert size bins 0-50Kb, 50Kb-100Kb, etc.\n");
+    fprintf(stderr, "--qv_offset, --qo <33/48/64> :      quality value offset for base quality scores, default: 33 (use same value as for extracthairs)\n");
+    fprintf(stderr, "--long_reads, --lr <0/1> :          reduces memory when phasing long read data with many SNPs per read. default: automatic.\n");
 
     fprintf(stderr, "\nHaplotype Post-Processing Options:\n");
     fprintf(stderr, "--threshold, --t <float>:           threshold for pruning low-confidence SNPs (closer to 1 prunes more, closer to 0.5 prunes less). default: 0.8\n");
@@ -45,10 +45,10 @@ void print_hapcut_options() {
 
 }
 
-int print_hapfile(struct BLOCK* clist, int blocks, char* h1, char* h2, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* fname, int score, char* outfile) {
+int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* fname, int score, char* outfile) {
     // print a new file containing one block phasing and the corresponding fragments
     int i = 0, t = 0, k = 0, span = 0;
-    char c1=0, c2=0;
+    char c=0, c1=0, c2=0;
     //char fn[200]; sprintf(fn,"%s-%d.phase",fname,score);
     FILE* fp;
     fp = fopen(outfile, "w");
@@ -60,14 +60,22 @@ int print_hapfile(struct BLOCK* clist, int blocks, char* h1, char* h2, struct fr
         for (k = 0; k < clist[i].phased; k++) {
 
             t = clist[i].slist[k]; 
-
+            if (h1[t] =='0')
+                c= '1';
+            else if (h1[t] =='1')
+                c = '0';
+            else c = h1[t]; 
             // print this line to keep consistency with old format
             // if SNP was pruned then print '-'s
             if ((!ERROR_ANALYSIS_MODE)
                 &&((snpfrag[t].post_hap < log10(THRESHOLD) && !DISCRETE_PRUNING)
                 ||(snpfrag[t].pruned_discrete_heuristic && DISCRETE_PRUNING))){       
                 fprintf(fp, "%d\t-\t-\t", t + 1);
-            }else {
+            }else if (snpfrag[t].genotypes[0] == '0' && snpfrag[t].genotypes[2] == '0'){
+                fprintf(fp, "%d\t0\t0\t", t + 1);   // homozygous 00
+            }else if (snpfrag[t].genotypes[0] == '1' && snpfrag[t].genotypes[2] == '1'){
+                fprintf(fp, "%d\t1\t1\t", t + 1);   // homozygous 11
+            }{
                 if (snpfrag[t].genotypes[0] == '2' || snpfrag[t].genotypes[2] == '2') {
 
                     if (h1[t] == '0') {
@@ -79,7 +87,7 @@ int print_hapfile(struct BLOCK* clist, int blocks, char* h1, char* h2, struct fr
                     }
                     fprintf(fp, "%d\t%c\t%c\t", t + 1, c1, c2); // two alleles that are phased in VCF like format
                 } else {
-                    fprintf(fp, "%d\t%c\t%c\t", t + 1, h1[t], h2[t]);
+                    fprintf(fp, "%d\t%c\t%c\t", t + 1, h1[t], c);
                 }
             }
 
