@@ -3,6 +3,7 @@
 // THIS FUNCTION PRINTS THE CURRENT HAPLOTYPE ASSEMBLY in a new file block by block
 extern int DISCRETE_PRUNING;
 extern int ERROR_ANALYSIS_MODE;
+extern int SKIP_PRUNE;
 extern float THRESHOLD;
 
 void print_hapcut_options() {
@@ -14,7 +15,7 @@ void print_hapcut_options() {
     fprintf(stderr, "--output, --o <FILENAME> :          file to which phased haplotype segments/blocks will be output\n");
     fprintf(stderr, "--converge, --c <int>:              cut off iterations (global or maxcut) after this many iterations with no improvement. default: 5\n");
     fprintf(stderr, "--verbose, --v <0/1>:               verbose mode: print extra information to stdout and stderr. default: 0\n");
-    
+
     fprintf(stderr, "\nRead Technology Options:\n");
     fprintf(stderr, "--hic <0/1> :                       increases accuracy on HiC data; models h-trans errors directly from the data. default: 0\n");
     fprintf(stderr, "--hic_htrans_file, --hf <FILENAME>  optional tab-delimited input file where second column specifies h-trans error probabilities for insert size bins 0-50Kb, 50Kb-100Kb, etc.\n");
@@ -28,7 +29,7 @@ void print_hapcut_options() {
     fprintf(stderr, "--call_homozygous, --ch <0/1>:      call positions as homozygous if they appear to be false heterozygotes. default: 0\n");
     fprintf(stderr, "--discrete_pruning, --dp <0/1>:     use discrete heuristic to prune SNPs. default: 0\n");
     fprintf(stderr, "--error_analysis_mode, --ea <0/1>:  print confidence scores to haplotype file but don't split blocks or prune. default: 0\n");
-        
+
     fprintf(stderr, "\nAdvanced Options:\n");
     fprintf(stderr, "--new_format, --nf <0/1>:           use new HiC fragment matrix file format (but don't do h-trans error modeling). default: 0\n");
     fprintf(stderr, "--max_iter, --mi <int> :            maximum number of global iterations. Preferable to tweak --converge option instead. default: 10000\n");
@@ -59,37 +60,36 @@ int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
         fprintf(fp, "SPAN: %d fragments %d\n", span, clist[i].frags);
         for (k = 0; k < clist[i].phased; k++) {
 
-            t = clist[i].slist[k]; 
+            t = clist[i].slist[k];
             if (h1[t] =='0')
                 c= '1';
             else if (h1[t] =='1')
                 c = '0';
-            else c = h1[t]; 
+            else c = h1[t];
             // print this line to keep consistency with old format
             // if SNP was pruned then print '-'s
-            if ((!ERROR_ANALYSIS_MODE)
+            if ((!ERROR_ANALYSIS_MODE)&&(!SKIP_PRUNE)
                 &&((snpfrag[t].post_hap < log10(THRESHOLD) && !DISCRETE_PRUNING)
-                ||(snpfrag[t].pruned_discrete_heuristic && DISCRETE_PRUNING))){       
+                ||(snpfrag[t].pruned_discrete_heuristic && DISCRETE_PRUNING))){
                 fprintf(fp, "%d\t-\t-\t", t + 1);
             }else if (snpfrag[t].genotypes[0] == '0' && snpfrag[t].genotypes[2] == '0'){
                 fprintf(fp, "%d\t0\t0\t", t + 1);   // homozygous 00
             }else if (snpfrag[t].genotypes[0] == '1' && snpfrag[t].genotypes[2] == '1'){
                 fprintf(fp, "%d\t1\t1\t", t + 1);   // homozygous 11
-            }{
-                if (snpfrag[t].genotypes[0] == '2' || snpfrag[t].genotypes[2] == '2') {
+            }else if (snpfrag[t].genotypes[0] == '2' || snpfrag[t].genotypes[2] == '2') {
 
-                    if (h1[t] == '0') {
-                        c1 = snpfrag[t].genotypes[0];
-                        c2 = snpfrag[t].genotypes[2];
-                    } else if (h1[t] == '1') {
-                        c2 = snpfrag[t].genotypes[0];
-                        c1 = snpfrag[t].genotypes[2];
-                    }
-                    fprintf(fp, "%d\t%c\t%c\t", t + 1, c1, c2); // two alleles that are phased in VCF like format
-                } else {
-                    fprintf(fp, "%d\t%c\t%c\t", t + 1, h1[t], c);
+                if (h1[t] == '0') {
+                    c1 = snpfrag[t].genotypes[0];
+                    c2 = snpfrag[t].genotypes[2];
+                } else if (h1[t] == '1') {
+                    c2 = snpfrag[t].genotypes[0];
+                    c1 = snpfrag[t].genotypes[2];
                 }
+                fprintf(fp, "%d\t%c\t%c\t", t + 1, c1, c2); // two alleles that are phased in VCF like format
+            } else {
+                fprintf(fp, "%d\t%c\t%c\t", t + 1, h1[t], c);
             }
+
 
             fprintf(fp, "%s\t%d\t%s\t%s\t%s\t%d\t%0.6f\t%0.6f\n", snpfrag[t].chromosome, snpfrag[t].position, snpfrag[t].allele0, snpfrag[t].allele1, snpfrag[t].genotypes, snpfrag[t].pruned_discrete_heuristic, snpfrag[t].post_notsw, snpfrag[t].post_hap);
 

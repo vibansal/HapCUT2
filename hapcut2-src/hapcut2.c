@@ -46,6 +46,7 @@ int CALL_HOMOZYGOUS = 0;
 int SPLIT_BLOCKS = 0;
 int DISCRETE_PRUNING = 0;
 int ERROR_ANALYSIS_MODE = 0;
+int SKIP_PRUNE = 0;
 
 int AUTODETECT_LONGREADS = 1;
 int LONG_READS = 0; // if this variable is 1, the data contains long read data
@@ -66,9 +67,9 @@ char HTRANS_DATA_OUTFILE[10000];
 
 int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) {
     // IMP NOTE: all SNPs start from 1 instead of 0 and all offsets are 1+
-    
+
     fprintf(stderr, "Calling Max-Likelihood-Cut based haplotype assembly algorithm\n");
-    
+
     int snps = 0;
     int fragments = 0, iter = 0, components = 0;
     int i = 0, k = 0;
@@ -83,7 +84,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
     float HIC_LL_SCORE = -80;
     float OLD_HIC_LL_SCORE = -80;
     int converged_count=0, split_count, new_components, component;
-    
+
     // READ FRAGMENT MATRIX
     struct fragment* Flist;
     FILE* ff = fopen(fragmentfile, "r");
@@ -102,10 +103,10 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
         fprintf(stderr, "unable to read fragment matrix file %s \n", fragmentfile);
         return -1;
     }
-    
+
     //ADD EDGES BETWEEN SNPS
     snps = count_variants_vcf(variantfile);
-    
+
     if (snps < 0) {
         fprintf(stderr, "unable to read variant file %s \n", variantfile);
         return -1;
@@ -116,7 +117,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
         for (i = 0; i < fragments; i++){
             mean_snps_per_read += Flist[i].calls;
         }
-        mean_snps_per_read /= fragments;     
+        mean_snps_per_read /= fragments;
         if (mean_snps_per_read >= 3){
             LONG_READS = 1;
         }else{
@@ -134,7 +135,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
     }else if (LONG_READS >=1){
         add_edges_fosmids(Flist,fragments,snpfrag,snps,&components);
     }
-    
+
     for (i = 0; i < snps; i++) snpfrag[i].telist = (struct edge*) malloc(sizeof (struct edge)*(snpfrag[i].edges+1));
 
     // this considers only components with at least two nodes
@@ -174,9 +175,9 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
         bestscore += clist[k].bestSCORE;
         miscalls += clist[k].SCORE;
     }
-    
+
     fprintf(stderr, "processed fragment file and variant file: fragments %d variants %d\n", fragments, snps);
-    
+
     int MAXIS = -1;
 
     if (HIC){
@@ -238,10 +239,10 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
                 break;
             }
         }
-        
+
         // H-TRANS ESTIMATION FOR HIC
         if (MAX_HIC_EM_ITER > 1){
-            
+
             // Possibly break if we're done improving
             HIC_LL_SCORE = 0;
             for (k = 0; k < components; k++){
@@ -251,7 +252,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
                 break;
             }
             OLD_HIC_LL_SCORE = HIC_LL_SCORE;
-            
+
             likelihood_pruning(snps, Flist, snpfrag, HAP1, 0); // prune for only very high confidence SNPs
             // estimate the h-trans probabilities for the next round
             estimate_htrans_probs(Flist, fragments, HAP1, snpfrag);
@@ -279,15 +280,16 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
             split_block(HAP1, clist, k, Flist, snpfrag, &new_components);
         }
     }
-    
-    // PRUNE SNPS
-    discrete_pruning(snps, fragments, Flist, snpfrag, HAP1);
-    likelihood_pruning(snps, Flist, snpfrag, HAP1, CALL_HOMOZYGOUS);
 
+    // PRUNE SNPS
+    if (!SKIP_PRUNE){
+        discrete_pruning(snps, fragments, Flist, snpfrag, HAP1);
+        likelihood_pruning(snps, Flist, snpfrag, HAP1, CALL_HOMOZYGOUS);
+    }
     // PRINT OUTPUT FILE
     fprintf(stderr, "OUTPUTTING PRUNED HAPLOTYPE ASSEMBLY TO FILE %s\n", outputfile);
     print_hapfile(clist, components, HAP1, Flist, fragments, snpfrag, variantfile, miscalls, outputfile);
-    
+
     // FREE UP MEMORY
     for (i = 0; i < snps; i++) free(snpfrag[i].elist);
     for (i = 0; i < snps; i++) free(snpfrag[i].telist);
@@ -304,7 +306,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
             component++;
         }
     }
-    
+
     for (i = 0; i < components; i++) free(clist[i].flist);
     free(snpfrag);
     free(clist);
@@ -331,8 +333,8 @@ int main(int argc, char** argv) {
     strcpy(HTRANS_DATA_OUTFILE, "None");
     for (i = 1; i < argc; i += 2) {
         if (argc < 6) break;
-        
-        // BASIC OPTIONS 
+
+        // BASIC OPTIONS
         if (strcmp(argv[i], "--fragments") == 0 || strcmp(argv[i], "--f") == 0) {
             strcpy(fragfile, argv[i + 1]);
             flag++;
@@ -397,9 +399,11 @@ int main(int argc, char** argv) {
             PRINT_FRAGMENT_SCORES = atoi(argv[i + 1]);
         }else if (strcmp(argv[i], "--mbq") == 0){
             MINQ = atoi(argv[i + 1]);
+        }else if (strcmp(argv[i], "--skip_prune") == 0 || strcmp(argv[i], "--sp") == 0){
+            SKIP_PRUNE = atoi(argv[i + 1]);
         }
     }
-    
+
     if (SPLIT_BLOCKS && HIC){
         fprintf(stderr,"Point-based block-splitting should not be used with Hi-C data. Exiting.");
         exit(0);

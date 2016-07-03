@@ -93,16 +93,16 @@ void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfr
             // change the status of SNPs that are above/below threshold
             if (post_00 > log10(THRESHOLD)){
                 snpfrag[i].genotypes[0] = '0';
-                snpfrag[i].genotypes[2] = '0';                       
+                snpfrag[i].genotypes[2] = '0';
                 snpfrag[i].post_hap     = post_00;
             }else if (post_11 > log10(THRESHOLD)){
                 snpfrag[i].genotypes[0] = '1';
-                snpfrag[i].genotypes[2] = '1'; 
+                snpfrag[i].genotypes[2] = '1';
                 snpfrag[i].post_hap     = post_11;
             }else if (post_hapf > log10(THRESHOLD)){
                 flip(HAP1[i]);                // SNP should be flipped
                 snpfrag[i].post_hap = post_hapf;
-            }else if (post_hap < log10(THRESHOLD)){
+            }else{
                 snpfrag[i].post_hap = post_hap;
             }
         } else {
@@ -119,7 +119,7 @@ void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfr
             if (post_hapf > log10(THRESHOLD)){
                 flip(HAP1[i]);                // SNP should be flipped
                 snpfrag[i].post_hap = post_hapf;
-            }else if (post_hap < log10(THRESHOLD)){
+            }else{
                 snpfrag[i].post_hap = post_hap;
             }
         }
@@ -256,17 +256,17 @@ int split_block(char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, s
 
 // estimate probabilities of h-trans to feed back into HapCUT algorithm
 int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struct SNPfrags* snpfrag){
-    
+
     float* MLE_sum   = calloc(HTRANS_MAXBINS,sizeof(float));
     float* MLE_count = calloc(HTRANS_MAXBINS,sizeof(float));
     float* p_htrans      = calloc(HTRANS_MAXBINS,sizeof(float));
     float* adj_MLE_sum   = calloc(HTRANS_MAXBINS,sizeof(float));
     float* adj_MLE_count = calloc(HTRANS_MAXBINS,sizeof(float));
-    
+
     int i=0,j=0,k=0,f=0,bin;
     int i_minus = 0, i_plus = 0;
     int e_window_size = HTRANS_BINSIZE; //track the effective window size
-    
+
     // consistent counts, inconsistent counts
     int i1=-1, i2=-1;
     char a1='-', a2='-', h1='-', h2='-';
@@ -339,8 +339,8 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
             MLE_sum[bin] += ((1-q1)*(1-q2) + q1*q2);
         }
     }
-    
-    
+
+
     for (i = 0; i < HTRANS_MAXBINS; i++){
         adj_MLE_count[i] = MLE_count[i];
         adj_MLE_sum[i] = MLE_sum[i];
@@ -397,7 +397,6 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
     free(MLE_count);
     free(adj_MLE_sum);
     free(adj_MLE_count);
-    free(p_htrans);    
+    free(p_htrans);
     return 0;
 }
-
