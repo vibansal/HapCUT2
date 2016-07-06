@@ -61,6 +61,7 @@ int HTRANS_READ_LOWBOUND = 500;
 int HTRANS_MAX_WINDOW = 4000000; // maximum window size for h-trans estimation
 char HTRANS_DATA_INFILE[10000];
 char HTRANS_DATA_OUTFILE[10000];
+int MAX_IS = -1;
 
 #include "find_maxcut.c"   // function compute_good_cut
 #include "post_processing.c"  // post-processing functions
@@ -85,6 +86,9 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
     float OLD_HIC_LL_SCORE = -80;
     int converged_count=0, split_count, new_components, component;
 
+    int new_fragments = 0;
+    struct fragment* new_Flist;
+
     // READ FRAGMENT MATRIX
     struct fragment* Flist;
     FILE* ff = fopen(fragmentfile, "r");
@@ -98,6 +102,22 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
     Flist     = (struct fragment*) malloc(sizeof (struct fragment)* fragments);
 
     flag = read_fragment_matrix(fragmentfile, Flist, fragments);
+
+    if (MAX_IS != -1){
+        // we are going to filter out some insert sizes
+        new_fragments = 0;
+        new_Flist = (struct fragment*) malloc(sizeof (struct fragment)* fragments);
+        for(i = 0; i < fragments; i++){
+
+            if (Flist[i].isize < MAX_IS){
+                new_Flist[new_fragments] = Flist[i];
+                new_fragments++;
+            }
+        }
+
+        Flist = new_Flist;
+        fragments = new_fragments;
+    }
 
     if (flag < 0) {
         fprintf(stderr, "unable to read fragment matrix file %s \n", fragmentfile);
@@ -199,7 +219,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
 
     // read in file with estimated probabilities of Hi-C h-trans interactions with distance
     if (strcmp(HTRANS_DATA_INFILE, "None") != 0){
-        int num_bins        = count_htrans_bins(HTRANS_DATA_OUTFILE);
+        int num_bins        = count_htrans_bins(HTRANS_DATA_INFILE);
         float* htrans_probs = (float*) malloc(sizeof(float) * num_bins);
         read_htrans_file(HTRANS_DATA_INFILE, htrans_probs, num_bins);
         for (i=0; i<fragments;i++){
@@ -401,6 +421,8 @@ int main(int argc, char** argv) {
             MINQ = atoi(argv[i + 1]);
         }else if (strcmp(argv[i], "--skip_prune") == 0 || strcmp(argv[i], "--sp") == 0){
             SKIP_PRUNE = atoi(argv[i + 1]);
+        }else if (strcmp(argv[i], "--max_IS") == 0 || strcmp(argv[i], "--mi") == 0){
+            MAX_IS = atoi(argv[i + 1]);
         }
     }
 
