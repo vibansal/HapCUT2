@@ -6,7 +6,7 @@ New readme and documentation coming soon
 
 
 to build:
-make
+ ```make ```
 
 to run:
-./build/HAPCUT2
+ ```./build/HAPCUT2 ```
