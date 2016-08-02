@@ -3,3 +3,10 @@ HapCUT2: robust and accurate haplotype assembly for diverse sequencing technolog
 
 New readme and documentation coming soon
 
+
+
+to build:
+make
+
+to run:
+./build/HAPCUT2
