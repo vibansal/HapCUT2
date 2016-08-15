@@ -118,5 +118,5 @@ Hi-C-specific Notes:
 ```
 
 ##Converting HapCUT2 output to VCF format
-Nils Homer has developed a tool HapCutToVcf for converting HapCUT2-formatted haplotype blocks into VCF format. It is included with the fgbio tool suite, available [here](https://github.com/fulcrumgenomics/fgbio).
+Nils Homer has developed a tool HapCutToVcf that will soon support converting HapCUT2-formatted haplotype blocks into VCF format. It will be included with the fgbio tool suite, available [here](https://github.com/fulcrumgenomics/fgbio).
 
