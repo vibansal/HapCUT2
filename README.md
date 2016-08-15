@@ -43,6 +43,12 @@ The extractHAIRS tool converts a BAM file to a compact format (fragment file) co
 
  ```./build/extractHAIRS ``` or  ```extractHAIRS ``` if installed.
 
+###Note about HAPCUT2 options
+For the vast majority of use cases (including most short reads, long reads, clone sequences), only the required options are necessary: ```--fragments```, ```--vcf```, and ```--output```.
+In the case of Hi-C reads, it is recommended to use ```--hic 1``` for both extractHAIRS and HAPCUT2.
+```--threshold``` may also be tuned according to preference.
+
+
 ```
 Extract haplotype informative reads (HAIRS) from coordinate sorted BAM files 
 
@@ -89,11 +95,12 @@ Read Technology Options:
 
 Haplotype Post-Processing Options:
 --threshold, --t <float>:           threshold for pruning low-confidence SNPs (closer to 1 prunes more, closer to 0.5 prunes less). default: 0.8
+--skip_prune, --sp <0/1>:           skip default likelihood pruning step (prune SNPs after the fact using column 11 of the output). default: 0
 --split_blocks, --sb <0/1>:         split blocks using simple likelihood score to reduce switch errors. default: 0
 --split_threshold, --st <float>:    threshold for splitting blocks (closer to 1 splits more, closer to 0.5 splits less). default: 0.8
 --call_homozygous, --ch <0/1>:      call positions as homozygous if they appear to be false heterozygotes. default: 0
 --discrete_pruning, --dp <0/1>:     use discrete heuristic to prune SNPs. default: 0
---error_analysis_mode, --ea <0/1>:  print confidence scores to haplotype file but don't split blocks or prune. default: 0
+--error_analysis_mode, --ea <0/1>:  compute switch confidence scores and print to haplotype file but don't split blocks or prune. default: 0
 
 Advanced Options:
 --new_format, --nf <0/1>:           use new Hi-C fragment matrix file format (but don't do h-trans error modeling). default: 0
@@ -108,9 +115,8 @@ Hi-C-specific Notes:
   (2) When running HapCUT2, use --hic 1 if h-trans probabilities are unknown. Use --hic_htrans_file if they are known
   (3) Using --hic_htrans_file is faster than --hic and may yield better results at low read coverage (>30x).
   (4) Set --converge to a larger value if possible/reasonable.
-
 ```
- 
+
 ##Converting HapCUT2 output to VCF format
 Nils Homer has developed a tool HapCutToVcf for converting HapCUT2-formatted haplotype blocks into VCF format. It is included with the fgbio tool suite, available [here](https://github.com/fulcrumgenomics/fgbio).
 
