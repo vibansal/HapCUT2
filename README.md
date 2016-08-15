@@ -38,7 +38,7 @@ sudo make uninstall-hairs
 sudo make uninstall-hapcut2
 ```
 
-##to run (and see options):
+##Running extractHAIRS:
 The extractHAIRS tool converts a BAM file to a compact format (fragment file) containing only haplotype-informative information. To run extractHAIRs and see options:
 
  ```./build/extractHAIRS ``` or  ```extractHAIRS ``` if installed.
@@ -65,6 +65,7 @@ Options:
 --out <FILENAME> : output filename for haplotype fragments, if not provided, fragments will be output to stdout
 ```
 
+##Running HAPCUT2:
 The HAPCUT2 tool assembles a fragment file created with extractHAIRS into haplotype blocks. To run HapCUT2 and see options:
 
  ```./build/HAPCUT2 ``` or  ```HAPCUT2 ``` if installed.
