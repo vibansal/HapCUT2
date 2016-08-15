@@ -1,7 +1,7 @@
 HapCUT2: robust and accurate haplotype assembly for diverse sequencing technologies
 ======
 
-#About:
+##About:
 HapCUT2 is a maximum-likelihood-based tool for assembling haplotypes from DNA sequence reads, designed to "just work" with excellent speed and accuracy.
 We found that previously described haplotype assembly methods are specialized for specific read technologies or protocols, with slow or inaccurate performance on others. With this in mind, HapCUT2 is designed to meet the following criteria:
 - Support for diverse sequencing technologies, including but not limited to:
