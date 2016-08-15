@@ -37,17 +37,12 @@ If you already have samtools 1.2 and htslib 1.2.1 installed, you can optionally 
 ```sudo make uninstall-hapcut2```
 
 ##to run:
-The extractHAIRS tool converts a BAM file to a compact format (fragment file) containing only haplotype-informative information.
-The HAPCUT2 tool assembles a fragment file created with extractHAIRS into haplotype blocks.
-### run with no options 
-####if not installed:
- ```./build/extractHAIRS ```
+The extractHAIRS tool converts a BAM file to a compact format (fragment file) containing only haplotype-informative information. To run extractHAIRs and see options:
+ ```./build/extractHAIRS ``` or  ```extractHAIRS ``` if installed.
 
- ```./build/HAPCUT2 ```
-####if installed:
- ```extractHAIRS ```
+The HAPCUT2 tool assembles a fragment file created with extractHAIRS into haplotype blocks. To run HapCUT2 and see options:
+ ```./build/HAPCUT2 ``` or  ```HAPCUT2 ``` if installed.
 
- ```HAPCUT2 ```
 ##Converting HapCUT2 output to VCF format
 Nils Homer has developed a tool HapCutToVcf for converting HapCUT2-formatted haplotype blocks into VCF format. It is included with the fgbio tool suite, available [here](https://github.com/fulcrumgenomics/fgbio).
 
