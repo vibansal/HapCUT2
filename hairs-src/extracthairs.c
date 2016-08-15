@@ -71,8 +71,8 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
 
 void print_options() {
     fprintf(stderr, "\n PROGRAM TO extract haplotype informative reads (HAIRS) from coordinate sorted BAM files \n\n");
-    fprintf(stderr, "./extractHAIRS [options] --bam reads.sorted.bam --VCF variants.VCF   > output.fragments \n\n");
-    fprintf(stderr, "=============== PROGRAM OPTIONS ======================================== \n\n");
+    fprintf(stderr, "./extractHAIRS [options] --bam reads.sorted.bam --VCF variants.VCF --out fragment_file \n\n");
+    fprintf(stderr, "Options:\n");
     fprintf(stderr, "--qvoffset <33/64> : quality value offset, 33/64 depending on how quality values were encoded, default is 33 \n");
     fprintf(stderr, "--mbq <INT> : minimum base quality to consider a base for haplotype fragment, default 13\n");
     fprintf(stderr, "--mmq <INT> : minimum read mapping quality to consider a read for phasing, default 20\n");
