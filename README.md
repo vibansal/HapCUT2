@@ -39,7 +39,7 @@ sudo make uninstall-hapcut2
 ```
 
 ##Running extractHAIRS:
-The extractHAIRS tool converts a BAM file to a compact format (fragment file) containing only haplotype-informative information. To run extractHAIRs and see options:
+The extractHAIRS tool converts a BAM file to a compact format (fragment file) containing only haplotype-informative information. This is a necessary precursor step to running HapCUT2. To run extractHAIRs and see options:
 
  ```./build/extractHAIRS ``` or  ```extractHAIRS ``` if installed.
 
