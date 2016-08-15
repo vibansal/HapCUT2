@@ -40,11 +40,11 @@ If you already have samtools 1.2 and htslib 1.2.1 installed, you can optionally 
 The extractHAIRS tool converts a BAM file to a compact format (fragment file) containing only haplotype-informative information.
 The HAPCUT2 tool assembles a fragment file created with extractHAIRS into haplotype blocks.
 ### run with no options 
-###if not installed:
+####if not installed:
  ```./build/extractHAIRS ```
 
  ```./build/HAPCUT2 ```
-###if installed:
+####if installed:
  ```extractHAIRS ```
 
  ```HAPCUT2 ```
