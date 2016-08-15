@@ -43,12 +43,6 @@ The extractHAIRS tool converts a BAM file to a compact format (fragment file) co
 
  ```./build/extractHAIRS ``` or  ```extractHAIRS ``` if installed.
 
-###Note about HAPCUT2 options
-For the vast majority of use cases (including most short reads, long reads, clone sequences), only the required options are necessary: ```--fragments```, ```--vcf```, and ```--output```.
-In the case of Hi-C reads, it is recommended to use ```--hic 1``` for both extractHAIRS and HAPCUT2.
-```--threshold``` may also be tuned according to preference.
-
-
 ```
 Extract haplotype informative reads (HAIRS) from coordinate sorted BAM files 
 
@@ -74,6 +68,11 @@ Options:
 The HAPCUT2 tool assembles a fragment file created with extractHAIRS into haplotype blocks. To run HapCUT2 and see options:
 
  ```./build/HAPCUT2 ``` or  ```HAPCUT2 ``` if installed.
+
+###Note about HAPCUT2 options
+For the vast majority of use cases (including most short reads, long reads, clone sequences), only the required options are necessary: ```--fragments```, ```--vcf```, and ```--output```.
+In the case of Hi-C reads, it is recommended to use ```--hic 1``` for both extractHAIRS and HAPCUT2.
+Based on user preference, pruning may be adjusted with ```--threshold``` or turned off with ```--no_prune```.
 
 ```
 HapCUT2: robust and accurate haplotype assembly for diverse sequencing technologies
