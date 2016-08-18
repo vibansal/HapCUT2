@@ -59,7 +59,7 @@ Based on user preference, SNV pruning (filtering of low-quality phased SNVs) may
 ##Output Format:
 Haplotype blocks are printed to the output file, each with a block header with the following format:
 
-BLOCK: offset: <SNV offset> len: <SNV span of block> phased: <# SNVs phased> SPAN: <base pair span of block> fragments <# of fragments in block>
+BLOCK: offset: \<SNV offset\> len: \<SNV span of block\> phased: \<\# SNVs phased\> SPAN: \<base pair span of block\> fragments \<\# of fragments in block\>
 
 Following the header, there is one line per SNV with the following tab-delimited fields:
 
