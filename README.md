@@ -39,12 +39,12 @@ HapCUT2 requires the following input:
 
 Assembling haplotypes requires two steps:
 
-(1) use extractHAIRS to convert BAM file to fragment file format. The extractHAIRS tool converts a BAM file to a compact format (fragment file) containing only haplotype-informative information. This is a necessary precursor step to running HapCUT2.
+(1) use extractHAIRS to convert BAM file to the compact fragment file format containing only haplotype-relevant information. This is a necessary precursor step to running HapCUT2.
 ```
 ./build/extractHAIRS [options] --bam reads.sorted.bam --VCF variants.VCF --out fragment_file 
 ```
 
-(2) use HAPCUT2 to assemble fragment file into haplotype blocks
+(2) use HAPCUT2 to assemble fragment file into haplotype blocks.
 ```
 ./build/HAPCUT2 --fragments fragment_file --vcf variantcalls.vcf --output haplotype_output_file
 ```
