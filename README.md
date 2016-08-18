@@ -114,7 +114,6 @@ Hi-C-specific Notes:
   (1) When running extractHAIRS, must use --hic 1 option to create a fragment matrix in the new Hi-C format.
   (2) When running HapCUT2, use --hic 1 if h-trans probabilities are unknown. Use --hic_htrans_file if they are known
   (3) Using --hic_htrans_file is faster than --hic and may yield better results at low read coverage (>30x).
-  (4) Set --converge to a larger value if possible/reasonable.
 ```
 
 ##Converting HapCUT2 output to VCF format
