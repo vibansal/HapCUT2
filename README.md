@@ -9,7 +9,7 @@ We found that previously described haplotype assembly methods are specialized fo
 - SMRT reads (PacBio)
 - proximity-ligation (Hi-C) reads
 - high-coverage sequencing (>40x coverage-per-SNP) using above technologies
-- 
+
 ##to build:
 
  ```make ```
