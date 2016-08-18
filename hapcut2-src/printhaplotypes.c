@@ -42,7 +42,6 @@ void print_hapcut_options() {
     fprintf(stderr, "  (1) When running extractHAIRS, must use --hic 1 option to create a fragment matrix in the new Hi-C format.\n");
     fprintf(stderr, "  (2) When running HapCUT2, use --hic 1 if h-trans probabilities are unknown. Use --hic_htrans_file if they are known\n");
     fprintf(stderr, "  (3) Using --hic_htrans_file is faster than --hic and may yield better results at low read coverage (>30x).\n");
-    fprintf(stderr, "  (4) Set --converge to a larger value if possible/reasonable.\n ");
     fprintf(stderr, "\n");
 
 }
