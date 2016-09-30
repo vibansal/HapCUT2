@@ -358,7 +358,7 @@ int main(int argc, char** argv) {
         if (strcmp(argv[i], "--fragments") == 0 || strcmp(argv[i], "--f") == 0) {
             strcpy(fragfile, argv[i + 1]);
             flag++;
-        } else if (strcmp(argv[i], "--VCF") == 0 || strcmp(argv[i], "--vcf") == 0|| strcmp(argv[i], "--v") == 0) {
+        } else if (strcmp(argv[i], "--VCF") == 0 || strcmp(argv[i], "--vcf") == 0) {
             strcpy(VCFfile, argv[i + 1]);
             flag++;
         } else if (strcmp(argv[i], "--output") == 0 || strcmp(argv[i], "--out") == 0|| strcmp(argv[i], "--o") == 0) {
