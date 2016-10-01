@@ -1,19 +1,6 @@
 // CODE STARTED SEPT 10 2007 4pm //  april 8 2008 this code used for producing results in ECCB 2008 paper //
 // author: VIKAS BANSAL (vbansal@scripps.edu) last modified December 23, 2010
 
-// time ./HAPCUT --fragments /home/vbansal-scripps/Haplotype-assembly/Dec8hairs/NA18507.allfour.matrix.SORTED --variants NA18507.chr6.hetvariants.inputforhapcut --output NA18507.phased --maxiter 60 > na18507.out
-
-/******** THINGS TO DO ***************************
-0. format of fragment file changed: last string for each fragment now has the quality string (offset 33) for whole fragment // changed Feb 20 2011
-1. to speed up computation, ignore components for which the MEC score has been stable for 5-10 iterations // DONE
-2. implement weighted hapcut version where we take the quality values into account  // implemented this Feb 20 2011
-3. general model for errors: false variants, sequencing errors (bases) and chimeric paired-end reads..... // DONE
-4. output MEC score with each component in solution  // DONE
-5. output to VCF format and maybe read in data from VCF file .....partly done
-6. how to determine bad SNPs/variants that cause excessive MEC score // working on this
-7. how to assign confidence to haplotypes... individual or whole
- **********************************************/
-
 #include<stdio.h>
 #include<stdlib.h>
 #include<time.h>
