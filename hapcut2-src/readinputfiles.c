@@ -1,4 +1,5 @@
 #include "readinputfiles.h"
+#include "common.h"
 extern int HOMOZYGOUS_PRIOR;
 extern int NEW_FRAGFILE_FORMAT;
 
@@ -25,7 +26,7 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
     
     FILE* ff = fopen(fragmentfile, "r");
     if (ff == NULL) {
-        fprintf(stderr, "couldn't open fragment file \n");
+        fprintf_time(stderr, "couldn't open fragment file \n");
         return -1;
     }
 
@@ -76,14 +77,14 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
                 }
                 
                 if (num_fields < expected_num_fields){
-                    fprintf(stderr, "ERROR: Invalid fragment file, too few fields at line %d.\n",i);
+                    fprintf_time(stderr, "ERROR: Invalid fragment file, too few fields at line %d.\n",i);
                     if (NEW_FRAGFILE_FORMAT)
-                        fprintf(stderr, "If this is Hi-C data, are you using the new format for Hi-C data with extractHAIRS --HiC 1 option?\n");
+                        fprintf_time(stderr, "If this is Hi-C data, are you using the new format for Hi-C data with extractHAIRS --HiC 1 option?\n");
                     exit(1);
                 }else if (num_fields > expected_num_fields){
-                    fprintf(stderr, "ERROR: Invalid fragment file, too many fields at line %d.\n",i);
+                    fprintf_time(stderr, "ERROR: Invalid fragment file, too many fields at line %d.\n",i);
                     if (!NEW_FRAGFILE_FORMAT)
-                        fprintf(stderr, "If the file is the new HiC-related format (from extractHAIRS --hic option), be sure to use --hic, --hic_htrans_file, or --nf HapCUT2 options.\n");
+                        fprintf_time(stderr, "If the file is the new HiC-related format (from extractHAIRS --hic option), be sure to use --hic, --hic_htrans_file, or --nf HapCUT2 options.\n");
                     exit(1);
                 }
             } else if (type == 1) // read the fragment id, changed to allow dynamic length feb202011
@@ -177,7 +178,7 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
 int count_variants_vcf(char* vcffile) {
     FILE* fp = fopen(vcffile, "r");
     if (fp == NULL) {
-        fprintf(stderr, "could not open file %s \n", vcffile);
+        fprintf_time(stderr, "could not open file %s \n", vcffile);
         return -1;
     }
     int variants = 0;
@@ -190,7 +191,7 @@ int count_variants_vcf(char* vcffile) {
         if (buffer[strlen(buffer) - 1] == '\n') variants++;
     }
     fclose(fp);
-    fprintf(stderr, "read %d variants from %s file \n", variants, vcffile);
+    fprintf_time(stderr, "read %d variants from %s file \n", variants, vcffile);
     return variants;
 }
 
@@ -323,7 +324,7 @@ int count_variants(char* variantfile) {
     char buffer[MAXBUF];
     FILE* ff = fopen(variantfile, "r");
     if (ff == NULL) {
-        fprintf(stderr, "couldn't open variant file %s\n", variantfile);
+        fprintf_time(stderr, "couldn't open variant file %s\n", variantfile);
         exit(0);
     }
     while (fgets(buffer, MAXBUF, ff) != NULL) snps++;
@@ -339,7 +340,7 @@ int read_haplotypefile(char* hapfile, struct SNPfrags* snpfrag, int snps, char* 
     int offset, len, phased, blocks;
     FILE* sf = fopen(hapfile, "r");
     struct BLOCK* blist;
-    if (sf == NULL) fprintf(stderr, "couldn't open initial haplotype file file \n");
+    if (sf == NULL) fprintf_time(stderr, "couldn't open initial haplotype file file \n");
     else {
         j = 0;
         while (1) {
@@ -388,7 +389,7 @@ int count_htrans_bins(char* htrans_file) {
     char buffer[MAXBUF];
     FILE* ff = fopen(htrans_file, "r");
     if (ff == NULL) {
-        fprintf(stderr, "couldn't open htrans file %s\n", htrans_file);
+        fprintf_time(stderr, "couldn't open htrans file %s\n", htrans_file);
         exit(0);
     }
     while (fgets(buffer, MAXBUF, ff) != NULL) bins++;
@@ -404,7 +405,7 @@ int read_htrans_file(char* htrans_file, float* htrans_probs, int num_bins) {
 
     FILE* ff = fopen(htrans_file, "r");
     if (ff == NULL) {
-        fprintf(stderr, "couldn't open htrans file \n");
+        fprintf_time(stderr, "couldn't open htrans file \n");
         return -1;
     }
     

@@ -87,8 +87,8 @@ void add_edges_fosmids(struct fragment* Flist, int fragments, struct SNPfrags* s
         }
         //else if (snpfrag[i].component ==i || snpfrag[i].edges ==0) singletons++;
     }
-    fprintf(stdout, "Number of non-trivial connected components %d max-Degree %d connected variants %d coverage-per-variant %f \n", *components, maxdeg, nodes_in_graph, (double) avgdeg / (double) csnps);
-    //fprintf(stderr, "Number of non-trivial connected components %d max-Degree %d connected variants %d coverage-per-variant %f \n", *components, maxdeg, nodes_in_graph, (double) avgdeg / (double) csnps);
+    fprintf_time(stdout, "Number of non-trivial connected components %d max-Degree %d connected variants %d coverage-per-variant %f \n", *components, maxdeg, nodes_in_graph, (double) avgdeg / (double) csnps);
+    //fprintf_time(stderr, "Number of non-trivial connected components %d max-Degree %d connected variants %d coverage-per-variant %f \n", *components, maxdeg, nodes_in_graph, (double) avgdeg / (double) csnps);
 }
 
 // for each fragment: add all pairwise edges between all variants in it, complexity = O(k^2) for 'k' length fragment
@@ -130,9 +130,9 @@ void add_edges(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, 
         for (j = 0; j < snpfrag[i].edges; j++) label_node(snpfrag, snpfrag[i].elist[j].snp, i);
     }
     /*
-    fprintf(stderr,"FRAGMENTS=%d",fragments);
+    fprintf_time(stderr,"FRAGMENTS=%d",fragments);
     for (i = 0; i < fragments; i++){
-        fprintf(stderr,"i=%d",i);
+        fprintf_time(stderr,"i=%d",i);
         Flist[i].component = snpfrag[Flist[i].list[0].offset].component; // each fragment has a component fixed 
     }*/
 
@@ -146,7 +146,7 @@ void add_edges(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, 
         //else if (snpfrag[i].component ==i || snpfrag[i].edges ==0) singletons++;
     }
     //fprintf(stdout, "\nno of non-trivial connected components %d max-Degree %d connected variants %d coverage-per-variant %f \n", *components, maxdeg, nodes_in_graph, (double) avgdeg / (double) csnps);
-    fprintf(stderr, "no of non-trivial connected components %d max-Degree %d connected variants %d coverage-per-variant %f \n", *components, maxdeg, nodes_in_graph, (double) avgdeg / (double) csnps);
+    fprintf_time(stderr, "no of non-trivial connected components %d max-Degree %d connected variants %d coverage-per-variant %f \n", *components, maxdeg, nodes_in_graph, (double) avgdeg / (double) csnps);
 }
 //////////////////////////////////////// edge list is only used in the two functions below //////////////////////////////
 
@@ -167,7 +167,7 @@ void generate_clist_structure(struct fragment* Flist, int fragments, struct SNPf
             component++;
         }
     }
-    //fprintf(stderr,"non-trivial components in graph %d \n",components);
+    //fprintf_time(stderr,"non-trivial components in graph %d \n",components);
     for (i = 0; i < snps; i++) {
         if (snpfrag[i].component < 0) continue; // to allow for initialization to -1 in other code feb 15 2013
         if (snpfrag[i].csize <= 1 && snpfrag[i].component == i) continue; // ignore singletons that are not connected to other variants
@@ -194,7 +194,7 @@ void generate_clist_structure(struct fragment* Flist, int fragments, struct SNPf
         clist[snpfrag[Flist[i].list[0].offset].bcomp].frags++;
     }
     for (i = 0; i < components; i++) {
-        if (VERBOSE) fprintf(stdout, "comp %d first %d last %d phased %d fragments %d \n", i, clist[i].offset, clist[i].lastvar, clist[i].phased, clist[i].frags);
+        if (VERBOSE) fprintf_time(stdout, "comp %d first %d last %d phased %d fragments %d \n", i, clist[i].offset, clist[i].lastvar, clist[i].phased, clist[i].frags);
     }
 }
 

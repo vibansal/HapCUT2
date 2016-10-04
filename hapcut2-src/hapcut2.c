@@ -56,7 +56,7 @@ int MAX_IS = -1;
 int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) {
     // IMP NOTE: all SNPs start from 1 instead of 0 and all offsets are 1+
 
-    fprintf(stderr, "Calling Max-Likelihood-Cut based haplotype assembly algorithm\n");
+    fprintf_time(stderr, "Calling Max-Likelihood-Cut based haplotype assembly algorithm\n");
 
     int snps = 0;
     int fragments = 0, iter = 0, components = 0;
@@ -80,7 +80,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
     struct fragment* Flist;
     FILE* ff = fopen(fragmentfile, "r");
     if (ff == NULL) {
-        fprintf(stderr, "couldn't open fragment file %s\n", fragmentfile);
+        fprintf_time(stderr, "couldn't open fragment file %s\n", fragmentfile);
         exit(0);
     }
     fragments = 0;
@@ -107,7 +107,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
     }
 
     if (flag < 0) {
-        fprintf(stderr, "unable to read fragment matrix file %s \n", fragmentfile);
+        fprintf_time(stderr, "unable to read fragment matrix file %s \n", fragmentfile);
         return -1;
     }
 
@@ -115,7 +115,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
     snps = count_variants_vcf(variantfile);
 
     if (snps < 0) {
-        fprintf(stderr, "unable to read variant file %s \n", variantfile);
+        fprintf_time(stderr, "unable to read variant file %s \n", variantfile);
         return -1;
     }
 
@@ -146,7 +146,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
     for (i = 0; i < snps; i++) snpfrag[i].telist = (struct edge*) malloc(sizeof (struct edge)*(snpfrag[i].edges+1));
 
     // this considers only components with at least two nodes
-    fprintf(stderr, "fragments %d snps %d component(blocks) %d\n", fragments, snps, components);
+    fprintf_time(stderr, "fragments %d snps %d component(blocks) %d\n", fragments, snps, components);
 
     // BUILD COMPONENT LIST
     clist = (struct BLOCK*) malloc(sizeof (struct BLOCK)*components);
@@ -183,7 +183,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
         miscalls += clist[k].SCORE;
     }
 
-    fprintf(stderr, "processed fragment file and variant file: fragments %d variants %d\n", fragments, snps);
+    fprintf_time(stderr, "processed fragment file and variant file: fragments %d variants %d\n", fragments, snps);
 
     int MAXIS = -1;
 
@@ -220,7 +220,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
     OLD_HIC_LL_SCORE = bestscore;
     for (hic_iter = 0; hic_iter < MAX_HIC_EM_ITER; hic_iter++){
         if (VERBOSE)
-            fprintf(stdout, "HIC ITER %d\n", hic_iter);
+            fprintf_time(stdout, "HIC ITER %d\n", hic_iter);
         for (k = 0; k < components; k++){
             clist[k].iters_since_improvement = 0;
         }
@@ -231,11 +231,11 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
 
         for (iter = 0; iter < MAXITER; iter++) {
             if (VERBOSE)
-                fprintf(stdout, "PHASING ITER %d\n", iter);
+                fprintf_time(stdout, "PHASING ITER %d\n", iter);
             converged_count = 0;
             for (k = 0; k < components; k++){
                 if(VERBOSE && iter == 0)
-                    fprintf(stdout, "component %d length %d phased %d %d...%d\n", k, clist[k].length, clist[k].phased, clist[k].offset, clist[k].lastvar);
+                    fprintf_time(stdout, "component %d length %d phased %d %d...%d\n", k, clist[k].length, clist[k].phased, clist[k].offset, clist[k].lastvar);
                 if (clist[k].SCORE > 0)
                     converged_count += evaluate_cut_component(Flist, snpfrag, clist, k, slist, HAP1);
                 else converged_count++;
@@ -294,7 +294,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
         likelihood_pruning(snps, Flist, snpfrag, HAP1, CALL_HOMOZYGOUS);
     }
     // PRINT OUTPUT FILE
-    fprintf(stderr, "OUTPUTTING PRUNED HAPLOTYPE ASSEMBLY TO FILE %s\n", outputfile);
+    fprintf_time(stderr, "OUTPUTTING PRUNED HAPLOTYPE ASSEMBLY TO FILE %s\n", outputfile);
     print_hapfile(clist, components, HAP1, Flist, fragments, snpfrag, variantfile, miscalls, outputfile);
 
     // FREE UP MEMORY
@@ -414,7 +414,7 @@ int main(int argc, char** argv) {
     }
 
     if (SPLIT_BLOCKS && HIC){
-        fprintf(stderr,"Point-based block-splitting should not be used with Hi-C data. Exiting.");
+        fprintf_time(stderr,"Point-based block-splitting should not be used with Hi-C data. Exiting.");
         exit(0);
     }
 
@@ -424,7 +424,12 @@ int main(int argc, char** argv) {
         return 0;
     }
 
-    fprintf(stderr, "\n\nfragment file: %s\nvariantfile (VCF format):%s\nhaplotypes will be output to file: %s\nsolution convergence cutoff: %d\nQVoffset: %d\n\n", fragfile, VCFfile, hapfile, CONVERGE, QVoffset);
+	fprintf(stderr, "\n\n");
+    fprintf_time(stderr, "fragment file: %s\n", fragfile);
+    fprintf_time(stderr, "variantfile (VCF format):%s\n", VCFfile);
+    fprintf_time(stderr, "haplotypes will be output to file: %s\n", hapfile);
+    fprintf_time(stderr, "solution convergence cutoff: %d\n", CONVERGE);
+    fprintf_time(stderr, "QVoffset: %d\n\n", QVoffset);
     maxcut_haplotyping(fragfile, VCFfile, hapfile);
     return 0;
 }

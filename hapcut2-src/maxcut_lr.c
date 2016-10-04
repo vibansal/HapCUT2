@@ -40,7 +40,7 @@ float cut_score(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* 
         newLL += Ln;
 
     }
-    if (newLL > oldLL && DEBUG) fprintf(stderr, "component %d old %f new %f %f \n", component->phased, oldLL, newLL, component->SCORE);
+    if (newLL > oldLL && DEBUG) fprintf_time(stderr, "component %d old %f new %f %f \n", component->phased, oldLL, newLL, component->SCORE);
     if (DEBUG) fprintf(stdout, "FRAG component %d old %f new %f %f \n\n", component->phased, oldLL, newLL, component->SCORE);
     return oldLL - newLL;
 }
