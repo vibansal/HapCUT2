@@ -1,18 +1,79 @@
+#include "khash.h"
+KHASH_SET_INIT_INT(32)
+
 #include "fragmatrix.h"
 
 extern int VERBOSE;
 extern int LONG_READS;
 //////////////////////////////////////// edge list is only used in the two functions below add_edges (Feb 4 2013) //////////////////////////////
+	
+// non-recursive version of label_node
+void label_node_alt(struct SNPfrags* snpfrag, int init_node, int comp, khash_t(32) *label_node_hash) { 
+	int ret;
+	int *nodes  = NULL;
+    int m_nodes = 16;
+    int n_nodes = 0;
 
-void label_node(struct SNPfrags* snpfrag, int node, int comp) // DFS search routine for connected component 
-{
-    int i = 0;
-    if (snpfrag[node].component == -1) {
-        //	fprintf(stdout," called %d node edges %d %d \n",node,snpfrag[node].edges,comp);
+    // init
+	kh_clear(32, label_node_hash);
+    nodes    = (int*)calloc(m_nodes, sizeof(int));
+    nodes[0] = init_node;
+    n_nodes  = 1;
+	kh_put(32, label_node_hash, init_node, &ret);
+
+    while (0 < n_nodes) {
+        // get the next node
+        int node = nodes[n_nodes-1];
+        n_nodes--;
+
+        if (snpfrag[node].component == -1) continue;
+
+        // process
         snpfrag[node].component = comp;
         snpfrag[comp].csize++;
-        for (i = 0; i < snpfrag[node].edges; i++) label_node(snpfrag, snpfrag[node].elist[i].snp, comp);
+        int i;
+        for (i = snpfrag[node].edges - 1; 0 <= i; i--) { // reverse order for DFS
+			int cur_node = snpfrag[node].elist[i].snp;
+			// check the hash
+			if (kh_get(32, label_node_hash, cur_node) != kh_end(label_node_hash)) continue;
+
+            // make room
+            while (m_nodes <= n_nodes) {
+                m_nodes <<= 1;
+				if ((1 << 18) <= m_nodes) {
+					fprintf(stderr, "Too many nodes allocated: %d\n", m_nodes);
+					exit(1);
+				}
+                nodes = (int*)realloc(nodes, sizeof(int)*m_nodes);
+            }
+            nodes[n_nodes] = cur_node;
+            n_nodes++;
+			kh_put(32, label_node_hash, cur_node, &ret);
+        }
     }
+
+    // destroy
+    free(nodes);
+}
+
+void label_node(struct SNPfrags* snpfrag, int node, int comp, khash_t(32) *label_node_hash) // DFS search routine for connected component 
+{
+	/*
+    int i = 0, ret;
+	if (kh_get(32, label_node_hash, node) != kh_end(label_node_hash)) return;
+	kh_put(32, label_node_hash, node, &ret);
+	if (ret == 0) {
+		fprintf(stderr, "kh_put returned non-empty\n"); 
+		exit (1);
+	}
+    if (snpfrag[node].component == -1) {
+        //  fprintf(stdout," called %d node edges %d %d \n",node,snpfrag[node].edges,comp);
+        snpfrag[node].component = comp;
+        snpfrag[comp].csize++;
+        for (i = 0; i < snpfrag[node].edges; i++) label_node(snpfrag, snpfrag[node].elist[i].snp, comp, label_node_hash);
+    }
+	*/
+    label_node_alt(snpfrag, node, comp, label_node_hash);
 }
 
 int edge_compare(const void *a, const void *b) {
@@ -26,6 +87,7 @@ void add_edges_fosmids(struct fragment* Flist, int fragments, struct SNPfrags* s
     //char allele;
     int csnps = 0;
     int max_vars = 65536;
+	khash_t(32) *label_node_hash = kh_init(32);
     for (i = 0; i < snps; i++) snpfrag[i].edges = 0;
 
     int varlist[max_vars];
@@ -67,15 +129,22 @@ void add_edges_fosmids(struct fragment* Flist, int fragments, struct SNPfrags* s
     // elist contains duplicates (due to multiple fragments), telist does not, feb 5 2013 
     // sort all edges lists once for all by snp number, this can be done faster using QSORT, see later code...
     for (i = 0; i < snps; i++) qsort(snpfrag[i].elist, snpfrag[i].edges, sizeof (struct edge), edge_compare);
+	fprintf(stderr, "Iterating through SNPs\n0");
+	int every = (snps < 10000) ? snps : (snps / 10000.0);
     for (i = 0; i < snps; i++) {
+		if (0 == (i % every)) fprintf(stderr, "\r%.2lf%% complete", i * 100.0 / snps);
         if (snpfrag[i].edges > maxdeg) maxdeg = snpfrag[i].edges;
         avgdeg += snpfrag[i].frags;
         if (snpfrag[i].edges == 0) continue;
         csnps++;
         if (snpfrag[i].component != -1) continue; // already labeled with component
         snpfrag[i].component = i;
-        for (j = 0; j < snpfrag[i].edges; j++) label_node(snpfrag, snpfrag[i].elist[j].snp, i);
+        for (j = 0; j < snpfrag[i].edges; j++) {
+			kh_clear(32, label_node_hash);
+			label_node(snpfrag, snpfrag[i].elist[j].snp, i, label_node_hash);
+		}
     }
+	fprintf(stderr, "\r%.2lf%% complete\n", i * 100.0 / snps);
     for (i = 0; i < fragments; i++) Flist[i].component = snpfrag[Flist[i].list[0].offset].component; // each fragment has a component fixed 
 
     *components = 0;
@@ -87,6 +156,7 @@ void add_edges_fosmids(struct fragment* Flist, int fragments, struct SNPfrags* s
         }
         //else if (snpfrag[i].component ==i || snpfrag[i].edges ==0) singletons++;
     }
+	kh_destroy(32, label_node_hash);
     fprintf(stdout, "Number of non-trivial connected components %d max-Degree %d connected variants %d coverage-per-variant %f \n", *components, maxdeg, nodes_in_graph, (double) avgdeg / (double) csnps);
     //fprintf(stderr, "Number of non-trivial connected components %d max-Degree %d connected variants %d coverage-per-variant %f \n", *components, maxdeg, nodes_in_graph, (double) avgdeg / (double) csnps);
 }
@@ -94,6 +164,7 @@ void add_edges_fosmids(struct fragment* Flist, int fragments, struct SNPfrags* s
 // for each fragment: add all pairwise edges between all variants in it, complexity = O(k^2) for 'k' length fragment
 
 void add_edges(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int* components) {
+	khash_t(32) *label_node_hash = kh_init(32);
     int i = 0, j = 0, t = 0, k = 0, iter = 0, maxdeg = 0, avgdeg = 0, mdelta = 0;
     int csnps = 0;
     for (i = 0; i < snps; i++) snpfrag[i].edges = 0;
@@ -118,7 +189,10 @@ void add_edges(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, 
     // elist contains duplicates (due to multiple fragments), telist does not, feb 5 2013 
     // sort all edges lists once for all by snp number, this can be done faster using QSORT, see later code...
     for (i = 0; i < snps; i++) qsort(snpfrag[i].elist, snpfrag[i].edges, sizeof (struct edge), edge_compare);
+	fprintf(stderr, "Iterating through SNPs\n0");
+	int every = snps / 10000.0;
     for (i = 0; i < snps; i++) {
+		if (0 == (i % every)) fprintf(stderr, "\r%.2lf%% complete", i * 100.0 / snps);
         //fprintf(stdout," snp %d edges %d || ",i,snpfrag[i].edges); for (j=0;j<snpfrag[i].edges;j++) fprintf(stdout,"%d ",snpfrag[i].elist[j]); fprintf(stdout,"\n"); getchar();
         if (snpfrag[i].edges > maxdeg) maxdeg = snpfrag[i].edges;
         avgdeg += snpfrag[i].frags;
@@ -127,8 +201,12 @@ void add_edges(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, 
         csnps++;
         if (snpfrag[i].component != -1) continue; // already labeled with component
         snpfrag[i].component = i;
-        for (j = 0; j < snpfrag[i].edges; j++) label_node(snpfrag, snpfrag[i].elist[j].snp, i);
+        for (j = 0; j < snpfrag[i].edges; j++) {
+			kh_clear(32, label_node_hash);
+			label_node(snpfrag, snpfrag[i].elist[j].snp, i, label_node_hash);
+		}
     }
+	fprintf(stderr, "\r%.2lf%% complete\n", i * 100.0 / snps);
     /*
     fprintf(stderr,"FRAGMENTS=%d",fragments);
     for (i = 0; i < fragments; i++){
@@ -145,6 +223,7 @@ void add_edges(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, 
         }
         //else if (snpfrag[i].component ==i || snpfrag[i].edges ==0) singletons++;
     }
+	kh_destroy(32, label_node_hash);
     //fprintf(stdout, "\nno of non-trivial connected components %d max-Degree %d connected variants %d coverage-per-variant %f \n", *components, maxdeg, nodes_in_graph, (double) avgdeg / (double) csnps);
     fprintf(stderr, "no of non-trivial connected components %d max-Degree %d connected variants %d coverage-per-variant %f \n", *components, maxdeg, nodes_in_graph, (double) avgdeg / (double) csnps);
 }

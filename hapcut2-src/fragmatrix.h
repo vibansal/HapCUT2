@@ -15,7 +15,7 @@ void update_fragscore(struct fragment* Flist, int f, char* h);
 void calculate_fragscore(struct fragment* Flist, int f, char* h, float* mec_ll);
 float fragment_ll(struct fragment* Flist, int f, char* h, int homozygous, int switch_ix);
 
-void label_node(struct SNPfrags* snpfrag, int node, int comp);
+//void label_node(struct SNPfrags* snpfrag, int node, int comp);
 void add_edges(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int* components);
 void add_edges_fosmids(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int* components);
 
