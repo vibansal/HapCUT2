@@ -57,19 +57,20 @@ In the case of Hi-C reads, it is recommended to use ```--hic 1``` for both extra
 Based on user preference, SNV pruning (filtering of low-quality phased SNVs) may be adjusted with ```--threshold <float>``` (closer to 1 prunes more, closer to 0.5 prunes less) or turned off with ```--no_prune 1```.
 
 ##Output Format:
-Haplotype blocks are printed to the output file, each with a block header with the following format:
+Haplotype blocks are printed to the output file. For a given block, columns 2 represents 
+, each with a block header with the following format:
 
 BLOCK: offset: \<SNV offset\> len: \<SNV span of block\> phased: \<\# SNVs phased\> SPAN: \<base pair span of block\> fragments \<\# of fragments in block\>
 
 Following the header, there is one line per SNV with the following tab-delimited fields:
 
-1. VCF file index (1-based)
-2. phased allele 1
-3. phased allele 2
-4. chromosome (from VCF)
-5. position (from VCF)
-6. reference allele (0 in column 2 or 3)
-7. variant allele (1 in column 2 or 3)
+1. VCF file index (1-based index of the line in the input VCF describing variant)
+2. allele on chromosome copy A (0 means reference allele, 1 means variant allele)
+3. allele on chromosome copy B (0 means reference allele, 1 means variant allele)
+4. chromosome
+5. position
+6. reference allele (allele corresponding to 0 in column 2 or 3)
+7. variant allele (allele corresponding to 1 in column 2 or 3)
 8. VCF genotype field (unedited, directly from original VCF)
 9. discrete pruning status (1 means pruned, 0 means phased)
 10. log<sub>10</sub>(confidence that there is not a switch error starting at this SNV)
