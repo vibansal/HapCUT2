@@ -68,10 +68,10 @@ Following the header, there is one line per SNV with the following tab-delimited
 3. phased allele 2
 4. chromosome (from VCF)
 5. position (from VCF)
-6. allele 1 from VCF genotype
-7. allele 2 from VCF genotype
-8. VCF genotype field
-9. discrete pruning status (1 == pruned, 0 == phased)
+6. reference allele (0 in column 2 or 3)
+7. variant allele (1 in column 2 or 3)
+8. VCF genotype field (unedited, directly from original VCF)
+9. discrete pruning status (1 means pruned, 0 means phased)
 10. log<sub>10</sub>(confidence that there is not a switch error starting at this SNV)
 11. log<sub>10</sub>(confidence that there is not a mismatch [single SNV] error at this SNV)
 
