@@ -26,7 +26,7 @@ void label_node_alt(struct SNPfrags* snpfrag, int init_node, int comp, khash_t(3
         int node = nodes[n_nodes-1];
         n_nodes--;
 
-        if (snpfrag[node].component == -1) continue;
+        if (snpfrag[node].component != -1) continue;
 
         // process
         snpfrag[node].component = comp;
