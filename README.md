@@ -7,8 +7,15 @@ We found that previously described haplotype assembly methods are specialized fo
 - NGS short reads (Illumina HiSeq)
 - clone-based sequencing (Fosmid or BAC clones)
 - SMRT reads (PacBio)
+- 10X Genomics Linked-Reads
 - proximity-ligation (Hi-C) reads
 - high-coverage sequencing (>40x coverage-per-SNP) using above technologies
+- combinations of the above technologies (e.g. scaffold long reads with Hi-C reads)
+
+##Citation:
+If you use HapCUT2 in your research, please cite:
+
+[Edge, P., Bafna, V. & Bansal, V. HapCUT2: robust and accurate haplotype assembly for diverse sequencing technologies. Genome Res. gr.213462.116 (2016). doi:10.1101/gr.213462.116](http://genome.cshlp.org/content/early/2016/12/09/gr.213462.116.abstract)
 
 ##to build:
 
