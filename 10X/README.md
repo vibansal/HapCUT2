@@ -1,14 +1,22 @@
 
 
-## pipeline for getting haplotype fragment matrix from 10x BAM file
+## pipeline for generating haplotype fragment file from 10x BAM file that can be used to assemble haplotypes using HapCUT2 or other tools 
 
-1. extract single chromosome (20) data
+1. extract intervals that correspond to boundaries of long molecules using barcode information from the 10X sorted BAM file. Each molecule corresponds to an interval and a barcode
 
         python getMolecules.py -d 20000 NA12878.chr20.bam NA12878.chr20.molecules.bed
     
 
-2. run extractHAIRS with --barcode 1 and --bed option
+2. For each molecule, extract reads that overlap variants
 
-        ./FragmentCut --bam NA12878.chr20.bam --VCF NA12878_phased_variants.vcf.chr20.hets --bed NA12878.chr20.molecules.bed --barcode 1 --out chr20.frags --ref ~/Public/tools/reference-genomes/hg19.geuvadis.new.fa > chr20.log
+        ./FragmentCut --bam NA12878.chr20.bam --VCF NA12878.chr20.hets.vcf --bed NA12878.chr20.molecules.bed --barcode 1 --out chr20.frags --ref reference.fa > chr20.log
 
 3. run HapCUT2 using fragment file from step 2 
+
+        ./HAPCUT2 --fragments chr20.frags --VCF NA12878.chr20.hets.vcf 
+        
+        
+        
+## NOTES 
+
+1. 
