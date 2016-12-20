@@ -142,8 +142,7 @@ rule FragmentCut:
             vcf = '%s/{chrom}.vcf' % VCF_DIR,
             bam = TENX_BAM
     output: hairs = 'data/10X/{chrom}',
-            log   = 'data/10X/logs/{chrom}.log'
-    shell:  '''{FRAGMENTCUT} --bam {input.bam} --VCF {input.vcf} --bed {input.bed} --barcode 1 --out {output.hairs} --ref {REFERENCE} --regions {wildcards.chrom}: > {output.log}'''
+    shell:  '''{FRAGMENTCUT} --bam {input.bam} --VCF {input.vcf} --bed {input.bed} --barcode 1 --out {output.hairs} --ref {REFERENCE}''' #--regions {wildcards.chrom}:
 
 # call boundaries of 10X molecules
 rule get_molecules_10X:
