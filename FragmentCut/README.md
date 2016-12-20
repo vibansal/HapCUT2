@@ -13,4 +13,4 @@ HapCUT formatted fragment file for haplotype assembly
 
 
 
-## FragmentCut works for 10X Genomics bam files as well (additional input is a bed file) 
+# FragmentCut works for 10X Genomics bam files as well (additional input is a bed file) 
