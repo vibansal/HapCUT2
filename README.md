@@ -2,4 +2,9 @@ This repository holds the code for a new haplotype assembly method, HapCUT2, tha
 
 The tarball of the source code (hapcut2.tar.gz) can be downloaded here. The latest source code is available from  https://github.com/pjedge/hapcut2
 
-Additional code for generating fragment files for HapCUT2 is also provided. 
+
+### CODE for generating haplotype fragment files from 10X barcoded BAM files 
+
+See README file in the '10X' folder for instructions 
+
+
