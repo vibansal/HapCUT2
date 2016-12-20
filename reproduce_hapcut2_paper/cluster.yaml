@@ -1,0 +1,69 @@
+__default__:
+    email:           ###### YOUR EMAIL HERE
+    working_dir:     ###### FULL PATH OF reproduce_hapcut2_paper
+    queue:           ###### QUEUE for cluster
+    group:           ###### GROUP for cluster
+    qsub_stdout_dir: ###### FULL PATH where to put qsub standard output
+    ppn:             1
+    walltime:        '30:00:00'
+
+plot_simulation_runtime_comparison:
+    ppn: 1
+    walltime: '1:00:00'
+
+plot_plot_hic_completeness:
+    ppn: 2
+    walltime: '3:00:00'
+
+plot_common_snps_error:
+    ppn: 2
+    walltime: '3:00:00'
+
+plot_pacbio_vs_hic1:
+    ppn: 2
+    walltime: '1:00:00'
+
+plot_pacbio_vs_hic2:
+    ppn: 2
+    walltime: '1:00:00'
+
+plot_hic_htrans_estimates:
+    ppn: 2
+    walltime: '2:00:00'
+
+plot_longread:
+    ppn: 1
+    walltime: '1:00:00'
+
+plot_hic:
+    ppn: 1
+    walltime: '1:00:00'
+
+hapcut_htrans_error_rates:
+    ppn: 1
+    walltime: '4:00:00'
+
+run_hapcut_hic:
+    ppn: 2
+    walltime: '20:00:00'
+
+run_tool:
+    ppn: 2
+    #walltime: '11:00:00'
+    walltime: '21:00:00'
+
+run_tool_sim:
+    ppn: 2
+    walltime: 50:00:00
+
+simulate_haps:
+    ppn: 2
+    walltime: '21:00:00'
+
+subsample_hic:
+    ppn: 1
+    walltime: '1:00:00'
+
+hic_extract_hairs:
+    ppn: 2
+    walltime: '100:00:00'
