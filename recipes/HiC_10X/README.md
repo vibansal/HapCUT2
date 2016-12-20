@@ -39,7 +39,7 @@ encountered.
 ##Running
 To do a dry run and list the executions steps, call:
 ```
-snakemake
+snakemake -n
 ```
 To run the pipeline, call:
 ```
