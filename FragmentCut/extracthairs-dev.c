@@ -1,7 +1,6 @@
 
 /* program to extract haplotype fragments from dilution pool sequencing, author Vikas Bansal */
 /* main code is in file fosmidbam_hairs.c */
-/* this code can easily be merged with extracthairs.c since it calls a different function and arguments are same */
 
 #include<stdio.h>
 #include<stdlib.h>
@@ -338,10 +337,10 @@ int parse_bamfile_fosmid(char* bamfile,HASHTABLE* ht,CHROMVARS* chromvars,VARIAN
 
 int main (int argc, char** argv)
 {
-	char bamfile[1024]; strcpy(bamfile,"/media/drive2/Haplotyping/NA12878-SOLID-fosmid/aligned-bams/pool_SPA1.novoalign.sorted.bam"); 
-	char variantfile[1024]; strcpy(variantfile,"/media/drive2/Haplotyping/NA12878-SOLID-fosmid/NA12878.hg18.snps.vcf.hets");
-	char fastafile[1024]; strcpy(fastafile,"/home/vbansal/Public/tools/reference-genomes/1000genomes-huref/human_b36_male.fa");
-	char maskfile[1024]; strcpy(maskfile,"/media/drive2/Haplotyping/genome-mask/hg18-50bp-files/hg18.50bp.mask.fa"); 
+	char bamfile[1024]; strcpy(bamfile,"None"); 
+	char variantfile[1024]; strcpy(variantfile,"None"); 
+	char fastafile[1024]; strcpy(fastafile,"None"); 
+	char maskfile[1024]; strcpy(maskfile,"None"); 
 	char bedfile[1024]; strcpy(maskfile,"None"); // for intervals 
 
 	int readsorted = 0;
@@ -384,11 +383,22 @@ int main (int argc, char** argv)
 		else if (strcmp(argv[i],"--minsep") == 0) MIN_SEPARATION = atoi(argv[i+1]); 
 		else if (strcmp(argv[i],"--fragpenalty") == 0) block_penalty_global = atof(argv[i+1]); 
 		else if (strcmp(argv[i],"--readdensity") == 0) read_density_global = atof(argv[i+1]); 
-		else if (strcmp(argv[i],"--barcode") == 0) { BARCODE = atoi(argv[i+1]); fprintf(stderr,"reads have barcodes \n"); } 
+		else if (strcmp(argv[i],"--barcode") == 0) { BARCODE = atoi(argv[i+1]); fprintf(stderr,"reads in BAM file have barcodes (10X data) \n"); } 
 		else if (strcmp(argv[i],"--bed") == 0) { strcpy(bedfile,argv[i+1]); fprintf(stderr,"bed file provided \n"); BED_FILE = 1; } 
 		else if (strcmp(argv[i],"--regions") == 0) { regions = argv[i+1]; fprintf(stderr,"regions arg provided \n"); } 
 		else if (strcmp(argv[i],"--sample") == 0) { SAMPLE_READS = atof(argv[i+1]);  } 
 	}
+	if (BARCODE ==1)
+	{
+		int refcheck = 1; FILE* tempfile = fopen(fastafile,"r"); 
+	 	if (BED_FILE ==0 || strcmp(fastafile,"None")==0 || tempfile ==NULL) 
+		{
+			fprintf(stderr,"\nwith a barcoded BAM file, an input bed file with the intervals corresponding to each molecule (with barcode) is required \nA reference fasta file used for alignment of reads in the BAM file is also required (should be indexed) \n\n");
+			return -1;
+		}
+		else fclose(tempfile);
+	}
+
 	if (bamfiles > 0 && strcmp(variantfile,"None") !=0)
 	{
 		bamfilelist = (char**)malloc(sizeof(char*)*bamfiles); 

@@ -234,7 +234,8 @@ int read_next_chromosome(REFLIST* reflist,int chrom,FILE* fp)
 	clock_t t = clock();
 	fprintf(stderr,"reading next chromosome %s ",reflist->names[chrom]);
 	reflist->sequences[chrom] = (unsigned char*)malloc(reflist->lengths[chrom]+1); 
-	int j=0,i=0,k=0; 
+	int j=0,i=0;
+	uint64_t k=0; 
 	// first character is assumed to be '>'
 	char c = fgetc(fp); while (c != '\n') c = fgetc(fp);
 	while (c != EOF && c != '>')
@@ -255,7 +256,7 @@ int read_next_chromosome(REFLIST* reflist,int chrom,FILE* fp)
 		k += reflist->intervallist[i].end-reflist->intervallist[i].start; 
 		i++; 
 	}
-	fprintf(stderr,"# targeted bases on chrom is %d/%d \n",k,reflist->lengths[chrom]);
+	if (k < reflist->lengths[chrom]) fprintf(stderr,"# targeted bases on chrom is %ld/%d \n",k,reflist->lengths[chrom]);
 	return 1;
 }
 

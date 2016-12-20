@@ -266,7 +266,7 @@ int generate_single_fragment(struct alignedread** readlist,FRAGMENT* flist,VARIA
 		if (adjusted_hets > 0) fprintf(stdout,"FRAGMENT%s:%d:%d ",tag,adjusted_hets,fp.variants); else fprintf(stdout,"FRAGMENT%s ",tag); 
 		print_fragment(&fp,varlist,stdout); 
 		//fprintf(stderr,"fragfile %s \n",fragment_file);
-		//if (fragment_file != stdout) print_fragment(&fp,varlist,fragment_file); // print fragment to output file, it has no other information, can be used as direct hapcut input
+		if (fragment_file != stdout) print_fragment(&fp,varlist,fragment_file); // print fragment to output file, it has no other information, can be used as direct hapcut input
 		if (COMPARE_PHASE ==1) compare_fragment(&fp,varlist,stdout);
 	}
 	else if (j ==1) // fragment with single variant, print it so that it can potentially be merged with adjacent fragments

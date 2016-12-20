@@ -1,6 +1,6 @@
 
 
-## pipeline for generating haplotype fragment file from 10x BAM file that can be used to assemble haplotypes using HapCUT2 or other tools 
+### pipeline for generating haplotype fragment file from 10x BAM file that can be used to assemble haplotypes using HapCUT2 or other tools 
 
 1. extract intervals that correspond to boundaries of long molecules using barcode information from the 10X sorted BAM file. Each molecule corresponds to an interval and a barcode
 
@@ -17,7 +17,7 @@
         
         
         
-## NOTES 
+### NOTES 
 
 1. This pipeline should be run on each chromosome separately for efficiency
-2. The "-d" parameter in getMolecules.py is set to 20000 bases
+2. The "-d" parameter in getMolecules.py defines the distance between adjacent molecules. Increasing this parameter can result in adjacent molecules (fragments) being merged into a single molecule. 
