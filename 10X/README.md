@@ -12,7 +12,9 @@
 
         ./FragmentCut --bam NA12878.chr20.bam --VCF NA12878.chr20.hets.vcf --bed NA12878.chr20.molecules.bed --barcode 1 --out chr20.frags --ref reference.fa > chr20.log
 
-3. run HapCUT2 using fragment file 'chr20.frags' from step 2 (for instructions, see the HapCUT2 README file) 
+3. run HapCUT2 using fragment file 'chr20.frags' (for instructions, see the HapCUT2 README file) 
+
+	./build/HAPCUT2 --fragments chr20.frags --vcf NA12878.chr20.hets.vcf  --output haplotype_output_file 
 
                
         
