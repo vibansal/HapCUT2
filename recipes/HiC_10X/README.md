@@ -37,6 +37,9 @@ encountered.
 - Picard Tools 2.8
 - Bamtools 2.4
 
+For instructions to install HapCUT2 and extractHAIRS, see the README at the root of this project.
+For instructions to install FragmentCut, see instructions at the link provided.
+
 ##Running
 To do a dry run and list the executions steps, call:
 ```
