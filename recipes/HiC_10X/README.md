@@ -15,7 +15,8 @@ It is assumed that the Hi-C reads are in paired-end fastq format and the
 Before running the pipeline, edit the top of the Snakefile to specify the paths to the
 required data and tools.
 If the Hi-C reads are already in BAM format they can be placed in
-'data/hic_processed.bam' to skip the earlier steps.
+'data/hic_processed.bam' to skip the earlier steps. The pipeline will generate 
+haplotype block files and place them in output/chr*.hap
 
 ##Caveats:
 This pipeline was extracted and simplified from the pipeline used for the HapCUT2
