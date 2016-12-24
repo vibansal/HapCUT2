@@ -7,8 +7,6 @@ Created on Wed Oct 28 14:28:16 2015
 
 # imports
 import sys
-# hack to get correct pysam
-#sys.path.insert(1,'/home/pedge/installed/opt/python/lib/python3.4/site-packages')
 import argparse
 #import os
 import pysam
@@ -16,7 +14,6 @@ import re
 import subprocess as sp
 
 MD_REGEX = re.compile("([0-9]+)([A-Z]|\^[A-Z]+)") # from SPARTA
-#path_to_hg19_ix = '/oasis/tscc/scratch/pedge/data/genomes/hg19/hg19.fa.fai'
 
 def run_process(cmd):
     # credit to roland smith for method of retrieving stdout and stderr: http://stackoverflow.com/questions/14059558/why-is-python-no-longer-waiting-for-os-system-to-finish
@@ -176,9 +173,7 @@ def combine_aln(a1, a2, distance):
     new_pos = first.pos
 
     # new mapping quality
-#    new_mapq = round(-10*math.log10(10**(first.mapping_quality/-10) + 10**(second.mapping_quality/-10)))
-#    if new_mapq > 254:
-#        new_mapq = 254
+
     new_mapq = max(first.mapping_quality, second.mapping_quality)
 
     # cigar strings are concatenated with (distance)N inbetween to specify gap
@@ -225,19 +220,6 @@ def combine_aln(a1, a2, distance):
 # main program logic
 def repair_chimeras(bamfile1, bamfile2, outfile, min_mapq):
     print('Performing Hi-C repair...')
-    # temporary file
-    # after processing, the temp file will have samtools'
-    # "fix mate information" tool applied to make the final file
-
-    # temp files/directories
-
-#    for dirname in ['temp/merged', 'temp/fixedmate', 'temp/sorted', 'hic_processed_bams', outdirname]:
-#        if not os.path.exists(dirname):
-#            os.makedirs(dirname)
-
-#    temp_fn1 = "temp/merged/{}.bam".format(tempfile_prefix)
-#    temp_fn2 = "temp/sorted/{}".format(tempfile_prefix)
-#    out_fn = "hic_processed_bams/{}.bam".format(tempfile_prefix)
 
     i = 0
 
@@ -378,13 +360,7 @@ def repair_chimeras(bamfile1, bamfile2, outfile, min_mapq):
         else:
             f1.flag = f1.flag & 4093
             f2.flag = f2.flag & 4093
-        # map status of read and mate
-        #if f1.is_unmapped:
-            #f1.flag = f1.flag | 4
-            #f2.flag = f2.flag | 8
-        #if f2.is_unmapped:
-            #f2.flag = f2.flag | 4
-            #f1.flag = f1.flag | 8
+
         # set flag of mate's reversal status
 
         # make sure f1.flag and f2.flag are not secondary, not supplementary
@@ -416,25 +392,6 @@ def repair_chimeras(bamfile1, bamfile2, outfile, min_mapq):
 
     print("{} mate-pairs processed.".format(total))
     print("{} repaired.".format(mod_count))
-    #print("{} repairs skipped due to snippet overlapping main read.".format(overlap_count))
-
-    #print('Fixing mate information and sorting...')
-    #pysam.fixmate(temp_fn0, temp_fn1)
-    #pysam.sort(temp_fn1, temp_fn2)
-    #cmd1 = '$SAMTOOLS view -t {1} -b {0} | $SAMTOOLS fixmate - - | $SAMTOOLS sort -m 12G -@ 4 -T {2} -o {2}.bam -'.format(temp_fn0, path_to_hg19_ix, temp_fn2)
-    #cmd1 = '$SAMTOOLS fixmate {0} - | $SAMTOOLS sort -m 2G -@ 4 -T {1} -o {1}.bam -'.format(temp_fn1, temp_fn2)
-    #run_process(cmd1)
-    #os.remove(temp_fn1)
-
-    #print('Removing duplicates with picard...')
-    #cmd2 = 'java -jar $PICARD MarkDuplicatesWithMateCigar READ_NAME_REGEX= null INPUT= {0}.bam OUTPUT= {1} METRICS_FILE= hic_processed_bams/{2}.metrics ASSUME_SORTED= true'.format(temp_fn2, out_fn, tempfile_prefix)
-    #cmd2 = 'java -jar $PICARD MarkDuplicates READ_NAME_REGEX= null INPUT= {0}.bam OUTPUT= {1} METRICS_FILE= hic_processed_bams/{2}.metrics ASSUME_SORTED= true'.format(temp_fn2, out_fn, tempfile_prefix)
-    #run_process(cmd2)
-    #os.remove(temp_fn2 + '.bam')
-
-    #print('Splitting by chromosome...')
-    #cmd3 = 'bamtools split -in {0} -reference -stub {1}/{2}'.format(out_fn, outdirname, tempfile_prefix)
-    #run_process(cmd3)
 
 if __name__ == '__main__':
     args = parse_args()

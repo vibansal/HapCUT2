@@ -4,6 +4,7 @@
 # Distributed under terms of the MIT license.
 
 # Tweaks by Peter Edge <pedge@eng.ucsd.edu> on 10/12/2016
+# - added read.reference_end to line when handling new contig, see below, it was causing problems without
 # - removed a print statement that didn't do anything for python3 compatibility
 # - function added to be called from python modules rather than shell
 
