@@ -102,12 +102,7 @@ The directory **reproduce_hapcut2_paper** contains the source code and pipeline 
 ##Example pipelines for various types of sequencing data
 
 The directory **recipes** contains example pipelines to assemble haplotypes from various types of sequencing data.##Reproducing the HapCUT2 manuscript
-99
-​
-100
-The directory **reproduce_hapcut2_paper** contains the source code and pipeline used to obtain the results of the HapCUT2 manuscript (linked above). It is nearly complete except for some early data access and cleaning steps which are not yet integrated into the pipeline, but these will be added soon.
-101
-​
-102
+
 ##Example pipelines for various types of sequencing data
 
+The directory **reproduce_hapcut2_paper** contains the source code and pipeline used to obtain the results of the HapCUT2 manuscript (linked above). It is nearly complete except for some early data access and cleaning steps which are not yet integrated into the pipeline, but these will be added soon.
