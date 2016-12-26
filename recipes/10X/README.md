@@ -1,38 +1,30 @@
-Sample pipeline to assemble haplotypes from combined Hi-C + 10X Genomics data with HapCUT2
+Sample pipeline to assemble haplotypes from 10X Genomics data with HapCUT2
 ======
 
 ##About:
-This is an example pipeline for assembling haplotypes using combined Hi-C
-and 10X Genomics data for the same individual. It is written in Snakemake,
+This is an example pipeline for assembling haplotypes using
+10X Genomics data for a single individual. It is written in Snakemake,
 a python-based workflow management tool (available using pip):
 
 ```
 pip3 install snakemake
 ```
-It is assumed that the Hi-C reads are in paired-end fastq format and the
-10X reads are in aligned bam format (It is recommended to align
+It is assumed that the 10X reads are in aligned bam format (It is recommended to align
 10X reads using e.g. 10X's own LongRanger software suite.)
 Before running the pipeline, edit the top of the Snakefile to specify the paths to the
 required data and tools.
-If the Hi-C reads are already in BAM format they can be placed in
-'data/hic_processed.bam' to skip the earlier steps. The pipeline will generate
-haplotype block files and place them in 'output/chr*.hap'
+The pipeline will generate haplotype block files and place them in 'output/chr*.hap'
 
 ##Requirements:
 - Snakemake 3.5.5
 - a reference genome in fasta format
 - a bam file containing aligned, barcoded 10X reads
-- paired-end fastq files (ending in *_1.fastq and *_2.fastq) containing Hi-C reads
 - VCF files containing variants for the individual, named chr1.vcf, chr2.vcf...
 - HapCUT2
-- extractHAIRS
 - [https://github.com/vibansal/HapCUT2/tree/master/FragmentCut](FragmentCut)
-- BWA 0.7.12-r1044
 - Samtools 1-2-244, htslib 1.21
-- Picard Tools 2.8
-- Bamtools 2.4
 
-For instructions to install HapCUT2 and extractHAIRS, see the README at the root of this project.
+For instructions to install HapCUT2, see the README at the root of this project.
 For instructions to install FragmentCut, see instructions at the link provided.
 
 ##Running
