@@ -14,7 +14,7 @@ int fragment_compare(const void *a, const void *b) {
 
 
 int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragments) {
-    int i = 0, j = 0, k = 0, t = 0, t1 = 0;
+    int i = 0, j = 0, k = 0, t = 0, t1 = 0, done = 0;
     int blocks = 0, type = 0, l = 0, biter = 0, offset = 0,dtype=0,isize = 0;
     char buffer[MAXBUF];
     char blockseq[100000];
@@ -23,7 +23,7 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
     char ch;
     int num_fields;
     int expected_num_fields;
-    
+
     FILE* ff = fopen(fragmentfile, "r");
     if (ff == NULL) {
         fprintf_time(stderr, "couldn't open fragment file \n");
@@ -32,20 +32,28 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
 
     for (i = 0; i < fragments; i++) {
         //		fprintf(stdout,"%s \n",buffer);
+        done = 0;
+        while (!done){
+            j = 0;
+            ch = fgetc(ff);
+            num_fields = 1;
+            while (ch != '\n') {
+                buffer[j] = ch;
+                j++;
+                ch = fgetc(ff);
+                if (ch == ' '){
+                    num_fields++;
+                }
+            }
+            buffer[j] = '\0';
+
+            // if there are 0 blocks then ignore this fragment completely
+            done = !((buffer[0] == '0') && (buffer[1] == ' '));
+        }
+
         Flist[i].data_type = 0; // default data type
         Flist[i].htrans_prob = -80;
-        j = 0;
-        ch = fgetc(ff);
-        num_fields = 1;
-        while (ch != '\n') {
-            buffer[j] = ch;
-            j++;
-            ch = fgetc(ff);
-            if (ch == ' '){
-                num_fields++;
-            }
-        }
-        buffer[j] = '\0';
+
         k = 0;
         t = 0;
         type = 0;
@@ -75,7 +83,7 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
                 }else{
                     expected_num_fields = (3 + 2*blocks);
                 }
-                
+
                 if (num_fields < expected_num_fields){
                     fprintf_time(stderr, "ERROR: Invalid fragment file, too few fields at line %d.\n",i);
                     if (NEW_FRAGFILE_FORMAT)
@@ -133,7 +141,7 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
                 for (l = 0; l < t; l++) {
                     dtype = 10 * dtype + (int) (blockseq[l] - 48);
                 }
-                Flist[i].data_type = dtype;    
+                Flist[i].data_type = dtype;
                 type = 5;
             } else if (type == 5){
                 // read in the position of mate 2
@@ -146,7 +154,7 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
                     }
                     Flist[i].mate2_ix = offset - 1;
                 }
-                
+
                 type = 6;
             } else if (type == 6){
 
@@ -160,7 +168,7 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
                     }
                     Flist[i].isize = isize;
                 }
-                
+
                 type = 2; // go back to reading in fragment info
             }
             t = 0;
@@ -269,7 +277,7 @@ int read_vcffile(char* vcffile, struct SNPfrags* snpfrag, int snps) {
         s = i;
         while (buffer[i] != ' ' && buffer[i] != '\t') i++;
         e = i;
-        
+
         // check format string for presence of GQ
         format_ix = 0;
         GQ_ix = -1; // the index of format field for GQ
@@ -280,7 +288,7 @@ int read_vcffile(char* vcffile, struct SNPfrags* snpfrag, int snps) {
                 GQ_ix = format_ix;
             }
         }
-        
+
         while (buffer[i] == ' ' || buffer[i] == '\t') i++;
         s = i;
         while (buffer[i] != ' ' && buffer[i] != '\t' && buffer[i] != '\n') i++;
@@ -299,7 +307,7 @@ int read_vcffile(char* vcffile, struct SNPfrags* snpfrag, int snps) {
                 k++; // step past the ':'
             }
             // reached GQ field. read it in.
-            
+
             j=0;
             while (k<len && gen[k] != ':') {
                 GQ[j] = gen[k];
@@ -312,7 +320,7 @@ int read_vcffile(char* vcffile, struct SNPfrags* snpfrag, int snps) {
         } else{
             snpfrag[var].homozygous_prior = HOMOZYGOUS_PRIOR;
         }
-        
+
         var++;
     }
     fclose(fp);
@@ -364,7 +372,7 @@ int read_haplotypefile(char* hapfile, struct SNPfrags* snpfrag, int snps, char* 
             blist[j].offset = offset - 1;
             blist[j].length = len;
             blist[j].phased = phased;
-            //if (pflag) fprintf(stdout,"BLOCK--- %9d len %5d phased %5d \n",offset,len,phased); 
+            //if (pflag) fprintf(stdout,"BLOCK--- %9d len %5d phased %5d \n",offset,len,phased);
             j++;
             for (i = 0; i < len; i++) {
                 fscanf(sf, "%s %c %c \n", id, &c1, &c2);
@@ -373,8 +381,8 @@ int read_haplotypefile(char* hapfile, struct SNPfrags* snpfrag, int snps, char* 
                     bn[offset + i - 1] = offset;
                     initHAP[offset + i - 1] = c1;
                 }
-                strcpy(snpfrag[offset + i - 1].id, id); // IMPORTANT copy SNP id from haplotype solution to SNP ID 
-                // offset is the id of each block since it is supposed to be unique  
+                strcpy(snpfrag[offset + i - 1].id, id); // IMPORTANT copy SNP id from haplotype solution to SNP ID
+                // offset is the id of each block since it is supposed to be unique
             }
             fscanf(sf, "%s \n", id);
         }
@@ -408,7 +416,7 @@ int read_htrans_file(char* htrans_file, float* htrans_probs, int num_bins) {
         fprintf_time(stderr, "couldn't open htrans file \n");
         return -1;
     }
-    
+
     for (i = 0; i < num_bins; i++) {
 
         // read bin size into bins
@@ -421,7 +429,7 @@ int read_htrans_file(char* htrans_file, float* htrans_probs, int num_bins) {
         }
         buffer[j] = '\0';
         //bins[i] = atoi(buffer);
-        
+
         // read htrans probability into htrans_probs
         j = 0;
         while (ch != '\n') {
@@ -436,5 +444,3 @@ int read_htrans_file(char* htrans_file, float* htrans_probs, int num_bins) {
 
     return 0;
 }
-
-

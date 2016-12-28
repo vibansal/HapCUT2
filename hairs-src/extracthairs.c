@@ -112,7 +112,7 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
     int prevfragments = 0;
     FRAGMENT fragment;
     fragment.variants = 0;
-    fragment.alist = (allele*) malloc(sizeof (allele)*1000);
+    fragment.alist = (allele*) malloc(sizeof (allele)*10000);
 
     samfile_t *fp;
     if ((fp = samopen(bamfile, "rb", 0)) == 0) {
@@ -321,8 +321,10 @@ int main(int argc, char** argv) {
     }
     if (readsorted == 0 && bamfiles > 0) {
         for (i = 0; i < bamfiles; i++) {
-            if (LONG_READS == 0) parse_bamfile_sorted(bamfilelist[i], &ht, chromvars, varlist, reflist);
-            else parse_bamfile_fosmid(bamfilelist[i], &ht, chromvars, varlist, reflist); // fosmid pool bam file
+			int parse_ok = 0;
+            if (LONG_READS == 0) parse_ok = parse_bamfile_sorted(bamfilelist[i], &ht, chromvars, varlist, reflist);
+            else parse_ok = parse_bamfile_fosmid(bamfilelist[i], &ht, chromvars, varlist, reflist); // fosmid pool bam file
+			if (parse_ok != 0) return parse_ok;
         }
     }
     if (logfile != NULL) fclose(logfile);

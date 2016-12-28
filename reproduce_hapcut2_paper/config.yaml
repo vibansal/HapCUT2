@@ -1,0 +1,191 @@
+# TSCC SPECIFIC
+source_hic_dir: ###### PATH TO HIC BAMS
+bamtools:       ###### PATH TO BAMTOOLS BINARY
+working_dir:    ###### FULL PATH OF reproduce_hapcut2_paper
+
+# paths to data/experiments
+data_dir:        hapcut2_paper/data
+experiments_dir: hapcut2_paper/experiments
+plots_dir:       hapcut2_paper/plots
+error_rates_dir: hapcut2_paper/error_rates
+qsub_stdout_dir: hapcut2_paper/stdout
+hg18_vcfs_dir:   hapcut2_paper/data/NA12878_VCFs_hg18
+hg19_vcfs_dir:   hapcut2_paper/data/NA12878_VCFs_hg19
+
+# tool executables/paths
+extracthairs: ../build/extractHAIRS
+python2:      python2
+hapcut:       ###### ADD PATH TO HAPCUT BINARY
+hapcut2:      ../build/HAPCUT2
+refhap:       ###### ADD PATH TO SIH JAR FILE FROM REFHAP
+probhap:      ###### ADD PATH TO probhap.py
+
+email:       pedge@eng.ucsd.edu
+queue:       hotel
+group:       bansal-group
+
+vcf_dict:
+    fosmid:   hapcut2_paper/data/NA12878_VCFs_hg18
+    pacbio11: hapcut2_paper/data/NA12878_VCFs_hg19
+    pacbio44: hapcut2_paper/data/NA12878_VCFs_hg19
+    hic:      hapcut2_paper/data/NA12878_VCFs_hg19
+    10X:      hapcut2_paper/data/NA12878_VCFs_hg19
+    sim_vary_coverage: hapcut2_paper/data/sim_vary_coverage_VCFs
+    sim_vary_length:   hapcut2_paper/data/sim_vary_length_VCFs
+    sim_vary_span:     hapcut2_paper/data/sim_vary_span_VCFs
+    test_valid_hic_output:  hapcut2_paper/data/NA12878_VCFs_hg19
+
+plot_names: [simulation_runtime_comparison,hic_completeness,common_snps_error_plot,pacbio_vs_hic1,pacbio_vs_hic2,pruning_pacbio11,hic_htrans_estimates,longread_10X,longread_fosmid,longread_pacbio11,longread_pacbio44,hapcut_htrans30,hapcut_htrans40,hapcut_htrans90,hic_10X]
+experiments: [fosmid, pacbio11, pacbio44]
+simulations: [sim_vary_coverage, sim_vary_length, sim_vary_span]
+hapcut_experiments: [hic]
+
+tools: [hapcut2, hapcut1, refhap, probhap, fasthare] # dgs removed
+tool_labels: [HapCUT2, HapCUT1, RefHap, ProbHap, FastHare] # DGS removed
+
+enzymes: [mboI, ncoI, hindIII]
+
+chroms: [chr1, chr2, chr3, chr4, chr5, chr6, chr7, chr8, chr9, chr10, chr11, chr12, chr13, chr14, chr15, chr16, chr17, chr18, chr19, chr20, chr21, chr22, chrX]
+sims: [sim0,sim1,sim2,sim3,sim4,sim5,sim6,sim7,sim8,sim9,sim10,sim11,sim12,sim13,sim14,sim15,sim16,sim17,sim18,sim19]
+
+sim_x_var:
+    sim_vary_coverage: coverages
+    sim_vary_length:   read_lens
+    sim_vary_span:     spans
+
+sim_xlabels:
+    sim_vary_coverage: 'Coverage per SNP'
+    sim_vary_length:   'SNPs per read'
+    sim_vary_span:   'Maximum SNPs Spanned by Mate'
+
+sim_names: [sim_vary_coverage, sim_vary_length, sim_vary_span]
+reps: [0,1,2,3,4,5,6,7,8,9]
+
+sim_params:
+    sim_vary_coverage:
+        coverages: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100]
+        read_lens: [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
+        spans: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+    sim_vary_length:
+        coverages:  [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5]
+        read_lens: [0.1195, 0.5, 1, 2, 3, 4, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160]
+        spans: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+    sim_vary_span:
+        coverages:  [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5]
+        read_lens: [0.1195, 0.1195, 0.1195, 0.1195, 0.1195, 0.1195, 0.1195, 0.1195, 0.1195, 0.1195, 0.1195, 0.1195, 0.1195, 0.1195, 0.1195, 0.1195, 0.1195, 0.1195, 0.1195, 0.1195]
+        spans: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100]
+
+# these coverages were obtained by running PICARD's collectWgsMetrics on the aligned HiC reads,
+# correcting for base pairs clipped by cap (MEAN_COVERAGE / (1 - PCT_EXC_CAPPED)),
+# and summing this value across separate SRR bam files for each enzyme (SRRs for each enzyme listed below)
+hic_covs:
+    mboI:    395.4
+    hindIII: 366.6
+
+mboI:
+    - SRR1658570
+    - SRR1658571
+    - SRR1658572
+    - SRR1658573
+    - SRR1658574
+    - SRR1658575
+    - SRR1658576
+    - SRR1658577
+    - SRR1658578
+    - SRR1658579
+    - SRR1658580
+    - SRR1658581
+    - SRR1658582
+    - SRR1658583
+    - SRR1658584
+    - SRR1658585
+    - SRR1658586
+    - SRR1658587
+    - SRR1658588
+    - SRR1658589
+    - SRR1658590
+    - SRR1658591
+    - SRR1658592
+    - SRR1658593
+    - SRR1658594
+    - SRR1658595
+    - SRR1658596
+    - SRR1658597
+    - SRR1658598
+    - SRR1658599
+    - SRR1658600
+    - SRR1658601
+    - SRR1658602
+    - SRR1658603
+
+ncoI:
+    - SRR1658632
+    - SRR1658633
+    - SRR1658634
+    - SRR1658635
+    - SRR1658733
+    - SRR1658735
+    - SRR1658736
+    - SRR1658737
+    - SRR1658738
+    - SRR1658739
+    - SRR1658740
+    - SRR1658741
+    - SRR1658742
+    - SRR1658743
+    - SRR1658744
+    - SRR1658745
+    - SRR1658746
+    - SRR1658747
+    - SRR1658749
+    - SRR1658750
+    - SRR1658751
+    - SRR1658752
+    - SRR1658753
+    - SRR1658754
+    - SRR1658755
+    - SRR1658756
+    - SRR1658757
+    - SRR1658758
+    - SRR1658759
+    - SRR1658760
+    - SRR1658762
+    - SRR1658763
+    - SRR1658764
+    - SRR1658777
+
+hindIII:
+    - SRR1658608
+    - SRR1658609
+    - SRR1658610
+    - SRR1658611
+    - SRR1658612
+    - SRR1658613
+    - SRR1658614
+    - SRR1658615
+    - SRR1658616
+    - SRR1658617
+    - SRR1658618
+    - SRR1658619
+    - SRR1658620
+    - SRR1658621
+    - SRR1658622
+    - SRR1658623
+    - SRR1658624
+    - SRR1658625
+    - SRR1658626
+    - SRR1658627
+    - SRR1658628
+    - SRR1658629
+    - SRR1658630
+    - SRR1658631
+    - SRR1658636
+    - SRR1658637
+    - SRR1658638
+    - SRR1658639
+    - SRR1658640
+    - SRR1658641
+    - SRR1658642
+    - SRR1658643

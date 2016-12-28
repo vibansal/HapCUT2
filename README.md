@@ -7,8 +7,15 @@ We found that previously described haplotype assembly methods are specialized fo
 - NGS short reads (Illumina HiSeq)
 - clone-based sequencing (Fosmid or BAC clones)
 - SMRT reads (PacBio)
+- 10X Genomics Linked-Reads
 - proximity-ligation (Hi-C) reads
 - high-coverage sequencing (>40x coverage-per-SNP) using above technologies
+- combinations of the above technologies (e.g. scaffold long reads with Hi-C reads)
+
+##Citation:
+If you use HapCUT2 in your research, please cite:
+
+[Edge, P., Bafna, V. & Bansal, V. HapCUT2: robust and accurate haplotype assembly for diverse sequencing technologies. Genome Res. gr.213462.116 (2016). doi:10.1101/gr.213462.116](http://genome.cshlp.org/content/early/2016/12/09/gr.213462.116.abstract)
 
 ##to build:
 
@@ -57,21 +64,25 @@ In the case of Hi-C reads, it is recommended to use ```--hic 1``` for both extra
 Based on user preference, SNV pruning (filtering of low-quality phased SNVs) may be adjusted with ```--threshold <float>``` (closer to 1 prunes more, closer to 0.5 prunes less) or turned off with ```--no_prune 1```.
 
 ##Output Format:
-Haplotype blocks are printed to the output file, each with a block header with the following format:
+Haplotype blocks are printed to the output file. For a given block, column 2 represents
+the allele on one chromosome copy (0 for reference, 1 for variant), while column 3 represents
+the allele on the other copy.
+
+Each block starts with a block header with the following format:
 
 BLOCK: offset: \<SNV offset\> len: \<SNV span of block\> phased: \<\# SNVs phased\> SPAN: \<base pair span of block\> fragments \<\# of fragments in block\>
 
 Following the header, there is one line per SNV with the following tab-delimited fields:
 
-1. VCF file index (1-based)
-2. phased allele 1
-3. phased allele 2
-4. chromosome (from VCF)
-5. position (from VCF)
-6. allele 1 from VCF genotype
-7. allele 2 from VCF genotype
-8. VCF genotype field
-9. discrete pruning status (1 == pruned, 0 == phased)
+1. VCF file index (1-based index of the line in the input VCF describing variant)
+2. allele on haploid chromosome copy A (0 means reference allele, 1 means variant allele)
+3. allele on haploid chromosome copy B (0 means reference allele, 1 means variant allele)
+4. chromosome
+5. position
+6. reference allele (allele corresponding to 0 in column 2 or 3)
+7. variant allele (allele corresponding to 1 in column 2 or 3)
+8. VCF genotype field (unedited, directly from original VCF)
+9. discrete pruning status (1 means pruned, 0 means phased)
 10. log<sub>10</sub>(confidence that there is not a switch error starting at this SNV)
 11. log<sub>10</sub>(confidence that there is not a mismatch [single SNV] error at this SNV)
 
@@ -84,7 +95,10 @@ Field 11 is useful for controlling mismatch (single SNV) haplotype errors, simil
 ##Converting HapCUT2 output to VCF format
 Nils Homer has developed a tool HapCutToVcf that will soon support converting HapCUT2-formatted haplotype blocks into VCF format. It will be included with the fgbio tool suite, available [here](https://github.com/fulcrumgenomics/fgbio).
 
-##Coming Soon
-- A Snakemake pipeline to reproduce the results of the HapCUT2 manuscript (in preparation).
-- Hi-C pre-processing scripts and a complete Hi-C haplotyping pipeline
+##Reproducing the HapCUT2 manuscript
 
+The directory **reproduce_hapcut2_paper** contains the source code and pipeline used to obtain the results of the HapCUT2 manuscript (linked above). It is nearly complete except for some early data access and cleaning steps which are not yet integrated into the pipeline, but these will be added soon.
+
+##Example pipelines for various types of sequencing data
+
+The directory **recipes** contains example pipelines to assemble haplotypes from various types of sequencing data.

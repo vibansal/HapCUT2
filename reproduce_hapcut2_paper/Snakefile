@@ -1,0 +1,666 @@
+# author: Peter Edge
+# 3/29/2016
+# email: pedge@eng.ucsd.edu
+
+# this is a snakemake Snakefile, written using snakemake 3.5.5
+# example execution:
+# snakemake -j 200 --configfile config.TSCC.yaml --cluster-config cluster.yaml --cluster "qsub -A {cluster.group} -V -q {cluster.queue} -o {cluster.qsub_stdout_dir}/{params.job_name}.o -e {cluster.qsub_stdout_dir}/{params.job_name}.e -N {params.job_name} -l nodes=1:ppn={cluster.ppn} -l walltime={cluster.walltime} -M {cluster.email} -m e -d {cluster.working_dir}" --local-cores 1
+#configfile: "config.yaml"
+localrules: all, plot_data, plot_hic_htrans_est, summarize_hic_runtimes
+configfile: 'config.yaml'
+
+import run_tools
+import error_rates
+import plot_data
+import fileIO
+import os
+import random
+import pickle
+import datetime
+from copy import deepcopy
+from simulate_haplotypes import simulate_haplotypes
+from estimate_htrans_probs_known_phase import estimate_htrans_probs
+import make_hapcut2_paper_plots as mhpp
+dir = os.path.dirname(__file__)
+filename = os.path.join(dir, '..','tools')
+from getMolecules import getMolecules
+
+chroms = config['chroms']
+sims = config['sims']
+reps = config['reps']
+simrep = ['{}.{}'.format(s,r) for s in sims for r in reps]
+
+d=config['data_dir']
+enzymes=config['enzymes']
+bamtools = config["bamtools"]
+hic_coverages=[30,40,90]
+
+HG19 = '/oasis/tscc/scratch/pedge/data/genomes/hg19/hg19.fa'
+HG19_GEUVADIS = '/oasis/tscc/scratch/vbansal/10X-data/hg19.geuvadis.new.fa'
+SAMTOOLS = '/opt/biotools/samtools/1.3/bin/samtools'
+
+# decide what the x axes of the experiment plot will be (chromosome or simulation number)
+
+sim_or_chrom = {'fosmid' : chroms,'pacbio11' : chroms,
+'pacbio44' : chroms,'10X':chroms,'sim_vary_coverage' : simrep,'sim_vary_length' : simrep,'sim_vary_span':simrep}
+# qsub stderr and stdout directories are not automatically created by snakemake!
+#if not os.path.exists(config['qsub_stdout_dir']):
+#    os.makedirs(config['qsub_stdout_dir'])
+
+#mboI_covs = [11*i for i in range(1,41)]
+#hindIII_covs = [11*i for i in range(1,36)]
+mboI_covs = list(range(18,61,2))+list(range(70,390,10))
+hindIII_covs = list(range(18,61,2))+list(range(70,360,10))
+pacbio_covs = [2*i for i in range(1,23)]
+# RUN ALL EXPERIMENTS
+
+rule all:
+    input:
+        'hapcut2_paper/plots/pacbio_vs_hic1.png'
+        #expand('hapcut2_paper/plots/{p}.png',p=config['plot_names'])
+
+rule test_valid_hic_output:
+    params: job_name = "test_valid_hic_output",
+    input:  runtimes = expand('{E}/test_valid_hic_output/chr1/{t}.runtime',E=config['experiments_dir'],t=config['tools'])
+
+rule plot_simulation_runtime_comparison:
+    params:
+        job_name = "simulation_runtime_comparison"
+    input:
+        expand('hapcut2_paper/experiments/{S}/{s}.{r}/{t}.runtime',S=config['sim_names'],s=sims,r=reps,t=config['tools']),
+        expand('hapcut2_paper/error_rates/tool_comparisons/{S}.stats.p',S=config['sim_names'])
+    output:
+        fig1 = "hapcut2_paper/plots/simulation_runtime_comparison.png",
+        #fig2 = "hapcut2_paper/plots/simulation_error_comparison.png",
+    run:
+        mhpp.plot_simulation_runtime_comparison(config['sim_params']['sim_vary_coverage']['coverages'],config['sim_params']['sim_vary_length']['read_lens'],sims,reps,output.fig1)
+
+rule plot_hic_completeness:
+    params:
+        job_name = 'plot_hic_completeness'
+    input:
+        hapblocks_mboI = expand('hapcut2_paper/experiments/hic/hapcut_htrans/mboI/cov{cov}/hapcut2/chr1.output',cov=mboI_covs),
+        hapblocks_hindIII = expand('hapcut2_paper/experiments/hic/hapcut_htrans/hindIII/cov{cov}/hapcut2/chr1.output',cov=hindIII_covs),
+        vcf_file = '{}/chr1.vcf'.format(config['hg19_vcfs_dir'])
+    output:
+        fig = "hapcut2_paper/plots/hic_completeness.png"
+    run:
+        mhpp.plot_hic_completeness(mboI_covs,hindIII_covs,input.hapblocks_mboI,input.hapblocks_hindIII,input.vcf_file,output.fig)
+
+rule plot_common_snps_error:
+    params:
+        job_name = "plot_common_snps_error"
+    input:
+        expand("{e}/{x}/{c}/{t}.runtime",e=config['experiments_dir'],x=config['experiments'],c=chroms,t=config['tools']),
+        expand("{d}/{x}/{c}",d=config['data_dir'],x=config['experiments'],c=chroms),
+        expand("{v}/{c}.vcf",v=config['hg18_vcfs_dir'],c=chroms),
+        expand("{v}/{c}.vcf",v=config['hg19_vcfs_dir'],c=chroms),
+        expand("{e}/hic/hapcut_htrans/mboI/cov{cov}/{t}/{c}.output",e=config['experiments_dir'],cov=hic_coverages,t=['hapcut2','hapcut'],c=chroms),
+        expand("{e}/hic/hapcut_htrans/mboI/cov{cov}/{t}/{c}.runtime",e=config['experiments_dir'],cov=hic_coverages,t=['hapcut2','hapcut'],c=chroms),
+        expand("{d}/hic_mboI_subsamples/cov{cov}/{c}",d=config['data_dir'],cov=hic_coverages,t=['hapcut2','hapcut'],c=chroms)
+    output:
+        fig = "hapcut2_paper/plots/common_snps_error_plot.png"
+    run:
+        mhpp.plot_common_snps_error(output.fig)
+
+
+rule plot_pacbio_vs_hic1:
+    params:
+        job_name = "plot_pacbio_vs_hic1"
+    input:
+        vcf_files19 = expand("{v}/{c}.vcf",v=config['hg19_vcfs_dir'],c=chroms),
+        h_p11_files = expand("{E}/pacbio11/{c}/hapcut2.output",E=config["experiments_dir"],c=chroms),
+        h_p44_files = expand("{E}/pacbio44/{c}/hapcut2.output",E=config["experiments_dir"],c=chroms),
+        hic40_files = expand("{E}/hic/hapcut_htrans/mboI/cov40/hapcut2/{c}.output",E=config["experiments_dir"],c=chroms),
+        hic90_files = expand("{E}/hic/hapcut_htrans/mboI/cov90/hapcut2/{c}.output",E=config["experiments_dir"],c=chroms),
+    output:
+        fig = "hapcut2_paper/plots/pacbio_vs_hic1.png"
+    run:
+        mhpp.plot_pacbio_vs_hic1(input.vcf_files19, input.h_p11_files, input.h_p44_files, input.hic40_files, input.hic90_files, output.fig)
+
+rule plot_pacbio_vs_hic2:
+    params:
+        job_name = "plot_pacbio_vs_hic2"
+    input:
+        pacbio_hapblocks = expand('hapcut2_paper/experiments/pacbio/cov{cov}/chr1/hapcut2.output',cov=pacbio_covs),
+        hapblocks_mboI = expand('hapcut2_paper/experiments/hic/hapcut_htrans/mboI/cov{cov}/hapcut2/chr1.output',cov=mboI_covs),
+        hapblocks_hindIII = expand('hapcut2_paper/experiments/hic/hapcut_htrans/hindIII/cov{cov}/hapcut2/chr1.output',cov=hindIII_covs),
+        vcf_file = '{}/chr1.vcf'.format(config['hg19_vcfs_dir'])
+    output:
+        fig = "hapcut2_paper/plots/pacbio_vs_hic2.png"
+    run:
+        mhpp.plot_pacbio_vs_hic2(input.pacbio_hapblocks, input.hapblocks_mboI, input.hapblocks_hindIII, input.vcf_file,pacbio_covs, mboI_covs, hindIII_covs, output.fig)
+
+rule plot_pruning_pacbio11:
+    params:
+        job_name = "plot_pruning_pacbio11"
+    input:
+        hapcut2_blocks = 'hapcut2_paper/experiments/pacbio_error_analysis/chr1.output',
+        vcf_file  = 'hapcut2_paper/data/NA12878_VCFs_hg19/chr1.vcf',
+        frag_file = 'hapcut2_paper/data/pacbio11/chr1',
+    output:
+        fig = "hapcut2_paper/plots/pruning_pacbio11.png"
+    run:
+        mhpp.plot_pruning_pacbio11(input.hapcut2_blocks,input.vcf_file,input.frag_file,output.fig)
+
+rule plot_hic_htrans_estimates:
+    params:
+        job_name = "plot_hic_htrans_estimates"
+    input:
+        chr1_em_file = 'hapcut2_paper/experiments/hic/hapcut_htrans/mboI/cov90/hapcut2/chr1.htrans_model',
+        chr19_em_file = 'hapcut2_paper/experiments/hic/hapcut_htrans/mboI/cov90/hapcut2/chr19.htrans_model',
+        chr1_vcf = 'hapcut2_paper/data/NA12878_VCFs_hg19/chr1.vcf',
+        chr19_vcf = 'hapcut2_paper/data/NA12878_VCFs_hg19/chr19.vcf',
+        chr1_frags = 'hapcut2_paper/data/hic_mboI_subsamples/cov90/chr1',
+        chr19_frags = 'hapcut2_paper/data/hic_mboI_subsamples/cov90/chr19'
+    output:
+        chr1_gt_file = 'hapcut2_paper/experiments/htrans_estimation/chr1.90.GT',
+        chr19_gt_file = 'hapcut2_paper/experiments/htrans_estimation/chr19.90.GT',
+        fig = "hapcut2_paper/plots/hic_htrans_estimates.png"
+    run:
+        mhpp.plot_hic_htrans_estimates(input.chr1_em_file, input.chr19_em_file, output.chr1_gt_file, output.chr19_gt_file, input.chr1_vcf, input.chr19_vcf, input.chr1_frags, input.chr19_frags,output.fig)
+
+rule plot_longread:
+    params:
+        job_name = 'plot_{e}'
+    input:
+        stats_file = 'hapcut2_paper/error_rates/tool_comparisons/{e}.stats.p',
+        labels_file = 'hapcut2_paper/error_rates/tool_comparisons/{e}.labels.p',
+    output:
+        outname = 'hapcut2_paper/plots/longread_{e}.png'
+    run:
+        skiplist = []
+        if wildcards.e == 'pacbio44':
+            skiplist = [3]
+        elif wildcards.e == '10X':
+            skiplist = [2,3]
+        last = 6 #if wildcards.e == '10X' else 4
+        data = pickle.load(open(input.stats_file,"rb"))
+        labels = pickle.load(open(input.labels_file,"rb"))
+        plot_data.plot_experiment(data[:last],labels[:last],skiplist,output.outname,runtime_as_log=True,doplots=[1,1,1,0,0,1])
+
+rule plot_hic:
+    params:
+        job_name = 'plot_{exp}'
+    input:
+        stats_file = 'hapcut2_paper/error_rates/hic/{exp}.stats.p',
+        labels_file = 'hapcut2_paper/error_rates/hic/{exp}.labels.p'
+    output:
+        outname = 'hapcut2_paper/plots/{exp}.png'
+    run:
+        data = pickle.load(open(input.stats_file,"rb"))
+        labels = pickle.load(open(input.labels_file,"rb"))
+        plot_data.plot_experiment(data,labels,[],output.outname,runtime_as_log=True,doplots=[1,1,1,1,0,0],hic=True)
+
+hic_methods = ['hapcut','hapcut2','hapcut2_known_model','hapcut2_no_model']
+rule summarize_hic_runtimes:
+    params:
+        job_name = 'summarize_hic_runtimes'
+    input:
+        expand("{E}/hic/hapcut_htrans/mboI/cov{cov}/{m}/{c}.output",E=config['experiments_dir'],cov=hic_coverages,m=hic_methods,c=chroms),
+        expand("{E}/hic/hapcut_htrans/mboI/cov{cov}/{m}/{c}.runtime",E=config['experiments_dir'],cov=hic_coverages,m=hic_methods,c=chroms)
+    output:
+        summary = '{}/hic/runtimes_summary.txt'.format(config['experiments_dir'])
+    run:
+        with open(output.summary,'w') as outf:
+            for cov in hic_coverages:
+                for m in hic_methods:
+                    total = 0
+                    for c in chroms:
+                        total += fileIO.parse_runtime_file('{}/hic/hapcut_htrans/mboI/cov{}/{}/{}.runtime'.format(config['experiments_dir'],cov,m,c))
+                    fmt_total = str(datetime.timedelta(seconds=int(total)))[:-3]
+                    print("HIC coverage {}, method {} runtime (hh:mm):".format(cov,m),file=outf)
+                    print(fmt_total,file=outf)
+
+
+# a generic wrapper that will run any of the six tools under consideration
+def execute_tool(tool_name, frag_file, vcf_file, output_dir, timeout, hapcut_converge, hapcut_threshold=0.8, hapcut_longreads=1, hapcut_xtra_args=''):
+
+    tool_output = os.path.join(output_dir, '{}.output'.format(tool_name))
+    runtime_file  = os.path.join(output_dir, '{}.runtime'.format(tool_name))
+    runtime = "0" # tool failed to execute
+    # the reason for generalizing in this way is so that the Snakefile can be
+    # made with very general rules that condition on a string tool name
+    if tool_name == 'hapcut2':
+        runtime = run_tools.run_hapcut2(config['hapcut2'], frag_file, vcf_file, tool_output, hapcut_converge, hapcut_threshold, hapcut_xtra_args,timeout)
+    elif tool_name == 'hapcut1':
+        runtime = run_tools.run_hapcut(config['hapcut'], frag_file, vcf_file, tool_output, 100, 100, hapcut_longreads, timeout)
+    elif tool_name == 'refhap':
+        runtime = run_tools.run_refhap(config['refhap'], frag_file, tool_output,timeout)
+    elif tool_name == 'probhap':
+        runtime = run_tools.run_probhap(config['probhap'], config['python2'], frag_file, vcf_file, tool_output, os.path.join(output_dir,'probhap_fragments'),timeout)
+    elif tool_name == 'dgs':
+        runtime = run_tools.run_dgs(config['refhap'], frag_file, tool_output,timeout)
+    elif tool_name == 'fasthare':
+        runtime = run_tools.run_fasthare(config['refhap'], frag_file, tool_output,timeout)
+    #elif tool_name == 'haptree':
+    #    runtime = run_tools.run_haptree(config['haptree'], frag_file, vcf_file, tool_output, os.path.join(output_dir, 'haptree_variants.vcf'),timeout)
+    #elif tool_name == 'mixsih':
+    #    runtime = run_tools.run_mixsih(config['mixsih'], frag_file, vcf_file, tool_output, os.path.join(output_dir, 'mixsih_fragments'),timeout)
+
+    with open(runtime_file,'w') as rf:
+        print(runtime, file=rf)
+
+# CALCULATE ERROR RATES AND WRITE TO PICKLE FILE
+rule calculate_error_rates:
+    params:
+        job_name = "error_rates_{e}"
+    input:
+        lambda wildcards: expand("{E}/{e}/{x}/{t}.runtime",E=config["experiments_dir"],e=wildcards.e,x=sim_or_chrom[wildcards.e],t=config["tools"])
+    output:
+        stats_file  = "%s/tool_comparisons/{e}.stats.p"  % config['error_rates_dir'],
+        labels_file = "%s/tool_comparisons/{e}.labels.p" % config['error_rates_dir']
+    run:
+        # list of lists of error results,
+        data   = [] # index of the list is a tool. each inner list has 23 error results (each chrom).
+        labels = config["tool_labels"]
+        skip_genomic_indices = set()
+
+        # for chromosomal data we have nested lists by tool, then by chromosome
+        # for simualation data it's by tool, then by simulation number, then by replicate
+
+        for t in config['tools']: # method
+            print("Working on {}...".format(t))
+            datalist = []
+            replist  = []
+            for i in sim_or_chrom[wildcards.e]:
+                assembly_file = "{}/{}/{}/{}.output".format(config['experiments_dir'],wildcards.e,i,t)
+                runtime_file = "{}/{}/{}/{}.runtime".format(config['experiments_dir'],wildcards.e,i,t)
+                frag_file = "{}/{}/{}".format(d,wildcards.e,i)
+                vcf_file = "{}/{}.vcf".format(config['vcf_dict'][wildcards.e],i)
+
+                err = error_rates.hapblock_vcf_error_rate(assembly_file, frag_file, vcf_file,runtime_file)
+
+                if 'chr' in i:
+                    datalist.append(err)
+                elif 'sim' in i:
+                    replist.append(err)
+                    if len(replist) == len(reps):
+                        datalist.append(replist)
+                        replist = []
+
+            if sim_or_chrom[wildcards.e] == chroms:
+                print("{} results over all chromosomes:".format(t))
+                total_res = sum(datalist,error_rates.error_result())
+                print(total_res)
+            data.append(datalist)
+
+        pickle.dump(data,open(output.stats_file,"wb"))
+        pickle.dump(labels,open(output.labels_file,"wb"))
+
+# RUN A TOOL FOR A GIVEN EXPERIMENT
+rule run_tool:
+    input:
+        frag_file = "%s/{e}/chr{c}" % d,
+        vcf_file  = lambda wildcards: "{}/chr{}.vcf".format(config['vcf_dict'][wildcards.e],wildcards.c)
+    params:
+        job_name    = "{t}_{e}_chr{c}",
+        tool        = "{t}",
+        output_dir  = "{E}/{e}/chr{c}",
+    output:
+        runtime_file="{E}/{e}/chr{c}/{t}.runtime" # the runtimes file is really the only thing guaranteed
+    run:
+        timelim = 72000
+        lr = 1 if wildcards.e in ['pacbio11','fosmid','pacbio44','pacbio','10x'] else 0
+        execute_tool(params.tool, input.frag_file, input.vcf_file, params.output_dir, hapcut_converge=5,hapcut_threshold=0.8, hapcut_longreads=lr, hapcut_xtra_args='',timeout=timelim)
+
+# RUN A TOOL FOR A GIVEN EXPERIMENT
+rule run_tool_sim:
+    input:
+        frag_files = expand("{d}/{{e}}/{s}.{{r}}",d=d,s=sims),
+        vcf_files  = lambda wildcards: expand("{d}/{s}.{r}.vcf",d=config['vcf_dict'][wildcards.e],s=sims,r=wildcards.r)
+    params:
+        job_name    = "{t}_{e}_rep{r}",
+        tool        = "{t}",
+        output_dir  = expand("{{E}}/{{e}}/{s}.{{r}}",s=sims)
+    output:
+        runtime_files = expand("{{E}}/{{e}}/{s}.{{r}}/{{t}}.runtime",s=sims) # the runtimes file is really the only thing guaranteed
+    run:
+        timelim = 36000
+        hit_limit = False
+        for frag,vcf, out, rf in zip(input.frag_files, input.vcf_files, params.output_dir, output.runtime_files):
+
+            if os.path.exists(rf):
+                continue
+
+            if not hit_limit or wildcards.e == 'sim_vary_length':
+                execute_tool(params.tool, frag, vcf, out, hapcut_converge=5,hapcut_threshold=0.8, hapcut_longreads=0, hapcut_xtra_args='',timeout=timelim)
+                with open(rf,'r') as infile:
+                    prev_time = float(infile.readline().strip())
+
+                    if (prev_time + 120) > timelim:
+                        hit_limit = True
+            else:
+                with open(rf,'w') as rfile:
+                    print(timelim,file=rfile)
+
+# RUN A TOOL FOR A GIVEN EXPERIMENT
+rule run_pacbio_depth:
+    input:
+        frag_file = "%s/pacbio/cov{cov}/{c}" % d,
+        vcf_file  = lambda wildcards: "{}/{}.vcf".format(config['hg19_vcfs_dir'],wildcards.c)
+    params:
+        job_name    = "{t}_pacbio_cov{cov}_{c}",
+        tool        = "{t}",
+        output_dir  = "{E}/pacbio/cov{cov}/{c}",
+    output:
+        runtime_file="{E}/pacbio/cov{cov}/{c}/{t}.runtime" # the runtimes file is really the only thing guaranteed
+    run:
+        execute_tool(params.tool, input.frag_file, input.vcf_file, params.output_dir, hapcut_converge=5,hapcut_threshold=0.8, hapcut_longreads=1, hapcut_xtra_args='',timeout=144000)
+
+# RUN A TOOL FOR A GIVEN EXPERIMENT
+rule run_pacbio_error_analysis:
+    input:
+        frag_file = "%s/pacbio11/{c}" % d,
+        vcf_file  = lambda wildcards: "{}/{}.vcf".format(config['hg19_vcfs_dir'],wildcards.c)
+    params:
+        job_name    = "pacbio_ea_{c}",
+    output:
+        outfile ="{E}/pacbio_error_analysis/{c}.output",
+        runtime_file ="{E}/pacbio_error_analysis/{c}.runtime",
+    run:
+        runtime = run_tools.run_hapcut2(config['hapcut2'], input.frag_file, input.vcf_file, output.outfile, 5, 0.99, '--ea 1', None)
+        with open(output.runtime_file,'w') as rf:
+            print(runtime, file=rf)
+
+# simulate data, varying either length or coverage
+rule simulate_haps:
+    params:
+        job_name = "simulate_hap_data.{s}.sim{x}.rep{r}"
+    output:
+        frag = "%s/{s}/sim{x}.{r}" % config["data_dir"],
+        vcf = "%s/{s}_VCFs/sim{x}.{r}.vcf" % config["data_dir"]
+    run:
+        # decide parameters based on type of experiment
+        #for sim_name in config['simulations']:
+        sim_name = wildcards.s
+        rep = int(wildcards.r)
+        curr_sim = 'sim{}'.format(wildcards.x)
+        coverages = config['sim_params'][sim_name]['coverages']
+        read_lens = config['sim_params'][sim_name]['read_lens']
+        spans = config['sim_params'][sim_name]['spans']
+
+        # assign coverage, read_len, span, and sim based on which simulation the wildcard specifies
+        for coverage, read_len, span, sim in zip(coverages, read_lens, spans, sims):
+            if sim == curr_sim:
+                break
+
+        assert(len(coverages) == len(read_lens) and len(coverages) == len(sims) and len(coverages) == len(spans))
+        readme_file = "{}/{}/README_{}.rep{}".format(config["data_dir"], sim_name, sim,rep)
+        with open(readme_file,'w') as o:
+            print('coverage: {}'.format(coverage),file=o)
+            print('read_len: {}'.format(read_len),file=o)
+            print('hic_span: {}'.format(read_len),file=o)
+
+        #(frag_file, vcf_file, read_length, coverage, ref_length=int(2.5e8), miscall_rate=0.05, missing_rate=0, per_frag_sw_err=0, snp_rate=0.0008, read_length_by_variants=False, insert_size_by_variants=False, coverage_by_variants=False, insert_size=0)
+        simulate_haplotypes(output.frag, output.vcf, read_len, coverage, hic_span=span,read_length_by_variants=True, span_by_variants=True, coverage_by_variants=True, ref_name=curr_sim)
+
+# create pacbio subsamples
+rule subsample_pacbio:
+    params:
+        job_name = "subsample_pacbio{cov}"
+    input:
+        expand("{d}/pacbio44/{c}",d=d,c=chroms)
+    output:
+        expand("{d}/pacbio{{cov}}/{c}",d=d,c=chroms)
+    run:
+        for infile_name, outfile_name in zip(input,output):
+            with open(infile_name, 'r') as infile, open(outfile_name, 'w') as outfile:
+                for line in infile:
+                    if random.random() <= wildcards.cov/44:
+                        print(line.strip(), file=outfile)
+
+# create pacbio subsamples
+rule concatenate_hic_10x:
+    params:
+        job_name = "concatenate_hic_10X"
+    input:
+        hic = expand("{d}/hic_mboI_subsamples/cov40/{c}",d=d,c=chroms),
+        tenX = expand("{d}/10X/{c}",d=d,c=chroms)
+    output:
+        hic_10X = expand("{d}/hic_10X/{c}",d=d,c=chroms)
+    run:
+        for i1, i2, o in zip(input.hic, input.tenX, output.hic_10X):
+            fileIO.old_to_new_format(i2,o) # need to add extra fields to 10X data for new format
+            shell('cat {i1} >> {o}')       # the HiC data is already in the new format
+
+# ERROR RATES FOR HIC EST
+methods=['hapcut2','hapcut']
+method_labels = ['HapCUT2','HapCUT']
+rule hapcut_htrans_error_rates:
+    params:
+        job_name = "error_rates_hapcut_htrans_cov{cov}"
+    input:
+        expand("{E}/hic/hapcut_htrans/mboI/cov{{cov}}/{m}/{c}.output",E=config['experiments_dir'],m=methods,c=chroms),
+        expand("{E}/hic/hapcut_htrans/mboI/cov{{cov}}/{m}/{c}.runtime",E=config['experiments_dir'],m=methods,c=chroms),
+        expand("{D}/hic_mboI_subsamples/cov{{cov}}/{c}",D=config['data_dir'],c=chroms),
+        lambda wildcards: expand("{v}/{c}.vcf", v=config['hg19_vcfs_dir'],c=chroms),
+    output:
+        stats_file  = "%s/hic/hapcut_htrans{cov}.stats.p"  % config['error_rates_dir'],
+        labels_file = "%s/hic/hapcut_htrans{cov}.labels.p" % config['error_rates_dir']
+    run:
+        # list of lists of error results,
+        data   = [] # index of the list is a 'condition' each inner list has 23 error results (each chrom).
+        labels = method_labels
+        for m in methods: # method
+            datalist = []
+            for c in chroms: # chromosome
+                assembly_file = "{}/hic/hapcut_htrans/mboI/cov{}/{}/{}.output".format(config['experiments_dir'],wildcards.cov,m,c)
+                runtime_file = "{}/hic/hapcut_htrans/mboI/cov{}/{}/{}.runtime".format(config['experiments_dir'],wildcards.cov,m,c)
+                frag_file = "{}/hic_mboI_subsamples/cov{}/{}".format(d,wildcards.cov,c)
+                vcf_file = "{}/{}.vcf".format(config['hg19_vcfs_dir'],c)
+                err = error_rates.hapblock_vcf_error_rate(assembly_file, frag_file, vcf_file, runtime_file)
+                datalist.append(err)
+
+            print("{} cov={} results over all chromosomes:".format(m,wildcards.cov))
+            print(sum(datalist,error_rates.error_result()))
+
+            data.append(datalist)
+
+        pickle.dump(data,open(output.stats_file,"wb"))
+        pickle.dump(labels,open(output.labels_file,"wb"))
+
+rule create_old_format_hic:
+    params: job_name = "create_old_format_hic",
+    input:  new = "%s/hic_mboI_subsamples/cov40/chr1" % d,
+    output: old = "%s/test_valid_hic_output/chr1" % d,
+    run:
+        fileIO.new_to_old_format(input.new,output.old)
+
+rule run_hapcut_hic:
+    params:
+        job_name = "{c}.{cov}_hic_hapcut",
+    input:
+        frag_file = "%s/hic_{enz}_subsamples/cov{cov}/{c}" % d,
+        vcf_file  = "%s/{c}.vcf" % config['hg19_vcfs_dir']
+    output:
+        outfile = "{E}/hic/hapcut_htrans/{enz}/cov{cov}/hapcut/{c}.output",
+        runtime = "{E}/hic/hapcut_htrans/{enz}/cov{cov}/hapcut/{c}.runtime",
+    run:
+        old_format_file = input.frag_file + ".old_format"
+        fileIO.new_to_old_format(input.frag_file,old_format_file)
+
+        runtime = run_tools.run_hapcut(config['hapcut'], old_format_file, input.vcf_file,  output.outfile, 100, 100,None)
+        with open(output.runtime,'w') as rf:
+            print(runtime, file=rf)
+
+rule run_hapcut2_known_model_hic:
+    params:
+        job_name = "{c}.{cov}_hic_hapcut2_knownmodel",
+    input:
+        frag_file = "%s/hic_{enz}_subsamples/cov{cov}/{c}" % d,
+        vcf_file  = "%s/{c}.vcf" % config['hg19_vcfs_dir'],
+        model_file = '{E}/hic/hapcut_htrans/{enz}/cov{cov}/hapcut2/{c}.htrans_model'
+    output:
+        outfile = "{E}/hic/hapcut_htrans/{enz}/cov{cov}/hapcut2_known_model/{c}.output",
+        runtime = "{E}/hic/hapcut_htrans/{enz}/cov{cov}/hapcut2_known_model/{c}.runtime",
+    run:
+        extra_args = '--hf {}'.format(input.model_file)
+        runtime = run_tools.run_hapcut2(config['hapcut2'], input.frag_file, input.vcf_file, output.outfile, 5, 0.8, extra_args)
+        with open(output.runtime,'w') as rf:
+            print(runtime, file=rf)
+
+
+rule run_hapcut2_no_model_hic:
+    params:
+        job_name = "{c}.{cov}_hic_hapcut2_nomodel",
+    input:
+        frag_file = "%s/hic_{enz}_subsamples/cov{cov}/{c}" % d,
+        vcf_file  = "%s/{c}.vcf" % config['hg19_vcfs_dir']
+    output:
+        outfile = "{E}/hic/hapcut_htrans/{enz}/cov{cov}/hapcut2_no_model/{c}.output",
+        runtime = "{E}/hic/hapcut_htrans/{enz}/cov{cov}/hapcut2_no_model/{c}.runtime",
+    run:
+        extra_args = '--nf 1'
+        runtime = run_tools.run_hapcut2(config['hapcut2'], input.frag_file, input.vcf_file, output.outfile, 5, 0.8, extra_args)
+        with open(output.runtime,'w') as rf:
+            print(runtime, file=rf)
+
+rule run_hapcut2_hic:
+    params:
+        job_name = "{c}.{cov}_hic_hapcut2",
+    input:
+        frag_file = "%s/hic_{enz}_subsamples/cov{cov}/{c}" % d,
+        vcf_file  = "%s/{c}.vcf" % config['hg19_vcfs_dir']
+    output:
+        outfile = "{E}/hic/hapcut_htrans/{enz}/cov{cov}/hapcut2/{c}.output",
+        runtime = "{E}/hic/hapcut_htrans/{enz}/cov{cov}/hapcut2/{c}.runtime",
+        model_file = '{E}/hic/hapcut_htrans/{enz}/cov{cov}/hapcut2/{c}.htrans_model'
+    run:
+        extra_args = '--hic 1 --htrans_data_outfile {}'.format(output.model_file)
+        runtime = run_tools.run_hapcut2(config['hapcut2'], input.frag_file, input.vcf_file, output.outfile, 5, 0.8, extra_args)
+        with open(output.runtime,'w') as rf:
+            print(runtime, file=rf)
+
+# create hic subsamples
+rule subsample_hic:
+    params:
+        job_name = "subsample_hic_{enz}.{cov}"
+    input:
+        #lambda wildcards: expand("{d}/hic_fragmat/{enz}/{c}",d=d,enz=wildcards.enz,c=chroms)
+        infile_name="{d}/hic_fragmat/{enz}/{c}"
+    output:
+        #expand("{d}/hic_{{enz}}_subsamples/cov{{cov}}/{c}",d=d,c=chroms)
+        outfile_name="{d}/hic_{enz}_subsamples/cov{cov}/{c}"
+    run:
+        #for infile_name, outfile_name in zip(input,output):
+        with open(input.infile_name, 'r') as infile, open(output.outfile_name, 'w') as outfile:
+            for line in infile:
+                if random.random() <= float(wildcards.cov)/config['hic_covs'][wildcards.enz]:
+                    print(line.strip(), file=outfile)
+
+# CONVERT HIC BAM FILES TO FRAGMENT MATRICES
+# NOT-SO-PARALLEL VERSION
+rule hic_extract_hairs:
+    params:
+        job_name    = "{e}.{c}.extracthairs",
+    input:
+        lambda wildcards: expand("{d}/hic_sep_bam/{e}/{s}/{s}.REF_{c}.bam",d=wildcards.d,e=wildcards.e,s=config[wildcards.e],c=wildcards.c)
+    output:
+        "{d}/hic_fragmat/{e}/{c}"
+    run:
+        for BAM in input:
+            shell('{config[extracthairs]} --HiC 1 --bam {BAM} --VCF {config[hg19_vcfs_dir]}/{wildcards.c}.vcf >> {output}')
+
+rule hic10X_error_rates:
+    params:
+        job_name = "hic10X_error_rates"
+    input:
+        hic10X_output = expand("{E}/hic_10X/hapcut2/{c}.output",E=config['experiments_dir'],c=chroms),
+        hic10X_runtime = expand("{E}/hic_10X/hapcut2/{c}.runtime",E=config['experiments_dir'],c=chroms),
+        hic10X_frag = expand("{D}/hic_10X/{c}",D=config['data_dir'],c=chroms),
+        hic_output = expand("{E}/hic/hapcut_htrans/mboI/cov40/hapcut2/{c}.output",E=config['experiments_dir'],c=chroms),
+        hic_runtime = expand("{E}/hic/hapcut_htrans/mboI/cov40/hapcut2/{c}.runtime",E=config['experiments_dir'],c=chroms),
+        hic_frag = expand("{D}/hic_mboI_subsamples/cov40/{c}",D=config['data_dir'],c=chroms),
+        tenX_output = expand("{E}/10X/{c}/hapcut2.output",E=config['experiments_dir'],c=chroms),
+        tenX_runtime = expand("{E}/10X/{c}/hapcut2.runtime",E=config['experiments_dir'],c=chroms),
+        tenX_frag = expand("{D}/10X/{c}",D=config['data_dir'],c=chroms),
+        vcfs = lambda wildcards: expand("{v}/{c}.vcf", v=config['hg19_vcfs_dir'],c=chroms),
+    output:
+        stats_file  = "%s/hic/hic_10X.stats.p"  % config['error_rates_dir'],
+        labels_file = "%s/hic/hic_10X.labels.p" % config['error_rates_dir']
+    run:
+        # list of lists of error results,
+        data   = [] # index of the list is a 'condition' each inner list has 23 error results (each chrom).
+        labels = [r'Combined Hi-C + 10X Genomics',r'Hi-C',r'10X Genomics']
+        zipped_input = [('hic+10X',input.hic10X_output,input.hic10X_runtime,input.hic10X_frag),('hic',input.hic_output,input.hic_runtime,input.hic_frag),('10X',input.tenX_output,input.tenX_runtime,input.tenX_frag)]
+        for title, outputs, runtimes, frags in zipped_input: # method
+            datalist = []
+            for assembly_file, runtime_file, frag_file, vcf_file in zip(outputs, runtimes, frags, input.vcfs): # chromosome
+                err = error_rates.hapblock_vcf_error_rate(assembly_file, frag_file, vcf_file, runtime_file)
+                datalist.append(err)
+
+            print("{} results over all chromosomes:".format(title))
+            print(sum(datalist,error_rates.error_result()))
+            data.append(datalist)
+
+        pickle.dump(data,open(output.stats_file,"wb"))
+        pickle.dump(labels,open(output.labels_file,"wb"))
+
+rule run_hapcut2_hic10X:
+    params:
+        job_name = "{c}.hapcut2_hic10X",
+    input:
+        frag_file = "%s/hic_10X/{c}" % d,
+        vcf_file  = "%s/{c}.vcf" % config['hg19_vcfs_dir']
+    output:
+        outfile = "{E}/hic_10X/hapcut2/{c}.output",
+        runtime = "{E}/hic_10X/hapcut2/{c}.runtime",
+        model_file = '{E}/hic_10X/hapcut2/{c}.htrans_model'
+    run:
+        extra_args = '--hic 1 --htrans_data_outfile {}'.format(output.model_file)
+        runtime = run_tools.run_hapcut2(config['hapcut2'], input.frag_file, input.vcf_file, output.outfile, 5, 0.8, extra_args)
+        with open(output.runtime,'w') as rf:
+            print(runtime, file=rf)
+
+# SPLIT HIC BAMS
+rule hic_split_bams:
+    params:
+        job_name    = "{s}_bamsplit",
+        stub        = "{d}/hic_sep_bam/{e}/{s}/{s}",
+    input:
+        expand("{hic_dir}/{{s}}.bam",hic_dir=config["source_hic_dir"])
+    output:
+        expand("{STUB}.REF_{C}.bam",STUB="{d}/hic_sep_bam/{e}/{s}/{s}",C=chroms)
+    shell:
+        '{bamtools} split -in {input} -reference -stub {params.stub}'
+
+extractFOSMID = '/oasis/tscc/scratch/vbansal/10X-data/extractFOSMID'
+
+rule extractFOSMID:
+    params: job_name = 'extractFOSMID.{c}'
+    input:  bed = '%s/10X_molecule_beds/{c}.bed' % d,
+            vcf = "%s/{c}.vcf" % config['hg19_vcfs_dir'],
+            bam = '%s/raw_10X/10X.bam' % d
+    output: hairs = '%s/10X/{c}' % d,
+            log   = '%s/10X/logs/{c}.log' % d
+    shell:  '''{extractFOSMID} --bam {input.bam} --VCF {input.vcf} --bed {input.bed} --barcode 1 --out {output.hairs} --ref {HG19_GEUVADIS} --regions {wildcards.c}: > {output.log}'''
+
+#rule split_molecule_bed_10X:
+#    params: job_name = 'split_molecule_bed_10X'
+#    input:  '%s/10X_molecule_beds/all.bed' % d
+#    output: expand('{d}/10X_molecule_beds/{c}.bed',d=d,c=chroms)
+#    run:
+#        for c,o in zip(chroms,output):
+#            shell('''cat {tenX_molecules_bed} | awk '{{ if ($1 == "{c}") print; }}' > {o}''')
+
+rule get_molecules_10X:
+    params: job_name = 'get_molecules_10X.{c}'
+    input:  '%s/raw_10X/10X.bam' % d,
+            '%s/raw_10X/10X.bam.bai' % d,
+    output: '%s/10X_molecule_beds/{c}.bed' % d
+    run:
+        getMolecules(input[0], output[0], ref=wildcards.c,dist=20000)
+
+rule index_bam:
+    params: job_name = 'index_bam{x}'
+    input:  bam = '{x}.bam'
+    output: bai = '{x}.bam.bai'
+    shell:  '{SAMTOOLS} index {input.bam} {output.bai}'
+
+tenX_URL = 'ftp://ftp-trace.ncbi.nlm.nih.gov/giab/ftp/data/NA12878/10XGenomics/NA12878_phased_possorted_bam.bam'
+
+rule download_10X:
+    params: job_name = 'download_10X'
+    output: bam = '%s/raw_10X/10X.bam' % d,
+    shell: 'wget {tenX_URL} -O {output.bam}'

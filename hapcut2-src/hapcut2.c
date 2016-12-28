@@ -84,7 +84,10 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
         exit(0);
     }
     fragments = 0;
-    while (fgets(buffer, MAXBUF, ff) != NULL) fragments++;
+    while (fgets(buffer, MAXBUF, ff) != NULL){
+        if (!((buffer[0] == '0')&&(buffer[1] == ' ')))
+            fragments++;
+    }
     fclose(ff);
     Flist     = (struct fragment*) malloc(sizeof (struct fragment)* fragments);
 
