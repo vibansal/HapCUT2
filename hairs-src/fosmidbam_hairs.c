@@ -326,6 +326,6 @@ int parse_bamfile_fosmid(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
     for (reads = 0; reads < MAX_READS; reads++) free(readlist[reads]);
     free(readlist);
     bam_destroy1(b);
-    return 1;
+    return 0;
 }
 

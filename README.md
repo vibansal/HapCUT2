@@ -95,7 +95,10 @@ Field 11 is useful for controlling mismatch (single SNV) haplotype errors, simil
 ##Converting HapCUT2 output to VCF format
 Nils Homer has developed a tool HapCutToVcf that will soon support converting HapCUT2-formatted haplotype blocks into VCF format. It will be included with the fgbio tool suite, available [here](https://github.com/fulcrumgenomics/fgbio).
 
-##Coming Soon
-- A Snakemake pipeline to reproduce the results of the HapCUT2 manuscript (in preparation).
-- Hi-C pre-processing scripts and a complete Hi-C haplotyping pipeline
+##Reproducing the HapCUT2 manuscript
 
+The directory **reproduce_hapcut2_paper** contains the source code and pipeline used to obtain the results of the HapCUT2 manuscript (linked above). It is nearly complete except for some early data access and cleaning steps which are not yet integrated into the pipeline, but these will be added soon.
+
+##Example pipelines for various types of sequencing data
+
+The directory **recipes** contains example pipelines to assemble haplotypes from various types of sequencing data.
