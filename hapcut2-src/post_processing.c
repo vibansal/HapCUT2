@@ -283,11 +283,11 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
         bin = Flist[f].isize / HTRANS_BINSIZE;
 
         if (bin < 0){
-            fprintf(stderr,"ERROR: bin less than 0");
+            fprintf_time(stderr,"ERROR: bin less than 0");
             exit(1);
         }
         if (bin >= HTRANS_MAXBINS){
-            fprintf(stderr,"ERROR: bin greater than HTRANS_MAXBINS");
+            fprintf_time(stderr,"ERROR: bin greater than HTRANS_MAXBINS");
             exit(1);
         }
 

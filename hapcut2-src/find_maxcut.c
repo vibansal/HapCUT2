@@ -149,7 +149,7 @@ int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, str
         clist[k].iters_since_improvement = 0;
     }
 
-    if (VERBOSE && clist[k].SCORE > 0) fprintf(stdout, "component %d offset %d length %d phased %d LL %0.1f cutvalue %f bestLL %0.2f\n", k, clist[k].offset, clist[k].length, clist[k].phased, -1*clist[k].SCORE, cutvalue, -1*clist[k].bestSCORE);
+    if (VERBOSE && clist[k].SCORE > 0) fprintf_time(stdout, "component %d offset %d length %d phased %d LL %0.1f cutvalue %f bestLL %0.2f\n", k, clist[k].offset, clist[k].length, clist[k].phased, -1*clist[k].SCORE, cutvalue, -1*clist[k].bestSCORE);
 
     // return 0 to specify that this component hasn't converged.
     return 0;
@@ -335,7 +335,7 @@ float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, struct BL
                 if (secondnode < 0) {
                     secondnode = slist[snp_add];
 
-                    //fprintf(stderr,"secondnode found %d %f V %d N %d\n",secondnode,snpfrag[slist[snp_add]].score,V,N);
+                    //fprintf_time(stderr,"secondnode found %d %f V %d N %d\n",secondnode,snpfrag[slist[snp_add]].score,V,N);
                 }
 
                 snpfrag[slist[snp_add]].parent = secondnode;
@@ -373,7 +373,7 @@ float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, struct BL
         }
 
         if (c1 == 0 || c2 == 0) {
-            fprintf(stdout, " cut size is 0 red \n");
+            if (DEBUG) fprintf(stdout, " cut size is 0 red \n");
             exit(0);
         }
 

@@ -98,5 +98,7 @@ struct SNPfrags {
     float homozygous_prior; // prior probability of homozygousity. Based on GQ field of VCF.
 };
 
+int fprintf_time(FILE *stream, const char *format, ...);
+
 
 #endif
