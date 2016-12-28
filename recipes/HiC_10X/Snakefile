@@ -72,12 +72,12 @@ rule concatenate_hic_10x:
 
 # convert Hi-C bam files to haplotype fragment files
 rule hic_extract_hairs:
-    params: job_name    = '{chrom}.extracthairs',
+    params: job_name    = 'extracthairs',
     input:  expand('data/hic_separated/hic.REF_{chrom}.bam',chrom=chroms)
-    output: 'data/hic/{chrom}'
+    output: expand('data/hic/{chrom}',chrom=chroms)
     run:
-        for bam in input:
-            shell('{EXTRACTHAIRS} --HiC 1 --bam {bam} --VCF {VCF_DIR}/{wildcards.chrom}.vcf >> {output}')
+        for chrom,bam,frag in zip(chroms,input,output):
+            shell('{EXTRACTHAIRS} --HiC 1 --bam {bam} --VCF {VCF_DIR}/{chrom}.vcf >> {frag}')
 
 # split Hi-C bam files by chromosome
 rule hic_split_bams:
