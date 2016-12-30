@@ -25,8 +25,8 @@ void print_hapcut_options() {
     fprintf(stderr, "\nHaplotype Post-Processing Options:\n");
     fprintf(stderr, "--threshold, --t <float>:           threshold for pruning low-confidence SNPs (closer to 1 prunes more, closer to 0.5 prunes less). default: 0.8\n");
     fprintf(stderr, "--skip_prune, --sp <0/1>:           skip default likelihood pruning step (prune SNPs after the fact using column 11 of the output). default: 0\n");
-    fprintf(stderr, "--split_blocks, --sb <0/1>:         split blocks using simple likelihood score to reduce switch errors. default: 0\n");
-    fprintf(stderr, "--split_threshold, --st <float>:    threshold for splitting blocks (closer to 1 splits more, closer to 0.5 splits less). default: 0.8\n");
+    //fprintf(stderr, "--split_blocks, --sb <0/1>:         split blocks using simple likelihood score to reduce switch errors. default: 0\n");
+    //fprintf(stderr, "--split_threshold, --st <float>:    threshold for splitting blocks (closer to 1 splits more, closer to 0.5 splits less). default: 0.8\n");
     fprintf(stderr, "--call_homozygous, --ch <0/1>:      call positions as homozygous if they appear to be false heterozygotes. default: 0\n");
     fprintf(stderr, "--discrete_pruning, --dp <0/1>:     use discrete heuristic to prune SNPs. default: 0\n");
     fprintf(stderr, "--error_analysis_mode, --ea <0/1>:  compute switch confidence scores and print to haplotype file but don't split blocks or prune. default: 0\n");
