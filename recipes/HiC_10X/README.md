@@ -26,7 +26,7 @@ haplotype block files and place them in 'output/chr*.hap'
 - VCF files containing variants for the individual, named chr1.vcf, chr2.vcf...
 - HapCUT2
 - extractHAIRS
-- [https://github.com/vibansal/HapCUT2/tree/master/FragmentCut](FragmentCut)
+- [FragmentCut](https://github.com/vibansal/HapCUT2/tree/master/FragmentCut)
 - BWA 0.7.12-r1044
 - Samtools 1-2-244, htslib 1.21
 - Picard Tools 2.8
