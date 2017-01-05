@@ -61,8 +61,10 @@ int fetch_func(const bam1_t *b, void *data,struct alignedread* read)
 	if ( !(read->flag & 4) && BARCODE ==1) 
 	{
 		barcode = bam_aux_get(b,"RX");  // RX:Z:GTGTGTTCTAGGTC
-		if (barcode != NULL) read->barcode = (char*)malloc(strlen(barcode)); //else read->barcode = NULL; 
+		if (barcode != NULL){
+            read->barcode = (char*)malloc(strlen(barcode)); //else read->barcode = NULL;
         	for (op=1;op<strlen(barcode);op++) read->barcode[op-1] = barcode[op]; read->barcode[op-1]= '\0';
+        }else read->barcode = NULL;
 		//fprintf(stderr," read barcode |%s| %s\n",read->readid,barcode);
 	}
         //if (read->mquality >= 60) read->mquality = 60; // cap mapping quality |  april 18 2012

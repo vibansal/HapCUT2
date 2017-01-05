@@ -256,9 +256,13 @@ int generate_single_fragment(struct alignedread** readlist,FRAGMENT* flist,VARIA
 	*/
 	fprintf(stdout,"fragment %d %d \n",unique_variants,j);
 	fp.id = (char*)malloc(1024); 
-	if (BARCODE ==1) sprintf(fp.id,"%s:%d_%d_%d_%0.2f_%d_%s",varlist[fp.alist[0].varid].chrom,start,end,length,read_density,reads_window,readlist[s]->barcode);
-	else sprintf(fp.id,"%s:%d_%d_%d_%0.2f_%d_%0.2f",varlist[fp.alist[0].varid].chrom,start,end,length,read_density,reads_window,fosmid->delta);
-	
+	if (BARCODE ==1){
+		if (readlist[s]->barcode == NULL)
+			sprintf(fp.id,"%s:%d_%d_%d_%0.2f_%d_NULL",varlist[fp.alist[0].varid].chrom,start,end,length,read_density,reads_window);
+		else
+			sprintf(fp.id,"%s:%d_%d_%d_%0.2f_%d_%s",varlist[fp.alist[0].varid].chrom,start,end,length,read_density,reads_window,readlist[s]->barcode);
+	}else sprintf(fp.id,"%s:%d_%d_%d_%0.2f_%d_%0.2f",varlist[fp.alist[0].varid].chrom,start,end,length,read_density,reads_window,fosmid->delta);
+
 	int adjusted_hets = print_fragment_vars1(&fragment,varlist); 
 	fp.variants = j; 
 	if (j >=2) 
