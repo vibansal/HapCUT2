@@ -54,14 +54,14 @@ If lists of files are provided, the contig order MUST be the same between argume
 
 Here is a brief description of the output:
 ```
-switch rate:       switch errors as a fraction of possible positions for switch errors
-mismatch rate:     mismatch errors as a fraction of possible positions for mismatch errors
-flat rate:         flat errors as a fraction of possible positions for flat errors
-missing rate:      fraction of positions that were covered by an informative SNP, but were removed from the final haplotype
-phased count:      count of total SNVs phased
-AN50:              the AN50 metric of haplotype completeness
-N50:               the N50 metric of haplotype completeness
-max block snp %:   the fraction of SNVs in the largest (most variants phased) block
+switch rate:          switch errors as a fraction of possible positions for switch errors
+mismatch rate:        mismatch errors as a fraction of possible positions for mismatch errors
+flat rate:            flat errors as a fraction of possible positions for flat errors
+missing rate:         fraction of positions that were covered by an informative SNP, but were removed from the final haplotype
+phased count:         count of total SNVs phased
+AN50:                 the AN50 metric of haplotype completeness
+N50:                  the N50 metric of haplotype completeness
+max block snp frac:   the fraction of SNVs in the largest (most variants phased) block
 ```
 
 A switch error is defined as a position where the phase is switched from that of the previous heterozygous SNV, when compared to
