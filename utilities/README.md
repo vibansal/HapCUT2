@@ -59,7 +59,6 @@ mismatch rate:     mismatch errors as a fraction of possible positions for misma
 flat rate:         flat errors as a fraction of possible positions for flat errors
 missing rate:      fraction of positions that were covered by an informative SNP, but were removed from the final haplotype
 phased count:      count of total SNVs phased
-SNPs covered:      count of total SNVs covered by an informative read
 AN50:              the AN50 metric of haplotype completeness
 N50:               the N50 metric of haplotype completeness
 max block snp %:   the fraction of SNVs in the largest (most variants phased) block
