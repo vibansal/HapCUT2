@@ -88,7 +88,9 @@ Following the header, there is one line per SNV with the following tab-delimited
 
 Field 9 describes the status of the SNV under the discrete SNV pruning method introduced by RefHap (an SNV is pruned if there are equal reads consistent and inconsistent with the phase), with the slight difference that reads are assigned to haplotypes using likelihoods in our implementation. Use the option "--discrete_pruning 1" to automatically prune SNPs ('- -' phasing) based on the value of this field.
 
-The values in field 10 and field 11 are the log<sub>10</sub> of a confidence score that ranges from 0.5 to 1 (less confident to more confident). Field 10 is useful for controlling switch errors, especially on data types such as error-prone SMRT reads. It is fixed at 0 (confidence 1.0) unless switch error scores are computed using flags "--split_blocks 1" (compute switch error confidence and automatically split blocks using the value of --split_threshold) or "--error_analysis_mode 1" (compute switch error confidence but leave blocks intact and all SNVs phased for manual pruning later).
+The values in field 10 and field 11 are the log<sub>10</sub> of a confidence score that ranges from 0.5 to 1 (less confident to more confident). Field 10 is useful for controlling switch errors, especially on data types such as error-prone SMRT reads. It is fixed at 0 (confidence 1.0) unless switch error scores are computed using "--error_analysis_mode 1" (compute switch error confidence but leave blocks intact and all SNVs phased for manual pruning later).
+
+Important note: flag "--split_blocks 1" (compute switch error confidence and automatically split blocks using the value of --split_threshold) is currently broken, for the time being use "--error_analysis_mode 1" and manually split using field 10.
 
 Field 11 is useful for controlling mismatch (single SNV) haplotype errors, similarly to field 9. The default behavior of HapCUT2 is to prune individual SNVs for which this confidence is less than 0.8, as these are highly likely to be errors.
 

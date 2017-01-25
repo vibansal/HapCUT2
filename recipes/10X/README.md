@@ -21,7 +21,7 @@ The pipeline will generate haplotype block files and place them in 'output/chr*.
 - a bam file containing aligned, barcoded 10X reads
 - VCF files containing variants for the individual, named chr1.vcf, chr2.vcf...
 - HapCUT2
-- [https://github.com/vibansal/HapCUT2/tree/master/FragmentCut](FragmentCut)
+- [FragmentCut](https://github.com/vibansal/HapCUT2/tree/master/FragmentCut)
 - Samtools 1-2-244, htslib 1.21
 
 For instructions to install HapCUT2, see the README at the root of this project.
