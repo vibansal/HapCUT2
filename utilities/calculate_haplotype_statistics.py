@@ -412,13 +412,12 @@ mismatch rate:        {}
 flat rate:            {}
 missing rate:         {}
 phased count:         {}
-SNPs covered:         {}
 AN50:                 {}
 N50:                  {}
 max block snp frac:   {}
             '''.format(self.get_switch_rate(), self.get_mismatch_rate(),
                    self.get_flat_error_rate(), self.get_missing_rate(),
-                   self.get_phased_count(), self.get_num_covered(),
+                   self.get_phased_count(), 
                    self.get_AN50(),self.get_N50(),self.get_max_blk_snp_percent()))
                    
         return s
