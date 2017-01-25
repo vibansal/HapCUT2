@@ -97,7 +97,7 @@ int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
         if (i < blocks - 1) fprintf(fp, "******** \n");
     }
     fclose(fp);
-    return 1;
+    return 0;
 }
 
 // important NOTE: to get from SNP i to its component in 'clist', we have variable snpfrag[i].bcomp, feb 1 2012
