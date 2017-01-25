@@ -68,7 +68,7 @@ max block snp %:   the fraction of SNVs in the largest (most variants phased) bl
 A switch error is defined as a position where the phase is switched from that of the previous heterozygous SNV, when compared to
 the reference haplotype. Two switch errors in a row are instead counted as a mismatch error, a single position where the phase differs from the reference haplotype.
 
-The flat error is an alternative metric to the dual metric of switch/mismatch errors. It is the minimum hamming distance between
+We use "flat error" to refer to an alternative metric to the dual metric of switch/mismatch errors. The flat error count is the minimum hamming distance between
 the two assembled haplotypes (for a given block) and the reference haplotype. In general, this metric is thought to penalize switch errors
 far too harshly. It may be of interest for a dataset with extremely low incidence of long switch errors.
 
