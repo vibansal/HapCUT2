@@ -4,7 +4,7 @@ Haplotyping Utilities
 ## calculate_haplotype_statistics.py:
 
 This file is a self-contained script to compute a number of useful statistics on haplotypes
-assembled using HapCUT2 or similar tools. It is written in Python 3. To run and see options:
+assembled using HapCUT2 or similar tools. It is written in Python 3. To see options run with no arguments:
 ```
 usage: calculate_haplotype_statistics.py [-h]
                                          [-h1 HAPLOTYPE_BLOCKS [HAPLOTYPE_BLOCKS ...]]
