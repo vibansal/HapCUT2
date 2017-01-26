@@ -94,6 +94,9 @@ Important note: flag "--split_blocks 1" (compute switch error confidence and aut
 
 Field 11 is useful for controlling mismatch (single SNV) haplotype errors, similarly to field 9. The default behavior of HapCUT2 is to prune individual SNVs for which this confidence is less than 0.8, as these are highly likely to be errors.
 
+##Calculating Haplotype Statistics
+The calculate_haplotype_statistics script in the utilities directory calculates haplotype error rates with respect to a reference haplotype, as well as completeness statistics such as N50 and AN50.
+
 ##Converting HapCUT2 output to VCF format
 Nils Homer has developed a tool HapCutToVcf that will soon support converting HapCUT2-formatted haplotype blocks into VCF format. It will be included with the fgbio tool suite, available [here](https://github.com/fulcrumgenomics/fgbio).
 
