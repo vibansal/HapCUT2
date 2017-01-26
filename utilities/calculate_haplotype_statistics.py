@@ -19,12 +19,12 @@ def parse_args():
 
     parser = argparse.ArgumentParser(description=desc)
     # paths to samfiles mapping the same ordered set of RNA reads to different genomes
-    parser.add_argument('-h1', '--haplotype_blocks', nargs='+', type = str, help='haplotype block file to compute statistics on')
-    parser.add_argument('-v1', '--vcf', nargs='+', type = str, help='VCF file that was used to generate h1 haplotype fragments and phase h1 haplotype (--vcf in extractHAIRS and HapCUT2)')
-    parser.add_argument('-f1', '--fragments', nargs='+', type = str, help='HapCUT2 format fragment file used to generate input haplotype block file (-h1)')
-    parser.add_argument('-pv', '--phased_vcf', nargs='*', type = str, help='compute errors with respect to this phased single-individual VCF file. NOTE: Files must be separated by contig/chromosome! (Use with no arguments to use same VCF(s) from --vcf.)')
-    parser.add_argument('-h2', '--reference_haplotype_blocks', nargs='+', type = str, help='compute errors with respect to this haplotype block file')
-    parser.add_argument('-v2', '--reference_vcf', nargs='*', type = str, help='VCF file that was used to generate h2 haplotype fragments and phase h2 haplotype (--vcf in extractHAIRS and HapCUT2). Use with no arguments to use same VCF(s) from --vcf.')
+    parser.add_argument('-h1', '--haplotype_blocks', nargs='+', type = str, help='haplotype block file(s) to compute statistics on')
+    parser.add_argument('-v1', '--vcf', nargs='+', type = str, help='VCF file(s) that was used to generate h1 haplotype fragments and phase h1 haplotype (--vcf in extractHAIRS and HapCUT2)')
+    parser.add_argument('-f1', '--fragments', nargs='+', type = str, help='HapCUT2 format fragment file(s) used to generate input haplotype block file (-h1)')
+    parser.add_argument('-pv', '--phased_vcf', nargs='*', type = str, help='compute errors with respect to this phased single-individual VCF file(s). NOTE: Files must be separated by contig/chromosome! (Use with no arguments to use same VCF(s) from --vcf.)')
+    parser.add_argument('-h2', '--reference_haplotype_blocks', nargs='+', type = str, help='compute errors with respect to this haplotype block file(s)')
+    parser.add_argument('-v2', '--reference_vcf', nargs='*', type = str, help='VCF file(s) that was used to generate h2 haplotype fragments and phase h2 haplotype (--vcf in extractHAIRS and HapCUT2). Use with no arguments to use same VCF(s) from --vcf.')
     parser.add_argument('-c', '--contig_size_file', nargs='?', type = str, help='Tab-delimited file with size of contigs (<contig>\\t<size>). If not provided, N50 will not be calculated.')
 
     # default to help option. credit to unutbu: http://stackoverflow.com/questions/4042452/display-help-message-with-python-argparse-when-script-is-called-without-any-argu

@@ -26,24 +26,24 @@ ordered list, using the same chromosome order between flags.
 optional arguments:
   -h, --help            show this help message and exit
   -h1 HAPLOTYPE_BLOCKS [HAPLOTYPE_BLOCKS ...], --haplotype_blocks HAPLOTYPE_BLOCKS [HAPLOTYPE_BLOCKS ...]
-                        haplotype block file to compute statistics on
+                        haplotype block file(s) to compute statistics on
   -v1 VCF [VCF ...], --vcf VCF [VCF ...]
-                        VCF file that was used to generate h1 haplotype
+                        VCF file(s) that was used to generate h1 haplotype
                         fragments and phase h1 haplotype (--vcf in
                         extractHAIRS and HapCUT2)
   -f1 FRAGMENTS [FRAGMENTS ...], --fragments FRAGMENTS [FRAGMENTS ...]
-                        HapCUT2 format fragment file used to generate input
+                        HapCUT2 format fragment file(s) used to generate input
                         haplotype block file (-h1)
   -pv [PHASED_VCF [PHASED_VCF ...]], --phased_vcf [PHASED_VCF [PHASED_VCF ...]]
                         compute errors with respect to this phased single-
-                        individual VCF file. NOTE: Files must be separated by
-                        contig/chromosome! (Use with no arguments to use same
-                        VCF(s) from --vcf.)
+                        individual VCF file(s). NOTE: Files must be separated
+                        by contig/chromosome! (Use with no arguments to use
+                        same VCF(s) from --vcf.)
   -h2 REFERENCE_HAPLOTYPE_BLOCKS [REFERENCE_HAPLOTYPE_BLOCKS ...], --reference_haplotype_blocks REFERENCE_HAPLOTYPE_BLOCKS [REFERENCE_HAPLOTYPE_BLOCKS ...]
                         compute errors with respect to this haplotype block
-                        file
+                        file(s)
   -v2 [REFERENCE_VCF [REFERENCE_VCF ...]], --reference_vcf [REFERENCE_VCF [REFERENCE_VCF ...]]
-                        VCF file that was used to generate h2 haplotype
+                        VCF file(s) that was used to generate h2 haplotype
                         fragments and phase h2 haplotype (--vcf in
                         extractHAIRS and HapCUT2). Use with no arguments to
                         use same VCF(s) from --vcf.
