@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Author : Peter Edge
 # Email  : pedge@eng.ucsd.edu
 
@@ -357,7 +358,7 @@ class error_result():
         poss_sw = self.get_poss_sw()
 
         if poss_sw > 0:
-            return switch_count/poss_sw
+            return float(switch_count)/poss_sw
         else:
             return 0
 
@@ -366,7 +367,7 @@ class error_result():
         poss_mm = self.get_poss_mm()
 
         if poss_mm > 0:
-            return mismatch_count/poss_mm
+            return float(mismatch_count)/poss_mm
         else:
             return 0
 
@@ -375,7 +376,7 @@ class error_result():
         poss_mm = self.get_poss_mm()
 
         if poss_mm > 0:
-            return (self.get_switch_count() + self.get_mismatch_count())/poss_mm
+            return float(self.get_switch_count() + self.get_mismatch_count())/poss_mm
         else:
             return 0
 
@@ -383,14 +384,14 @@ class error_result():
         flat_count = self.get_flat_count()
         poss_flat = self.get_poss_flat()
         if poss_flat > 0:
-            return flat_count/poss_flat
+            return float(flat_count)/poss_flat
         else:
             return 0
 
     def get_missing_rate(self):
         num_cov = self.get_num_covered()
         if num_cov > 0:
-            return 1-sum(self.phased_count.values())/num_cov
+            return 1.0-sum(self.phased_count.values())/float(num_cov)
         else:
             return 0
 
@@ -401,7 +402,7 @@ class error_result():
         phased_sum = 0
         for span, phased in AN50_spanlst:
             phased_sum += phased
-            if phased_sum > self.get_num_snps()/2:
+            if phased_sum > self.get_num_snps()/2.0:
                 AN50 = span
                 break
         return AN50
@@ -419,7 +420,7 @@ class error_result():
         total = 0
         for span in N50_spanlst:
             total += span
-            if total > L/2:
+            if total > L/2.0:
                 N50 = span
                 break
         return N50
@@ -429,7 +430,7 @@ class error_result():
         sum_all_snps     = self.get_num_snps()
 
         if sum_all_snps > 0:
-            return snps_in_max_blks / sum_all_snps
+            return float(snps_in_max_blks) / sum_all_snps
         else:
             return 0
 
@@ -545,7 +546,7 @@ def error_rate_calc(t_blocklist, a_blocklist, vcf_file, frag_file, contig_size_f
 
         blk_total = last_SNP - first_SNP + 1
 
-        AN50_spanlst.append(((last_pos-first_pos)*(blk_phased/blk_total), blk_phased))
+        AN50_spanlst.append(((last_pos-first_pos)*(float(blk_phased)/blk_total), blk_phased))
         N50_spanlst.append((last_pos-first_pos))
 
         if blk_phased > maxblk_snps:
