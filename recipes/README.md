@@ -11,3 +11,4 @@ Each pipeline is in a separate directory as described here:
 - **HiC:** Hi-C (proximity ligation) reads
 - **10X:** 10X genomics gemcode linked-reads
 - **HiC_10X:** HiC + 10X combination
+- **HiC_Longread:** HiC + Generic long read (e.g. PacBio) combination
