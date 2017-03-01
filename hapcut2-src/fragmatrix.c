@@ -6,9 +6,9 @@ KHASH_SET_INIT_INT(32)
 extern int VERBOSE;
 extern int LONG_READS;
 //////////////////////////////////////// edge list is only used in the two functions below add_edges (Feb 4 2013) //////////////////////////////
-	
+
 // non-recursive version of label_node
-void label_node_alt(struct SNPfrags* snpfrag, int init_node, int comp, khash_t(32) *label_node_hash) { 
+void label_node_alt(struct SNPfrags* snpfrag, int init_node, int comp, khash_t(32) *label_node_hash) {
 	int ret;
 	int *nodes  = NULL;
     int m_nodes = 16;
@@ -56,14 +56,14 @@ void label_node_alt(struct SNPfrags* snpfrag, int init_node, int comp, khash_t(3
     free(nodes);
 }
 
-void label_node(struct SNPfrags* snpfrag, int node, int comp, khash_t(32) *label_node_hash) // DFS search routine for connected component 
+void label_node(struct SNPfrags* snpfrag, int node, int comp, khash_t(32) *label_node_hash) // DFS search routine for connected component
 {
 	/*
     int i = 0, ret;
 	if (kh_get(32, label_node_hash, node) != kh_end(label_node_hash)) return;
 	kh_put(32, label_node_hash, node, &ret);
 	if (ret == 0) {
-		fprintf(stderr, "kh_put returned non-empty\n"); 
+		fprintf(stderr, "kh_put returned non-empty\n");
 		exit (1);
 	}
     if (snpfrag[node].component == -1) {
@@ -99,7 +99,7 @@ void add_edges_fosmids(struct fragment* Flist, int fragments, struct SNPfrags* s
     }
     int vars = 0;
     for (i = 0; i < fragments; i++) {
-        // generate list of variants and alleles 
+        // generate list of variants and alleles
         vars = 0;
         for (j = 0; j < Flist[i].blocks; j++) {
             for (k = 0; k < Flist[i].list[j].len; k++) {
@@ -109,7 +109,7 @@ void add_edges_fosmids(struct fragment* Flist, int fragments, struct SNPfrags* s
                 if (vars >= 65536) break;
             }
         }
-        // add edge between adjacent pair of variants in each fragment 
+        // add edge between adjacent pair of variants in each fragment
         for (j = 0; j < vars - 1; j++) {
             t1 = varlist[j];
             t2 = varlist[j + 1];
@@ -126,7 +126,7 @@ void add_edges_fosmids(struct fragment* Flist, int fragments, struct SNPfrags* s
         }
 
     }
-    // elist contains duplicates (due to multiple fragments), telist does not, feb 5 2013 
+    // elist contains duplicates (due to multiple fragments), telist does not, feb 5 2013
     // sort all edges lists once for all by snp number, this can be done faster using QSORT, see later code...
     for (i = 0; i < snps; i++) qsort(snpfrag[i].elist, snpfrag[i].edges, sizeof (struct edge), edge_compare);
 	fprintf(stderr, "Iterating through SNPs\n0");
@@ -145,7 +145,7 @@ void add_edges_fosmids(struct fragment* Flist, int fragments, struct SNPfrags* s
 		}
     }
 	fprintf(stderr, "\r%.2lf%% complete\n", i * 100.0 / snps);
-    for (i = 0; i < fragments; i++) Flist[i].component = snpfrag[Flist[i].list[0].offset].component; // each fragment has a component fixed 
+    for (i = 0; i < fragments; i++) Flist[i].component = snpfrag[Flist[i].list[0].offset].component; // each fragment has a component fixed
 
     *components = 0;
     int nodes_in_graph = 0;
@@ -186,13 +186,15 @@ void add_edges(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, 
             }
         }
     }
-    // elist contains duplicates (due to multiple fragments), telist does not, feb 5 2013 
+    // elist contains duplicates (due to multiple fragments), telist does not, feb 5 2013
     // sort all edges lists once for all by snp number, this can be done faster using QSORT, see later code...
     for (i = 0; i < snps; i++) qsort(snpfrag[i].elist, snpfrag[i].edges, sizeof (struct edge), edge_compare);
 	fprintf(stderr, "Iterating through SNPs\n0");
 	int every = snps / 10000.0;
     for (i = 0; i < snps; i++) {
-		if (0 == (i % every)) fprintf(stderr, "\r%.2lf%% complete", i * 100.0 / snps);
+		if (snps > 0 && every > 0 && (0 == (i % every))){
+			 fprintf(stderr, "\r%.2lf%% complete", i * 100.0 / snps);
+		}
         //fprintf(stdout," snp %d edges %d || ",i,snpfrag[i].edges); for (j=0;j<snpfrag[i].edges;j++) fprintf(stdout,"%d ",snpfrag[i].elist[j]); fprintf(stdout,"\n"); getchar();
         if (snpfrag[i].edges > maxdeg) maxdeg = snpfrag[i].edges;
         avgdeg += snpfrag[i].frags;
@@ -206,12 +208,14 @@ void add_edges(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, 
 			label_node(snpfrag, snpfrag[i].elist[j].snp, i, label_node_hash);
 		}
     }
-	fprintf(stderr, "\r%.2lf%% complete\n", i * 100.0 / snps);
+	if (snps > 0){
+		fprintf(stderr, "\r%.2lf%% complete\n", i * 100.0 / snps);
+	}
     /*
     fprintf_time(stderr,"FRAGMENTS=%d",fragments);
     for (i = 0; i < fragments; i++){
         fprintf_time(stderr,"i=%d",i);
-        Flist[i].component = snpfrag[Flist[i].list[0].offset].component; // each fragment has a component fixed 
+        Flist[i].component = snpfrag[Flist[i].list[0].offset].component; // each fragment has a component fixed
     }*/
 
     *components = 0;
@@ -232,9 +236,9 @@ void add_edges(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, 
 // populate the connected component data structure only for non-trivial connected components, at least 2 variants
 
 void generate_clist_structure(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int components, struct BLOCK* clist) {
-    // bcomp maps the SNP to the component number in clist since components << snps  
-    // note that the previous invariant about the first SNP (ordered by position) being the root of the component is no longer true !! 
-    // should we still require it ?? 
+    // bcomp maps the SNP to the component number in clist since components << snps
+    // note that the previous invariant about the first SNP (ordered by position) being the root of the component is no longer true !!
+    // should we still require it ??
     int i = 0, component = 0;
     for (i = 0; i < snps; i++) snpfrag[i].bcomp = -1;
     for (i = 0; i < snps; i++) {
@@ -281,11 +285,11 @@ void generate_clist_structure(struct fragment* Flist, int fragments, struct SNPf
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // this function updates the data structure snpfrag which links the heterozyous SNPs and the haplotype fragments
-// // it generates a list of fragments (flist) that affect each SNP 
+// // it generates a list of fragments (flist) that affect each SNP
 
 void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int* components) {
     int f = 0,i = 0, h = 0 , j = 0, s=0, k = 0, calls = 0; //maxdeg=0,avgdeg=0;
-    
+
     // find the first fragment whose endpoint lies at snp 'i' or beyond
     for (i = 0; i < snps; i++) {
         snpfrag[i].frags = 0;
@@ -297,8 +301,8 @@ void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snp
         j = Flist[i].list[0].offset;
         k = Flist[i].list[Flist[i].blocks - 1].len + Flist[i].list[Flist[i].blocks - 1].offset;
         // commented the line below since it slows program for long mate-pairs june 7 2012
-        //for (t=j;t<k;t++) { if (snpfrag[t].ff == -1) snpfrag[t].ff = i;  } 
-    } //for (i=0;i<snps;i++) { fprintf(stdout,"SNP %d firstfrag %d start snp %d \n",i,snpfrag[i].ff,i); } 
+        //for (t=j;t<k;t++) { if (snpfrag[t].ff == -1) snpfrag[t].ff = i;  }
+    } //for (i=0;i<snps;i++) { fprintf(stdout,"SNP %d firstfrag %d start snp %d \n",i,snpfrag[i].ff,i); }
 
     for (i = 0; i < fragments; i++) {
         for (j = 0; j < Flist[i].blocks; j++) {
@@ -319,7 +323,7 @@ void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snp
         snpfrag[i].frags = 0;
         snpfrag[i].edges = 0;
     }
-   
+
     for (f = 0; f < fragments; f++) {
         calls = 0;
         for (j = 0; j < Flist[f].blocks; j++) {
@@ -332,17 +336,17 @@ void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snp
                 // get to the spot in the  global fragment* Flist.
                 snpfrag[s].flist[h] = f;
                 snpfrag[s].jlist[h] = j;
-                snpfrag[s].klist[h] = k; 
+                snpfrag[s].klist[h] = k;
                 snpfrag[s].alist[h] = Flist[f].list[j].hap[k];
 
-  
-                
+
+
                 snpfrag[s].frags++;
                 calls += Flist[f].list[j].len;
             }
         }
 
-        if (LONG_READS == 1) // long reads 
+        if (LONG_READS == 1) // long reads
         {
             // 2 edges for every node in fragment ( 00000----0---[1]----10011 ) adjacent left and right
             for (j = 0; j < Flist[f].blocks; j++) {
@@ -352,7 +356,7 @@ void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snp
             snpfrag[Flist[f].list[j].offset].edges -= 1;
             j = Flist[f].blocks - 1;
             snpfrag[Flist[f].list[j].offset + Flist[f].list[j].len - 1].edges -= 1;
-            // single edge for first and last node in fragment 
+            // single edge for first and last node in fragment
         } else {
             for (j = 0; j < Flist[f].blocks; j++) {
                 for (k = 0; k < Flist[f].list[j].len; k++) snpfrag[Flist[f].list[j].offset + k].edges += calls - 1;
