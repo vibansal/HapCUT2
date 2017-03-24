@@ -1,7 +1,7 @@
 HapCUT2: robust and accurate haplotype assembly for diverse sequencing technologies
 ======
 
-##About:
+## About:
 HapCUT2 is a maximum-likelihood-based tool for assembling haplotypes from DNA sequence reads, designed to "just work" with excellent speed and accuracy.
 We found that previously described haplotype assembly methods are specialized for specific read technologies or protocols, with slow or inaccurate performance on others. With this in mind, HapCUT2 is designed for speed and accuracy across diverse sequencing technologies, including but not limited to:
 - NGS short reads (Illumina HiSeq)
@@ -12,37 +12,37 @@ We found that previously described haplotype assembly methods are specialized fo
 - high-coverage sequencing (>40x coverage-per-SNP) using above technologies
 - combinations of the above technologies (e.g. scaffold long reads with Hi-C reads)
 
-##Citation:
+## Citation:
 If you use HapCUT2 in your research, please cite:
 
 [Edge, P., Bafna, V. & Bansal, V. HapCUT2: robust and accurate haplotype assembly for diverse sequencing technologies. Genome Res. gr.213462.116 (2016). doi:10.1101/gr.213462.116](http://genome.cshlp.org/content/early/2016/12/09/gr.213462.116.abstract)
 
-##to build:
+## to build:
 
  ```make ```
  
 The makefile will attempt to build samtools 1.2 and htslib 1.2.1 as git submodules. 
 If you already have samtools 1.2 and htslib 1.2.1 installed, you can optionally edit the SAMTOOLS and HTSLIB variables in the Makefile to point to the directories where they are installed, prior to building.
 
-##to install:
+## to install:
 
 ```
 sudo make install-hairs
 sudo make install-hapcut2
 ```
 
-##to uninstall:
+## to uninstall:
 
 ```
 sudo make uninstall-hairs
 sudo make uninstall-hapcut2
 ```
-##Input:
+## Input:
 HapCUT2 requires the following input:
 - BAM file for an individual containing reads aligned to a reference genome
 - VCF file containing SNVs for the individual with respect to the reference
 
-##To Run:
+## To Run:
 
 Assembling haplotypes requires two steps:
 
@@ -58,12 +58,12 @@ Assembling haplotypes requires two steps:
 
 Run the programs without arguments to see all options.
 
-###Note about HAPCUT2 options
+### Note about HAPCUT2 options
 For the vast majority of use cases (including most short reads, long reads, clone sequences), only the required HAPCUT2 options above are necessary.
 In the case of Hi-C reads, it is recommended to use ```--hic 1``` for both extractHAIRS and HAPCUT2.
 Based on user preference, SNV pruning (filtering of low-quality phased SNVs) may be adjusted with ```--threshold <float>``` (closer to 1 prunes more, closer to 0.5 prunes less) or turned off with ```--no_prune 1```.
 
-##Output Format:
+## Output Format:
 Haplotype blocks are printed to the output file. For a given block, column 2 represents
 the allele on one chromosome copy (0 for reference, 1 for variant), while column 3 represents
 the allele on the other copy.
@@ -94,16 +94,16 @@ Important note: flag "--split_blocks 1" (compute switch error confidence and aut
 
 Field 11 is useful for controlling mismatch (single SNV) haplotype errors, similarly to field 9. The default behavior of HapCUT2 is to prune individual SNVs for which this confidence is less than 0.8, as these are highly likely to be errors.
 
-##Calculating Haplotype Statistics
+## Calculating Haplotype Statistics
 The calculate_haplotype_statistics script in the utilities directory calculates haplotype error rates with respect to a reference haplotype, as well as completeness statistics such as N50 and AN50.
 
-##Converting HapCUT2 output to VCF format
+## Converting HapCUT2 output to VCF format
 Nils Homer has developed a tool HapCutToVcf that will soon support converting HapCUT2-formatted haplotype blocks into VCF format. It will be included with the fgbio tool suite, available [here](https://github.com/fulcrumgenomics/fgbio).
 
-##Reproducing the HapCUT2 manuscript
+## Reproducing the HapCUT2 manuscript
 
 The directory **reproduce_hapcut2_paper** contains the source code and pipeline used to obtain the results of the HapCUT2 manuscript (linked above). It is nearly complete except for some early data access and cleaning steps which are not yet integrated into the pipeline, but these will be added soon.
 
-##Example pipelines for various types of sequencing data
+## Example pipelines for various types of sequencing data
 
 The directory **recipes** contains example pipelines to assemble haplotypes from various types of sequencing data.
