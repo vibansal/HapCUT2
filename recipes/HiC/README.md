@@ -1,7 +1,7 @@
 Sample pipeline to assemble haplotypes from Hi-C data with HapCUT2
 ======
 
-##About:
+## About:
 This is an example pipeline for assembling haplotypes for a single
 individual using Hi-C data. It is written in Snakemake,
 a python-based workflow management tool (available using pip):
@@ -15,20 +15,20 @@ Before running the pipeline, edit the top of the Snakefile to specify the paths 
 required data and tools.
 The pipeline will generate haplotype block files and place them in 'output/chr*.hap'
 
-##Requirements:
+## Requirements:
 - Snakemake 3.5.5
 - paired-end fastq files (ending in *_1.fastq and *_2.fastq) containing Hi-C reads
 - VCF files containing variants for the individual, named chr1.vcf, chr2.vcf...
 - HapCUT2
 - extractHAIRS
 - BWA 0.7.12-r1044
-- Samtools 1-2-244, htslib 1.21
+- Samtools 1.3, htslib 1.3
 - Picard Tools 2.8
 - Bamtools 2.4
 
 For instructions to install HapCUT2 and extractHAIRS, see the README at the root of this project.
 
-##Running
+## Running
 To do a dry run and list the executions steps, call:
 ```
 snakemake -n
