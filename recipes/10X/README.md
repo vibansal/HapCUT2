@@ -22,7 +22,7 @@ The pipeline will generate haplotype block files and place them in 'output/chr*.
 - VCF files containing variants for the individual, named chr1.vcf, chr2.vcf...
 - HapCUT2
 - [FragmentCut](https://github.com/vibansal/HapCUT2/tree/master/FragmentCut)
-- Samtools 1-3, htslib 1.3
+- Samtools 1.3, htslib 1.3
 
 For instructions to install HapCUT2, see the README at the root of this project.
 For instructions to install FragmentCut, see instructions at the link provided.
