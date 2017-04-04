@@ -1,7 +1,7 @@
 HapCUT2 Recipes: Sample pipelines to assemble haplotypes from various sequencing data types
 ======
 
-##About:
+## About:
 This directory contains example pipelines for assembling haplotypes using
 various types of sequencing data. Each pipeline is self-contained
 except for dependencies on HapCUT2 and related software, various common
