@@ -1,7 +1,7 @@
 Sample pipeline to assemble haplotypes from 10X Genomics data with HapCUT2
 ======
 
-##About:
+## About:
 This is an example pipeline for assembling haplotypes using
 10X Genomics data for a single individual. It is written in Snakemake,
 a python-based workflow management tool (available using pip):
@@ -15,7 +15,7 @@ Before running the pipeline, edit the top of the Snakefile to specify the paths 
 required data and tools.
 The pipeline will generate haplotype block files and place them in 'output/chr*.hap'
 
-##Requirements:
+## Requirements:
 - Snakemake 3.5.5
 - a reference genome in fasta format
 - a bam file containing aligned, barcoded 10X reads
@@ -27,7 +27,7 @@ The pipeline will generate haplotype block files and place them in 'output/chr*.
 For instructions to install HapCUT2, see the README at the root of this project.
 For instructions to install FragmentCut, see instructions at the link provided.
 
-##Running
+## Running
 To do a dry run and list the executions steps, call:
 ```
 snakemake -n
