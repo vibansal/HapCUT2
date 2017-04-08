@@ -1,0 +1,5 @@
+**/nbproject/
+**/*.o
+**/HAPCUT
+**/hapcut_out
+**/hapcut_out.pruned

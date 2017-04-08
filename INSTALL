@@ -1,0 +1,19 @@
+REQUIREMENTS
+=============
+
+HapCUT is written in C and requires a gcc like compiler to compile the source code. The automated build system uses GNU Make. HapCUT also requires the SAMtools package (http://samtools.sourceforge.net/) to read BAM files. If you do not already have SAMtools, running 'make' will automatically download and compile it for you before doing anything else.
+
+If you already have SAMtools 0.1.18, you can optionally modify the top of the Makefile in the source directory to point to your SAMtools directory prior to running 'make'.
+
+HOW TO COMPILE THE CODE
+
+========================
+
+Run 'make' in the project master directory.
+
+
+HOW TO INSTALL THE PROGRAMS
+
+========================
+
+Run 'sudo make install' after compiling the code.
