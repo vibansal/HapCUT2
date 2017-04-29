@@ -38,9 +38,10 @@ void label_node_alt(struct SNPfrags* snpfrag, int init_node, int comp, khash_t(3
 			if (kh_get(32, label_node_hash, cur_node) != kh_end(label_node_hash)) continue;
 
             // make room
+
             while (m_nodes <= n_nodes) {
                 m_nodes <<= 1;
-				if ((1 << 18) <= m_nodes) {
+				if ((1 << 29) <= m_nodes) {
 					fprintf(stderr, "Too many nodes allocated: %d\n", m_nodes);
 					exit(1);
 				}
@@ -129,10 +130,10 @@ void add_edges_fosmids(struct fragment* Flist, int fragments, struct SNPfrags* s
     // elist contains duplicates (due to multiple fragments), telist does not, feb 5 2013
     // sort all edges lists once for all by snp number, this can be done faster using QSORT, see later code...
     for (i = 0; i < snps; i++) qsort(snpfrag[i].elist, snpfrag[i].edges, sizeof (struct edge), edge_compare);
-	fprintf(stderr, "Iterating through SNPs\n0");
-	int every = (snps < 10000) ? snps : (snps / 10000.0);
+	//fprintf(stderr, "Iterating through SNPs\n0");
+	//int every = (snps < 10000) ? snps : (snps / 10000.0);
     for (i = 0; i < snps; i++) {
-		if (0 == (i % every)) fprintf(stderr, "\r%.2lf%% complete", i * 100.0 / snps);
+		//if (0 == (i % every)) fprintf(stderr, "\r%.2lf%% complete", i * 100.0 / snps);
         if (snpfrag[i].edges > maxdeg) maxdeg = snpfrag[i].edges;
         avgdeg += snpfrag[i].frags;
         if (snpfrag[i].edges == 0) continue;
@@ -144,7 +145,7 @@ void add_edges_fosmids(struct fragment* Flist, int fragments, struct SNPfrags* s
 			label_node(snpfrag, snpfrag[i].elist[j].snp, i, label_node_hash);
 		}
     }
-	fprintf(stderr, "\r%.2lf%% complete\n", i * 100.0 / snps);
+	///fprintf(stderr, "\r%.2lf%% complete\n", i * 100.0 / snps);
     for (i = 0; i < fragments; i++) Flist[i].component = snpfrag[Flist[i].list[0].offset].component; // each fragment has a component fixed
 
     *components = 0;
@@ -189,12 +190,12 @@ void add_edges(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, 
     // elist contains duplicates (due to multiple fragments), telist does not, feb 5 2013
     // sort all edges lists once for all by snp number, this can be done faster using QSORT, see later code...
     for (i = 0; i < snps; i++) qsort(snpfrag[i].elist, snpfrag[i].edges, sizeof (struct edge), edge_compare);
-	fprintf(stderr, "Iterating through SNPs\n0");
-	int every = snps / 10000.0;
+	//fprintf(stderr, "Iterating through SNPs\n0");
+	//int every = snps / 10000.0;
     for (i = 0; i < snps; i++) {
-		if (snps > 0 && every > 0 && (0 == (i % every))){
-			 fprintf(stderr, "\r%.2lf%% complete", i * 100.0 / snps);
-		}
+		//if (snps > 0 && every > 0 && (0 == (i % every))){
+		//	 fprintf(stderr, "\r%.2lf%% complete", i * 100.0 / snps);
+		//}
         //fprintf(stdout," snp %d edges %d || ",i,snpfrag[i].edges); for (j=0;j<snpfrag[i].edges;j++) fprintf(stdout,"%d ",snpfrag[i].elist[j]); fprintf(stdout,"\n"); getchar();
         if (snpfrag[i].edges > maxdeg) maxdeg = snpfrag[i].edges;
         avgdeg += snpfrag[i].frags;
@@ -208,9 +209,9 @@ void add_edges(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, 
 			label_node(snpfrag, snpfrag[i].elist[j].snp, i, label_node_hash);
 		}
     }
-	if (snps > 0){
-		fprintf(stderr, "\r%.2lf%% complete\n", i * 100.0 / snps);
-	}
+	//if (snps > 0){
+	//	fprintf(stderr, "\r%.2lf%% complete\n", i * 100.0 / snps);
+	//}
     /*
     fprintf_time(stderr,"FRAGMENTS=%d",fragments);
     for (i = 0; i < fragments; i++){
