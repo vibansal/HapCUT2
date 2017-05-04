@@ -2,7 +2,7 @@ HapCUT2: robust and accurate haplotype assembly for diverse sequencing technolog
 ======
 
 ## Important Announcement:
-For simplicity, the switch confidence and SNP confidence scores in the last two columns of output are now being represented as phred-scaled probabilities of error, like standard quality scores. rather than as log10(1-P(error)). In the new format, 0 represents low quality. 100 represents high-quality.
+For simplicity, the switch confidence and SNP confidence scores in the last two columns of output are now being represented as phred-scaled probabilities of error, like standard quality scores. Note that the old way printed log10(1-P(error)) instead. In the new format, 0 represents low quality. 100 represents high-quality.
 
 ```
 OLD       => NEW
