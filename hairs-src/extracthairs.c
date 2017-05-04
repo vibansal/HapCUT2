@@ -21,6 +21,7 @@
 #include "readvariant.h"
 #include "hapfragments.h"
 
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 int MISSING_QV = 0;
@@ -91,7 +92,12 @@ void print_options() {
     //fprintf(stderr,"--out : output file for haplotype informative fragments (hairs)\n\n");
 }
 
-
+void check_input_0_or_1(char* x){
+    if (!(strcmp(x, "0") == 0 || strcmp(x, "1") == 0)){
+        fprintf(stderr, "\nERROR: Invalid input \"%s\" for <0/1> option flag.\n",x);
+        exit(1);
+    }
+}
 
 // extract haplotype informative reads from sorted bam file //
 // need to discard reads that are marked as duplicates using flag //
@@ -227,6 +233,12 @@ int main(int argc, char** argv) {
 
     logfile = NULL;
     fragment_file = stdout; // write fragments to this file if it is present
+
+    if (argc % 2 != 1){
+        fprintf(stderr, "\nERROR: Invalid number of arguments specified.\n");
+        exit(1);
+    }
+
     for (i = 1; i < argc; i += 2) {
         if (strcmp(argv[i], "--bam") == 0 || strcmp(argv[i], "--bamfile") == 0) bamfiles++;
         else if (strcmp(argv[i], "--variants") == 0) strcpy(variantfile, argv[i + 1]);
@@ -234,33 +246,60 @@ int main(int argc, char** argv) {
         else if (strcmp(argv[i], "--VCF") == 0 || strcmp(argv[i], "--vcf") == 0) {
             strcpy(variantfile, argv[i + 1]);
             VCFformat = 1;
-        } else if (strcmp(argv[i], "--sorted") == 0) readsorted = atoi(argv[i + 1]);
+        } else if (strcmp(argv[i], "--sorted") == 0){
+            check_input_0_or_1(argv[i + 1]);
+            readsorted = atoi(argv[i + 1]);
+        }
         else if (strcmp(argv[i], "--mbq") == 0) MINQ = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--mmq") == 0) MIN_MQ = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--HiC") == 0 || strcmp(argv[i], "--hic") == 0){
+            check_input_0_or_1(argv[i + 1]);
             if (atoi(argv[i + 1])){
                 MAX_IS = 40000000;
                 NEW_FORMAT = 1;
                 DATA_TYPE = 1;
             }
         }
-        else if (strcmp(argv[i], "--new_format") == 0 || strcmp(argv[i], "--nf") == 0) NEW_FORMAT = atoi(argv[i + 1]);
-        else if (strcmp(argv[i], "--maxIS") == 0) MAX_IS = atoi(argv[i + 1]);
-        else if (strcmp(argv[i], "--minIS") == 0) MIN_IS = atoi(argv[i + 1]);
-        else if (strcmp(argv[i], "--PEonly") == 0) PEONLY = 1; // discard single end mapped reads
-        else if (strcmp(argv[i], "--indels") == 0) PARSEINDELS = atoi(argv[i + 1]); // allow indels in hairs
-        else if (strcmp(argv[i], "--pflag") == 0) IFLAG = atoi(argv[i + 1]); // allow indels in hairs
-        else if (strcmp(argv[i], "--qvoffset") == 0) QVoffset = atoi(argv[i + 1]);
-        else if (strcmp(argv[i], "--out") == 0 || strcmp(argv[i], "-o") == 0) fragment_file = fopen(argv[i + 1], "w");
-        else if (strcmp(argv[i], "--logfile") == 0 || strcmp(argv[i], "--log") == 0) logfile = fopen(argv[i + 1], "w");
-        else if (strcmp(argv[i], "--singlereads") == 0) SINGLEREADS = atoi(argv[i + 1]);
-        else if (strcmp(argv[i], "--maxfragments") == 0) MAXFRAG = atoi(argv[i + 1]);
-        else if (strcmp(argv[i], "--noquality") == 0) MISSING_QV = atoi(argv[i + 1]);
-        else if (strcmp(argv[i], "--triallelic") == 0) TRI_ALLELIC = atoi(argv[i + 1]);
-        else if (strcmp(argv[i], "--fosmids") == 0 || strcmp(argv[i], "--fosmid") == 0) LONG_READS = 1;
-        else if (strcmp(argv[i], "--groupname") == 0) {
+        else if (strcmp(argv[i], "--new_format") == 0 || strcmp(argv[i], "--nf") == 0){
+            check_input_0_or_1(argv[i + 1]);
+            NEW_FORMAT = atoi(argv[i + 1]);
+        }else if (strcmp(argv[i], "--maxIS") == 0)
+            MAX_IS = atoi(argv[i + 1]);
+        else if (strcmp(argv[i], "--minIS") == 0)
+            MIN_IS = atoi(argv[i + 1]);
+        else if (strcmp(argv[i], "--PEonly") == 0){
+            check_input_0_or_1(argv[i + 1]);
+            PEONLY = atoi(argv[i + 1]); // discard single end mapped reads
+        }else if (strcmp(argv[i], "--indels") == 0){
+            check_input_0_or_1(argv[i + 1]);
+            PARSEINDELS = atoi(argv[i + 1]); // allow indels in hairs
+        }else if (strcmp(argv[i], "--pflag") == 0){
+            check_input_0_or_1(argv[i + 1]);
+            IFLAG = atoi(argv[i + 1]); // allow indels in hairs
+        }else if (strcmp(argv[i], "--qvoffset") == 0) QVoffset = atoi(argv[i + 1]);
+        else if (strcmp(argv[i], "--out") == 0 || strcmp(argv[i], "-o") == 0)
+            fragment_file = fopen(argv[i + 1], "w");
+        else if (strcmp(argv[i], "--logfile") == 0 || strcmp(argv[i], "--log") == 0)
+            logfile = fopen(argv[i + 1], "w");
+        else if (strcmp(argv[i], "--singlereads") == 0){
+            check_input_0_or_1(argv[i + 1]);
+            SINGLEREADS = atoi(argv[i + 1]);
+        }else if (strcmp(argv[i], "--maxfragments") == 0) MAXFRAG = atoi(argv[i + 1]);
+        else if (strcmp(argv[i], "--noquality") == 0){
+            check_input_0_or_1(argv[i + 1]);
+            MISSING_QV = atoi(argv[i + 1]);
+        }else if (strcmp(argv[i], "--triallelic") == 0){
+            check_input_0_or_1(argv[i + 1]);
+            TRI_ALLELIC = atoi(argv[i + 1]);
+        }else if (strcmp(argv[i], "--fosmids") == 0 || strcmp(argv[i], "--fosmid") == 0){
+            check_input_0_or_1(argv[i + 1]);
+            LONG_READS = 1;
+        }else if (strcmp(argv[i], "--groupname") == 0) {
             GROUPNAME = (char*) malloc(1024);
             strcpy(GROUPNAME, argv[i + 1]);
+        }else{
+            fprintf(stderr, "\nERROR: Invalid Option \"%s\" specified.\n",argv[i]);
+            exit(1);
         }
     }
     if (bamfiles > 0 && strcmp(variantfile, "None") != 0) {
@@ -270,7 +309,7 @@ int main(int argc, char** argv) {
         for (i = 1; i < argc; i += 2) {
             if (strcmp(argv[i], "--bam") == 0 || strcmp(argv[i], "--bamfile") == 0) strcpy(bamfilelist[bamfiles++], argv[i + 1]);
         }
-        fprintf(stderr, "\n extracting haplotype informative reads from bamfiles %s minQV %d minMQ %d maxIS %d \n\n", bamfilelist[0], MINQ, MIN_MQ, MAX_IS);
+        fprintf(stderr, "\nExtracting haplotype informative reads from bamfiles %s minQV %d minMQ %d maxIS %d \n\n", bamfilelist[0], MINQ, MIN_MQ, MAX_IS);
     } else {
         print_options();
         return -1;

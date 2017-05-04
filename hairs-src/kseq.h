@@ -164,13 +164,14 @@ typedef struct __kstring_t {
 	{																	\
 		return kseq_init2(fd, __bufsize);								\
 	}																	\
-	SCOPE void kseq_destroy(kseq_t *ks)									\
+/*	SCOPE void kseq_destroy(kseq_t *ks)									\
 	{																	\
 		if (!ks) return;												\
 		free(ks->name.s); free(ks->comment.s); free(ks->seq.s);	free(ks->qual.s); \
 		ks_destroy(ks->f);												\
 		free(ks);														\
 	}
+*/
 
 /* Return value:
    >=0  length of the sequence (normal)

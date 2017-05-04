@@ -204,7 +204,7 @@ int read_fasta(char* seqfile, REFLIST* reflist) {
     }
     fprintf(stderr, "reading reference sequence file %s with %d sequences\n", seqfile, reflist->ns);
     t = clock();
-    int i=0, j=0; char c;
+    int i=0, j=0;
     while (kseq_read(seq) >= 0) {
         memcpy(reflist->sequences[i], seq->seq.s, seq->seq.l);
         for (j = 0; j < seq->seq.l; j++) {

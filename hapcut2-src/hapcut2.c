@@ -325,7 +325,12 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
     return 0;
 }
 
-
+void check_input_0_or_1(char* x){
+    if (!(strcmp(x, "0") == 0 || strcmp(x, "1") == 0)){
+        fprintf(stderr, "\nERROR: Invalid input \"%s\" for <0/1> option flag.\n",x);
+        exit(1);
+    }
+}
 
 int main(int argc, char** argv) {
     // input arguments are initial fragment file, variant file with variant information and alleles for each variant
@@ -341,6 +346,12 @@ int main(int argc, char** argv) {
     strcpy(hapfile, "None");
     strcpy(HTRANS_DATA_INFILE, "None");
     strcpy(HTRANS_DATA_OUTFILE, "None");
+
+    if (argc % 2 != 1){
+        fprintf(stderr, "\nERROR: Invalid number of arguments specified.\n");
+        exit(1);
+    }
+
     for (i = 1; i < argc; i += 2) {
         if (argc < 6) break;
 
@@ -357,16 +368,19 @@ int main(int argc, char** argv) {
         }else if ((strcmp(argv[i], "--converge") == 0) || (strcmp(argv[i], "--c") == 0)) {
             CONVERGE = atoi(argv[i + 1]);
         }else if (strcmp(argv[i], "--verbose") == 0 || strcmp(argv[i], "--v") == 0){
+            check_input_0_or_1(argv[i + 1]);
             VERBOSE = atoi(argv[i + 1]);
         }
         // READ-TECHNOLOGY OPTIONS
         else if (strcmp(argv[i], "--HiC") == 0 || strcmp(argv[i], "--hic") == 0){
+            check_input_0_or_1(argv[i + 1]);
             if (atoi(argv[i + 1])){
                 MAX_HIC_EM_ITER = 100; //atoi(argv[i + 1]);
                 NEW_FRAGFILE_FORMAT = 1;
                 HIC = 1;
             }
         }else if (strcmp(argv[i], "--long_reads") == 0 || strcmp(argv[i], "--lr") == 0){
+            check_input_0_or_1(argv[i + 1]);
             LONG_READS = atoi(argv[i + 1]);
             AUTODETECT_LONGREADS = 0;
         }else if (strcmp(argv[i], "--QV_offset") == 0 || strcmp(argv[i], "--qv_offset") == 0 || strcmp(argv[i], "--qo") == 0){
@@ -384,14 +398,18 @@ int main(int argc, char** argv) {
         }else if (strcmp(argv[i], "--split_threshold") == 0 || strcmp(argv[i], "--st") == 0){
             SPLIT_THRESHOLD = atof(argv[i + 1]);
         }else if (strcmp(argv[i], "--call_homozygous") == 0 || strcmp(argv[i], "--ch") == 0){
+            check_input_0_or_1(argv[i + 1]);
             CALL_HOMOZYGOUS = atoi(argv[i + 1]);
         }else if (strcmp(argv[i], "--discrete_pruning") == 0 || strcmp(argv[i], "--dp") == 0){
+            check_input_0_or_1(argv[i + 1]);
             DISCRETE_PRUNING = atoi(argv[i + 1]);
         }else if (strcmp(argv[i], "--error_analysis_mode") == 0 || strcmp(argv[i], "--ea") == 0){
+            check_input_0_or_1(argv[i + 1]);
             ERROR_ANALYSIS_MODE = atoi(argv[i + 1]);
         }
         // ADVANCED OPTIONS
         else if (strcmp(argv[i], "--nf") == 0 || strcmp(argv[i], "--new_format") == 0){
+            check_input_0_or_1(argv[i + 1]);
             NEW_FRAGFILE_FORMAT = atoi(argv[i + 1]);
         }else if (strcmp(argv[i], "--max_iter") == 0 || strcmp(argv[i], "--mi") == 0){
             MAXITER = atoi(argv[i + 1]);
@@ -410,9 +428,13 @@ int main(int argc, char** argv) {
         }else if (strcmp(argv[i], "--mbq") == 0){
             MINQ = atoi(argv[i + 1]);
         }else if (strcmp(argv[i], "--skip_prune") == 0 || strcmp(argv[i], "--sp") == 0){
+            check_input_0_or_1(argv[i + 1]);
             SKIP_PRUNE = atoi(argv[i + 1]);
         }else if (strcmp(argv[i], "--max_IS") == 0 || strcmp(argv[i], "--mi") == 0){
             MAX_IS = atoi(argv[i + 1]);
+        }else{
+            fprintf(stderr, "\nERROR: Invalid Option \"%s\" specified.\n",argv[i]);
+            exit(1);
         }
     }
 

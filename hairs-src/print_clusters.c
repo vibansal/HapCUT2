@@ -24,7 +24,7 @@ void find_matepair(struct alignedread** readlist, int s, int e) {
     int prevstart = 0, prevIS = 0, duplicates = 0;
     for (i = s; i < e; i++) {
         if (readlist[i]->IS < 0) continue;
-        else if (readlist[i]->IS >= 0) // insert size is positive 
+        else if (readlist[i]->IS >= 0) // insert size is positive
         {
             if (readlist[i]->position == prevstart && readlist[i]->IS == prevIS) {
                 readlist[i]->flag |= 1024; //
@@ -48,7 +48,7 @@ void find_matepair(struct alignedread** readlist, int s, int e) {
         }
     }
 }
-
+/*
 int estimate_readdistance_distribution(struct alignedread** readlist, int s, int e) {
     int i = 0, j = 0, k = 0;
     int ndistances = 0;
@@ -62,10 +62,15 @@ int estimate_readdistance_distribution(struct alignedread** readlist, int s, int
         if (readlist[i]->IS < 0 || ((readlist[i]->flag & 1024) == 1024)) continue;
         j = i + 1;
         while (readlist[j]->IS < 0 || ((((readlist[j]->flag & 1024) == 1024)) && j < e)) j++;
+
+        // This appears to be a bug?
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!
+        // readlist[i]->cluster == readlist[i]->cluster always true, should be  readlist[i]->cluster == readlist[j]->cluster?
         if (j < e && readlist[i]->cluster == readlist[i]->cluster && readlist[j]->position - readlist[i]->position < MAX_SIZE && readlist[i]->mquality > 0 && readlist[j]->mquality > 0) {
             intra_read_dist[readlist[j]->position - readlist[i]->position] += 1.0;
             ndistances++;
         }
+        // !!!!!!!!!!!!!!!!!!!!!!!!!
     }
     for (i = 0; i < MAX_SIZE; i++) {
         if (intra_read_dist[i] >= 10) intra_read_pdf[i] = log10((float) intra_read_dist[i] / ndistances);
@@ -81,12 +86,13 @@ int estimate_readdistance_distribution(struct alignedread** readlist, int s, int
                 if (intra_read_pdf[i] < 1) intra_read_pdf[i] = 0.001;
                 intra_read_pdf[i] = log10(intra_read_pdf[i]) - log10(101) - log10(ndistances);
             }
-            // use a window of 10-100 around 'i' to get an average value 
+            // use a window of 10-100 around 'i' to get an average value
         }
         //fprintf(stdout,"IRD %d %d %0.2f \n",i,intra_read_dist[i],intra_read_pdf[i]);
     }
     return 0;
 }
+*/
 
 int generate_single_fragment(struct alignedread** readlist, int s, int e, int length, double read_density, FRAGMENT* flist, VARIANT* varlist) {
     int j = 0, i = 0, k = 0;
@@ -125,7 +131,7 @@ int generate_single_fragment(struct alignedread** readlist, int s, int e, int le
         if (i > 0 && fragment.alist[i].varid != fragment.alist[i - 1].varid) unique_variants++;
         if (i > 0 && j == fragment.alist[i - 1].varid && fragment.alist[i].allele != fragment.alist[i - 1].allele) hets++;
     }
-    if (hets >= 2 || hets * 3 >= unique_variants || unique_variants < 2) // fragment only has single variant or has 2 or more heterzygous variants 
+    if (hets >= 2 || hets * 3 >= unique_variants || unique_variants < 2) // fragment only has single variant or has 2 or more heterzygous variants
     {
         free(fragment.alist);
         return 0;
@@ -178,7 +184,7 @@ int generate_single_fragment(struct alignedread** readlist, int s, int e, int le
         fprintf(stdout, "FRAGMENT ");
         print_fragment(&fp, varlist, stdout);
         //fprintf(stderr,"fragfile %s \n",fragment_file);
-        //if (fragment_file != stdout) 
+        //if (fragment_file != stdout)
         print_fragment(&fp, varlist, fragment_file);
     }
     free(fp.alist);
@@ -215,7 +221,7 @@ int print_read(struct alignedread** readlist, int i, int prevpos, FRAGMENT* flis
 
     i = readlist[i]->mateindex;
     //fprintf(stdout," || mate:%d:%d:",readlist[i]->position,readlist[i]->mquality);
-    //for (j=0;j<readlist[i]->cigs;j++) fprintf(stdout,"%d%c",readlist[i]->cigarlist[j]>>4,INT_CIGAROP[readlist[i]->cigarlist[j]&0xf]); 
+    //for (j=0;j<readlist[i]->cigs;j++) fprintf(stdout,"%d%c",readlist[i]->cigarlist[j]>>4,INT_CIGAROP[readlist[i]->cigarlist[j]&0xf]);
     if (readlist[i]->findex >= 0) {
         //fprintf(stdout," vars %d ",flist[readlist[i]->findex].variants);
         for (j = 0; j < flist[readlist[i]->findex].variants; j++) {
@@ -228,7 +234,7 @@ int print_read(struct alignedread** readlist, int i, int prevpos, FRAGMENT* flis
     return 1;
 }
 
-// print reads within a range (s-e) 
+// print reads within a range (s-e)
 
 void print_reads_window(struct alignedread** readlist, int s, int e, FRAGMENT* flist, VARIANT* varlist, int if_variant_read) {
     int i = 0, prevpos = -1;
@@ -304,7 +310,7 @@ int init_clusters(struct alignedread** readlist, int s, int e) {
     int prevtid = -1;
     int cluster_start = 0, cl = 0;
 
-    for (i = s; i < e; i++) readlist[i]->cluster = -1; // initialized to -1 
+    for (i = s; i < e; i++) readlist[i]->cluster = -1; // initialized to -1
     for (i = s; i < e; i++) {
         if (readlist[i]->IS < 0 || ((readlist[i]->flag & 1024) == 1024)) continue;
         if (prevtid != readlist[i]->tid) // new chromosome
@@ -323,5 +329,3 @@ int init_clusters(struct alignedread** readlist, int s, int e) {
     fprintf(stderr, "clusters %d \n", cl);
     return cl;
 }
-
-
