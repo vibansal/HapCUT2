@@ -1,6 +1,21 @@
 HapCUT2: robust and accurate haplotype assembly for diverse sequencing technologies
 ======
 
+## Important Announcement:
+For simplicity, the switch confidence and SNP confidence scores in the last two columns of output are now being represented as phred-scaled probabilities of error, like standard quality scores. rather than as log10(1-P(error)). In the new format, 0 represents low quality. 100 represents high-quality.
+
+```
+OLD       => NEW
+-0.000434 => 30.00
+```
+
+Also the ```--threshold``` parameter is being interpreted in the same way, rather than as a floating-point probability:
+
+```
+OLD               => NEW
+--threshold 0.999 => --threshold 30
+```
+
 ## About:
 HapCUT2 is a maximum-likelihood-based tool for assembling haplotypes from DNA sequence reads, designed to "just work" with excellent speed and accuracy.
 We found that previously described haplotype assembly methods are specialized for specific read technologies or protocols, with slow or inaccurate performance on others. With this in mind, HapCUT2 is designed for speed and accuracy across diverse sequencing technologies, including but not limited to:
@@ -83,16 +98,16 @@ Following the header, there is one line per SNV with the following tab-delimited
 7. variant allele (allele corresponding to 1 in column 2 or 3)
 8. VCF genotype field (unedited, directly from original VCF)
 9. discrete pruning status (1 means pruned, 0 means phased)
-10. log<sub>10</sub>(confidence that there is not a switch error starting at this SNV)
-11. log<sub>10</sub>(confidence that there is not a mismatch [single SNV] error at this SNV)
+10. switch quality: phred-scaled estimated probability that there is a switch error starting at this SNV (0 means switch error is likely, 100 means switch is unlikely)
+11. mismatch quality: phred-scaled estimated probability that there is a mismatch [single SNV] error at this SNV (0 means SNV is low quality, 100 means SNV is high quality)
 
 Field 9 describes the status of the SNV under the discrete SNV pruning method introduced by RefHap (an SNV is pruned if there are equal reads consistent and inconsistent with the phase), with the slight difference that reads are assigned to haplotypes using likelihoods in our implementation. Use the option "--discrete_pruning 1" to automatically prune SNPs ('- -' phasing) based on the value of this field.
 
-The values in field 10 and field 11 are the log<sub>10</sub> of a confidence score that ranges from 0.5 to 1 (less confident to more confident). Field 10 is useful for controlling switch errors, especially on data types such as error-prone SMRT reads. It is fixed at 0 (confidence 1.0) unless switch error scores are computed using "--error_analysis_mode 1" (compute switch error confidence but leave blocks intact and all SNVs phased for manual pruning later).
+The values in field 10 and field 11 are quality scores that range from 0 to 100 (less confident to more confident). Field 10 is useful for controlling switch errors, especially on data types such as error-prone SMRT reads. It is empty by default (".") unless switch error scores are computed using "--error_analysis_mode 1" (compute switch error confidence but leave blocks intact and all SNVs phased for manual pruning later).
 
 Important note: flag "--split_blocks 1" (compute switch error confidence and automatically split blocks using the value of --split_threshold) is currently broken, for the time being use "--error_analysis_mode 1" and manually split using field 10.
 
-Field 11 is useful for controlling mismatch (single SNV) haplotype errors, similarly to field 9. The default behavior of HapCUT2 is to prune individual SNVs for which this confidence is less than 0.8, as these are highly likely to be errors.
+Field 11 is useful for controlling mismatch (single SNV) haplotype errors, similarly to field 9. The default behavior of HapCUT2 is to prune individual SNVs for which this confidence is less than 6.98 (probability of error 0.2), as these are highly likely to be errors.
 
 ## Calculating Haplotype Statistics
 The calculate_haplotype_statistics script in the utilities directory calculates haplotype error rates with respect to a reference haplotype, as well as completeness statistics such as N50 and AN50.

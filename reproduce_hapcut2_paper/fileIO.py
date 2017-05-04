@@ -5,6 +5,7 @@
 # Email  : pedge@eng.ucsd.edu
 
 import sys
+from math import log10
 
 def parse_hapblock_file(hapblock_file,use_SNP_index=True):
 
@@ -102,6 +103,9 @@ def parse_runtime_file(runtime_file):
 
 def prune_hapblock_file(hapblock_file, output_file, snp_conf_cutoff, split_conf_cutoff, use_refhap_heuristic):
 
+    snp_conf_cutoff = -10*log10(1-snp_conf_cutoff)
+    split_conf_cutoff = -10*log10(1-split_conf_cutoff)
+
     with open(hapblock_file,'r') as inf, open(output_file,'w') as of:
         blk_count = 0
         for line in inf:
@@ -113,8 +117,8 @@ def prune_hapblock_file(hapblock_file, output_file, snp_conf_cutoff, split_conf_
 
             el = line.strip().split()
             pruned_refhap_heuristic = int(el[8])
-            split_conf = 10**float(el[9])
-            snp_conf   = 10**float(el[10])
+            split_conf = float(el[9]) if el[9] != '.' else 100
+            snp_conf   = float(el[10]) if el[10] != '.' else 100
 
             if split_conf < split_conf_cutoff and blk_count >= 2:
                 print('******** ',file=of)
@@ -150,7 +154,7 @@ def prune_probhap_file(hapblock_file, output_file, emission_cutoff, split_cutoff
             posterior_prob  = float(el[4])
             emission_prob   = float(el[5])
 
-            if (((transition_prob < split_cutoff) or 
+            if (((transition_prob < split_cutoff) or
                 (posterior_prob < split_cutoff and not had_posterior_split))
                 and blk_count >= 2):
                 had_posterior_split = True
@@ -172,16 +176,16 @@ def new_to_old_format(inputfile,outputfile):
         for line in i:
             if len(line) < 3:
                 continue
-            
+
             el = line.strip().split()
             edited_el = el[0:2] + el[5:]
             new_line = ' '.join(edited_el)
             print(new_line,file=o)
-                    
+
 # convert the old fragment file format to the new format
 # assumes normal fragments (no special modeling)
 def old_to_new_format(inputfile,outputfile):
-    
+
     with open(inputfile,'r') as i, open(outputfile,'w') as o:
         for line in i:
             if len(line) < 3:

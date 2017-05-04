@@ -75,12 +75,12 @@ struct SNPfrags {
     int frags;
     char* alist; // alist is the alleles corresponding to each fragment that covers this SNP
     int component;
-    int edges; // those that span the interval between this snp and the next snp 
+    int edges; // those that span the interval between this snp and the next snp
     int csize;
     struct edge* elist;
-    int bcomp; // index of clist to which this snp belongs: reverse mapping  
+    int bcomp; // index of clist to which this snp belongs: reverse mapping
     struct edge* telist;
-    int tedges; // temporary edge list and number of edges for MIN CUT computation 
+    int tedges; // temporary edge list and number of edges for MIN CUT computation
     int parent;
     float score;
     float htscore; // htrans
@@ -91,7 +91,7 @@ struct SNPfrags {
     char* chromosome;
     int position;
     // changed on feb 1 2012 to be pointers (char* id, char* chrom)
-    char* genotypes; // VCF genotypes 0|1 1|0 or 0/1 added feb 1 2012 
+    char* genotypes; // VCF genotypes 0|1 1|0 or 0/1 added feb 1 2012
     float post_notsw;
     float post_hap;
     int pruned_discrete_heuristic; // for error analysis mode
@@ -99,6 +99,7 @@ struct SNPfrags {
 };
 
 int fprintf_time(FILE *stream, const char *format, ...);
-
+float phred(float x);
+float unphred(float x);
 
 #endif

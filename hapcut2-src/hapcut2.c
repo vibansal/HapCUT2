@@ -392,11 +392,11 @@ int main(int argc, char** argv) {
         }
         // HAPLOTYPE POST-PROCESSING OPTIONS
         else if (strcmp(argv[i], "--threshold") == 0 || strcmp(argv[i], "--t") == 0){
-            THRESHOLD = atof(argv[i + 1]);
+            THRESHOLD = 1.0 - unphred(atof(argv[i + 1]));
         }else if (strcmp(argv[i], "--split_blocks") == 0 || strcmp(argv[i], "--sb") == 0){
             SPLIT_BLOCKS = atoi(argv[i + 1]);
         }else if (strcmp(argv[i], "--split_threshold") == 0 || strcmp(argv[i], "--st") == 0){
-            SPLIT_THRESHOLD = atof(argv[i + 1]);
+            SPLIT_THRESHOLD = 1.0 - unphred(atof(argv[i + 1]));
         }else if (strcmp(argv[i], "--call_homozygous") == 0 || strcmp(argv[i], "--ch") == 0){
             check_input_0_or_1(argv[i + 1]);
             CALL_HOMOZYGOUS = atoi(argv[i + 1]);
@@ -448,6 +448,8 @@ int main(int argc, char** argv) {
         print_hapcut_options();
         return 0;
     }
+
+    fprintf(stdout, "\n\nIMPORTANT: Note that input for --threshold option and confidence scores in output have changed to Phred-scaled quality values.\n See README at https://github.com/vibansal/HapCUT2 for more information.\n\n");
 
 	fprintf(stderr, "\n\n");
     fprintf_time(stderr, "fragment file: %s\n", fragfile);

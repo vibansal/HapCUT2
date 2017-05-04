@@ -24,6 +24,7 @@ import make_hapcut2_paper_plots as mhpp
 dir = os.path.dirname(__file__)
 filename = os.path.join(dir, '..','tools')
 from getMolecules import getMolecules
+from math import log10
 
 chroms = config['chroms']
 sims = config['sims']
@@ -222,7 +223,7 @@ def execute_tool(tool_name, frag_file, vcf_file, output_dir, timeout, hapcut_con
     # the reason for generalizing in this way is so that the Snakefile can be
     # made with very general rules that condition on a string tool name
     if tool_name == 'hapcut2':
-        runtime = run_tools.run_hapcut2(config['hapcut2'], frag_file, vcf_file, tool_output, hapcut_converge, hapcut_threshold, hapcut_xtra_args,timeout)
+        runtime = run_tools.run_hapcut2(config['hapcut2'], frag_file, vcf_file, tool_output, hapcut_converge, -10*log10(1.0 - hapcut_threshold), hapcut_xtra_args,timeout)
     elif tool_name == 'hapcut1':
         runtime = run_tools.run_hapcut(config['hapcut'], frag_file, vcf_file, tool_output, 100, 100, hapcut_longreads, timeout)
     elif tool_name == 'refhap':

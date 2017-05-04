@@ -3,6 +3,7 @@
 // THIS FUNCTION PRINTS THE CURRENT HAPLOTYPE ASSEMBLY in a new file block by block
 extern int DISCRETE_PRUNING;
 extern int ERROR_ANALYSIS_MODE;
+extern int SPLIT_BLOCKS;
 extern int SKIP_PRUNE;
 extern float THRESHOLD;
 
@@ -23,10 +24,10 @@ void print_hapcut_options() {
     fprintf(stderr, "--long_reads, --lr <0/1> :          reduces memory when phasing long read data with many SNPs per read. default: automatic.\n");
 
     fprintf(stderr, "\nHaplotype Post-Processing Options:\n");
-    fprintf(stderr, "--threshold, --t <float>:           threshold for pruning low-confidence SNPs (closer to 1 prunes more, closer to 0.5 prunes less). default: 0.8\n");
+    fprintf(stderr, "--threshold, --t <float>:           PHRED SCALED threshold for pruning low-confidence SNPs (range 0-100, larger values prune more.). default: 6.98\n");
     fprintf(stderr, "--skip_prune, --sp <0/1>:           skip default likelihood pruning step (prune SNPs after the fact using column 11 of the output). default: 0\n");
     //fprintf(stderr, "--split_blocks, --sb <0/1>:         split blocks using simple likelihood score to reduce switch errors. default: 0\n");
-    //fprintf(stderr, "--split_threshold, --st <float>:    threshold for splitting blocks (closer to 1 splits more, closer to 0.5 splits less). default: 0.8\n");
+    //fprintf(stderr, "--split_threshold, --st <float>:    PHRED SCALED threshold for splitting blocks (range 0-100, larger values split more). default: 0\n");
     fprintf(stderr, "--call_homozygous, --ch <0/1>:      call positions as homozygous if they appear to be false heterozygotes. default: 0\n");
     fprintf(stderr, "--discrete_pruning, --dp <0/1>:     use discrete heuristic to prune SNPs. default: 0\n");
     fprintf(stderr, "--error_analysis_mode, --ea <0/1>:  compute switch confidence scores and print to haplotype file but don't split blocks or prune. default: 0\n");
@@ -90,8 +91,42 @@ int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
                 fprintf(fp, "%d\t%c\t%c\t", t + 1, h1[t], c);
             }
 
+            // generate the string for the switch confidence
+            char switch_conf[100];
+            if (SPLIT_BLOCKS || ERROR_ANALYSIS_MODE){
+                float switch_conf_fl = -10.0 * subtractlogs(0,snpfrag[t].post_notsw);
+                if (switch_conf_fl > 100.0){
+                    switch_conf_fl = 100.0;
+                }
+                if (!(switch_conf_fl >= 0.0 && switch_conf_fl <= 100.0)){
+                    fprintf(stderr, "Invalid switch confidence score\n");
+                    exit(1);
+                }
+                sprintf(switch_conf,"%0.2f",switch_conf_fl);
+            }else{
+                strcpy(switch_conf,".");
+            }
 
-            fprintf(fp, "%s\t%d\t%s\t%s\t%s\t%d\t%0.6f\t%0.6f\n", snpfrag[t].chromosome, snpfrag[t].position, snpfrag[t].allele0, snpfrag[t].allele1, snpfrag[t].genotypes, snpfrag[t].pruned_discrete_heuristic, snpfrag[t].post_notsw, snpfrag[t].post_hap);
+            // generate the string for the snp confidence
+            char snp_conf[100];
+            char discrete_conf[100];
+            if (SKIP_PRUNE){
+                strcpy(snp_conf, ".");
+                strcpy(discrete_conf, ".");
+            }else{
+                float snp_conf_fl = -10.0 * subtractlogs(0,snpfrag[t].post_hap);
+                if (snp_conf_fl > 100.0){
+                    snp_conf_fl = 100.0;
+                }
+                if (!(snp_conf_fl >= 0.0 && snp_conf_fl <= 100.0)){
+                    fprintf(stderr, "Invalid SNV confidence score\n");
+                    exit(1);
+                }
+                sprintf(snp_conf,"%0.2f",snp_conf_fl);
+                sprintf(discrete_conf,"%d",snpfrag[t].pruned_discrete_heuristic);
+            }
+
+            fprintf(fp, "%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\n", snpfrag[t].chromosome, snpfrag[t].position, snpfrag[t].allele0, snpfrag[t].allele1, snpfrag[t].genotypes, discrete_conf, switch_conf, snp_conf);
 
         }
         if (i < blocks - 1) fprintf(fp, "******** \n");
