@@ -9,11 +9,11 @@ OLD       => NEW
 -0.000434 => 30.00
 ```
 
-Also the ```--threshold``` parameter is being interpreted in the same way, rather than as a floating-point probability:
+Also the ```--threshold``` parameter is being interpreted in the same way, rather than as an unscaled floating-point probability:
 
 ```
 OLD               => NEW
---threshold 0.999 => --threshold 30
+--threshold 0.999 => --threshold 30.0
 ```
 
 ## About:
