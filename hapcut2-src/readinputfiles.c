@@ -1,5 +1,7 @@
 #include "readinputfiles.h"
 #include "common.h"
+#include <assert.h>
+
 extern int HOMOZYGOUS_PRIOR;
 extern int NEW_FRAGFILE_FORMAT;
 
@@ -278,6 +280,9 @@ int read_vcffile(char* vcffile, struct SNPfrags* snpfrag, int snps) {
         while (buffer[i] != ' ' && buffer[i] != '\t') i++;
         e = i;
 
+        // assert that GT field is the first field
+        assert(buffer[s] == 'G' && buffer[s+1] == 'T' && (buffer[s+2] == ':' || buffer[s+2] == '\t'));
+
         // check format string for presence of GQ
         format_ix = 0;
         GQ_ix = -1; // the index of format field for GQ
@@ -293,6 +298,7 @@ int read_vcffile(char* vcffile, struct SNPfrags* snpfrag, int snps) {
         s = i;
         while (buffer[i] != ' ' && buffer[i] != '\t' && buffer[i] != '\n') i++;
         e = i;
+
         snpfrag[var].genotypes = (char*) malloc(e - s + 1);
         for (j = s; j < e; j++) snpfrag[var].genotypes[j - s] = buffer[j];
         snpfrag[var].genotypes[j - s] = '\0';
