@@ -1,6 +1,7 @@
 
 #include "readvariant.h"
 #include "readfasta.h"
+#include <assert.h>
 
 
 
@@ -20,7 +21,7 @@ int count_variants(char* vcffile, char* sampleid, int* samplecol) {
         if (buffer[0] != '#') variants++; // this should work for non-VCF files as well.
         else if (buffer[0] == '#' && buffer[1] == '#') continue;
         else if (buffer[0] == '#' && buffer[1] == 'C' && buffer[2] == 'H' && buffer[3] == 'R' && buffer[4] == 'O' && buffer[5] == 'M') {
-            // find the column of the sample we want to phase 
+            // find the column of the sample we want to phase
             j = 0;
             while (buffer[i++] != '\n') {
                 if ((buffer[i] == ' ' || buffer[i] == '\t') && j == 1) j = 0;
@@ -36,8 +37,8 @@ int count_variants(char* vcffile, char* sampleid, int* samplecol) {
     return variants;
 }
 
-// in VCF format all data lines are tab-delimited but we still allow spaces (why ??) 
-// we do not check the VCF file for consistency with format, assume that it is in correct format 
+// in VCF format all data lines are tab-delimited but we still allow spaces (why ??)
+// we do not check the VCF file for consistency with format, assume that it is in correct format
 
 int parse_variant(VARIANT* variant, char* buffer, int samplecol) {
     int i = 0, j = 0, k = 0, s = 0, e = 0;
@@ -105,6 +106,9 @@ int parse_variant(VARIANT* variant, char* buffer, int samplecol) {
     while (buffer[i] != ' ' && buffer[i] != '\t') i++;
     e = i;
 
+    // assert that GT field is the first field
+    assert(buffer[s] == 'G' && buffer[s+1] == 'T' && (buffer[s+2] == ':' || buffer[s+2] == '\t'));
+
     while (buffer[i] != '\n') {
         while (buffer[i] == ' ' || buffer[i] == '\t') i++;
         s = i;
@@ -117,94 +121,106 @@ int parse_variant(VARIANT* variant, char* buffer, int samplecol) {
         } else col++;
     }
 
-    if (variant->genotype[0] != '2' && variant->genotype[2] != '2') // both alleles are 0/1 
-    {
-        variant->allele1 = (char*) malloc(strlen(variant->RA) + 1);
-        strcpy(variant->allele1, variant->RA);
-        j = 0;
-        while (variant->AA[j] != ',' && j < strlen(variant->AA)) j++;
-        variant->allele2 = (char*) malloc(j + 1);
-        for (i = 0; i < j; i++) variant->allele2[i] = variant->AA[i];
-        variant->allele2[i] = '\0';
-        variant->type = strlen(variant->allele2) - strlen(variant->allele1);
-    } else if (variant->genotype[0] == '0' || variant->genotype[2] == '0') // at least one allele is reference
-    {
-        variant->allele1 = (char*) malloc(strlen(variant->RA) + 1);
-        strcpy(variant->allele1, variant->RA);
-        j = 0;
-        while (variant->AA[j] != ',' && j < strlen(variant->AA)) j++;
-        k = j + 1;
-        while (variant->AA[k] != ',' && k < strlen(variant->AA)) k++;
-        variant->allele2 = (char*) malloc(k - j + 1);
-        for (i = j + 1; i < k; i++) variant->allele2[i - j - 1] = variant->AA[i];
-        variant->allele2[i - j - 1] = '\0';
-        variant->type = strlen(variant->allele2) - strlen(variant->allele1);
-    } else // reference allele is missing 1/2 case
-    {
-        j = 0;
-        while (variant->AA[j] != ',' && j < strlen(variant->AA)) j++;
-        variant->allele1 = (char*) malloc(j + 1);
-        for (i = 0; i < j; i++) variant->allele1[i] = variant->AA[i];
-        variant->allele1[i] = '\0';
-        k = j + 1;
-        while (variant->AA[k] != ',' && k < strlen(variant->AA)) k++;
-        variant->allele2 = (char*) malloc(k - j + 1);
-        for (i = j + 1; i < k; i++) variant->allele2[i - j - 1] = variant->AA[i];
-        variant->allele2[i - j - 1] = '\0';
-        variant->type = strlen(variant->allele2) - strlen(variant->allele1);
-        //fprintf(stderr,"non-reference het variant %s %s \n",variant->allele1,variant->allele2);
-        // need to allow for multiple alternate alleles or discard ones where there is a comma in alternate allele list
-        //j=0; while (variant->AA[j] != ',' && j < strlen(variant->AA)) j++; 
-        //variant->allele1 = (char*)malloc(j+1); for (i=0;i<j;i++) variant->allele1[i] = variant->AA[i]; variant->allele1[i] = '\0';
-        //variant->type = strlen(variant->allele2) -strlen(variant->allele1);
-    }
+    int gl = strlen(variant->genotype);
+    // check that the genotype field is diploid
+    if ((gl >= 3 && (variant->genotype[1] == '/' || variant->genotype[1] == '|')) &&
+       (gl == 3 || variant->genotype[3] == ':') &&
+       (variant->genotype[0] == '0' || variant->genotype[0] == '1' || variant->genotype[0] == '2'
+     || variant->genotype[2] == '0' || variant->genotype[2] == '1' || variant->genotype[2] == '2')){
 
-    // reduce the length of the two alleles for VCF format outputted by samtoools, april 17 2012
-    // basically CAAAA -> CAA  can be reduced to CA -> C 
-    i = strlen(variant->allele1) - 1;
-    j = strlen(variant->allele2) - 1;
-    flag = 0;
-    while (i > 0 && j > 0) {
-        if (variant->allele1[i] != variant->allele2[j]) break;
-        i--;
-        j--;
-        flag++;
-    }
-    variant->allele1[i + 1] = '\0';
-    variant->allele2[j + 1] = '\0';
+        if (variant->genotype[0] != '2' && variant->genotype[2] != '2') // both alleles are 0/1
+        {
+            variant->allele1 = (char*) malloc(strlen(variant->RA) + 1);
+            strcpy(variant->allele1, variant->RA);
+            j = 0;
+            while (variant->AA[j] != ',' && j < strlen(variant->AA)) j++;
+            variant->allele2 = (char*) malloc(j + 1);
+            for (i = 0; i < j; i++) variant->allele2[i] = variant->AA[i];
+            variant->allele2[i] = '\0';
+            variant->type = strlen(variant->allele2) - strlen(variant->allele1);
+        } else if (variant->genotype[0] == '0' || variant->genotype[2] == '0') // at least one allele is reference
+        {
+            variant->allele1 = (char*) malloc(strlen(variant->RA) + 1);
+            strcpy(variant->allele1, variant->RA);
+            j = 0;
+            while (variant->AA[j] != ',' && j < strlen(variant->AA)) j++;
+            k = j + 1;
+            while (variant->AA[k] != ',' && k < strlen(variant->AA)) k++;
+            variant->allele2 = (char*) malloc(k - j + 1);
+            for (i = j + 1; i < k; i++) variant->allele2[i - j - 1] = variant->AA[i];
+            variant->allele2[i - j - 1] = '\0';
+            variant->type = strlen(variant->allele2) - strlen(variant->allele1);
+        } else // reference allele is missing 1/2 case
+        {
+            j = 0;
+            while (variant->AA[j] != ',' && j < strlen(variant->AA)) j++;
+            variant->allele1 = (char*) malloc(j + 1);
+            for (i = 0; i < j; i++) variant->allele1[i] = variant->AA[i];
+            variant->allele1[i] = '\0';
+            k = j + 1;
+            while (variant->AA[k] != ',' && k < strlen(variant->AA)) k++;
+            variant->allele2 = (char*) malloc(k - j + 1);
+            for (i = j + 1; i < k; i++) variant->allele2[i - j - 1] = variant->AA[i];
+            variant->allele2[i - j - 1] = '\0';
+            variant->type = strlen(variant->allele2) - strlen(variant->allele1);
+            //fprintf(stderr,"non-reference het variant %s %s \n",variant->allele1,variant->allele2);
+            // need to allow for multiple alternate alleles or discard ones where there is a comma in alternate allele list
+            //j=0; while (variant->AA[j] != ',' && j < strlen(variant->AA)) j++;
+            //variant->allele1 = (char*)malloc(j+1); for (i=0;i<j;i++) variant->allele1[i] = variant->AA[i]; variant->allele1[i] = '\0';
+            //variant->type = strlen(variant->allele2) -strlen(variant->allele1);
+        }
 
-    if (variant->type != 0) variant->position++; // add one to position for indels 
+        // reduce the length of the two alleles for VCF format outputted by samtoools, april 17 2012
+        // basically CAAAA -> CAA  can be reduced to CA -> C
+        i = strlen(variant->allele1) - 1;
+        j = strlen(variant->allele2) - 1;
+        flag = 0;
+        while (i > 0 && j > 0) {
+            if (variant->allele1[i] != variant->allele2[j]) break;
+            i--;
+            j--;
+            flag++;
+        }
+        variant->allele1[i + 1] = '\0';
+        variant->allele2[j + 1] = '\0';
 
-    if ((variant->genotype[0] == '0' && variant->genotype[2] == '1') || (variant->genotype[0] == '1' && variant->genotype[2] == '0')) {
-        //if (flag >0) fprintf(stderr,"%s %d %s %s \n",variant->chrom,variant->position,variant->allele1,variant->allele2); 
-        variant->heterozygous = '1'; // variant will be used for outputting hairs
-        //fprintf(stdout,"variant %s %s %s %c\n",variant->allele1,variant->allele2,variant->genotype,variant->heterozygous);
-        return 1;
-    }
-    if ((variant->genotype[0] == '0' && variant->genotype[2] == '2') || (variant->genotype[0] == '2' && variant->genotype[2] == '0')) {
-        //if (flag >0) fprintf(stderr,"%s %d %s %s \n",variant->chrom,variant->position,variant->allele1,variant->allele2); 
-        variant->heterozygous = '1'; // variant will be used for outputting hairs
-        //fprintf(stdout,"variant %s %s %s %c\n",variant->allele1,variant->allele2,variant->genotype,variant->heterozygous);
-        return 1;
-    } else if (variant->genotype[0] != variant->genotype[2] && variant->genotype[0] != '.' && variant->genotype[2] != '.') {
-        if (TRI_ALLELIC == 1) fprintf(stderr, "non-ref het variant %d %s %s %s %s %s\n", variant->position, variant->RA, variant->AA, variant->allele1, variant->allele2, variant->genotype);
-        // if both alleles are different from reference, we ignore it
-        variant->heterozygous = '2';
-        return 0;
+        if (variant->type != 0) variant->position++; // add one to position for indels
+
+        if (strlen(variant->genotype))
+        if ((variant->genotype[0] == '0' && variant->genotype[2] == '1') || (variant->genotype[0] == '1' && variant->genotype[2] == '0')) {
+            //if (flag >0) fprintf(stderr,"%s %d %s %s \n",variant->chrom,variant->position,variant->allele1,variant->allele2);
+            variant->heterozygous = '1'; // variant will be used for outputting hairs
+            //fprintf(stdout,"variant %s %s %s %c\n",variant->allele1,variant->allele2,variant->genotype,variant->heterozygous);
+            return 1;
+        }
+        if ((variant->genotype[0] == '0' && variant->genotype[2] == '2') || (variant->genotype[0] == '2' && variant->genotype[2] == '0')) {
+            //if (flag >0) fprintf(stderr,"%s %d %s %s \n",variant->chrom,variant->position,variant->allele1,variant->allele2);
+            variant->heterozygous = '1'; // variant will be used for outputting hairs
+            //fprintf(stdout,"variant %s %s %s %c\n",variant->allele1,variant->allele2,variant->genotype,variant->heterozygous);
+            return 1;
+        } else if (variant->genotype[0] != variant->genotype[2] && variant->genotype[0] != '.' && variant->genotype[2] != '.') {
+            if (TRI_ALLELIC == 1) fprintf(stderr, "non-ref het variant %d %s %s %s %s %s\n", variant->position, variant->RA, variant->AA, variant->allele1, variant->allele2, variant->genotype);
+            // if both alleles are different from reference, we ignore it
+            variant->heterozygous = '2';
+            return 0;
+        } else {
+            variant->heterozygous = '0';
+            return 0;
+        }
     } else {
         variant->heterozygous = '0';
         return 0;
     }
-    //free(variant->genotype); free(variant->AA); free(variant->RA); free(variant->chrom);
+        //free(variant->genotype); free(variant->AA); free(variant->RA); free(variant->chrom);
 }
 
-// change this to VCF file now 
+// change this to VCF file now
 
 int read_variantfile(char* vcffile, VARIANT* varlist, HASHTABLE* ht, int* hetvariants, int samplecol) {
     FILE* fp = fopen(vcffile, "r");
     char buffer[100000];
     int i = 0;
-    //	char allele1[256]; char allele2[256]; char genotype[256]; int quality; 
+    //	char allele1[256]; char allele2[256]; char genotype[256]; int quality;
     char prevchrom[256];
     strcpy(prevchrom, "----");
     int chromosomes = 0; //int blocks=0;
@@ -217,10 +233,10 @@ int read_variantfile(char* vcffile, VARIANT* varlist, HASHTABLE* ht, int* hetvar
             het = parse_variant(&varlist[i], buffer, samplecol);
             (*hetvariants) += het;
             //if (het ==0) continue; else (*hetvariants)++;
-            //	fprintf(stdout,"%s %d %s %s %s %s\n",varlist[i].chrom,varlist[i].position,varlist[i].RA,varlist[i].AA,varlist[i].genotype,prevchrom); 
+            //	fprintf(stdout,"%s %d %s %s %s %s\n",varlist[i].chrom,varlist[i].position,varlist[i].RA,varlist[i].AA,varlist[i].genotype,prevchrom);
             if (strcmp(varlist[i].chrom, prevchrom) != 0) {
                 //	fprintf(stderr,"chromosomes %d %d\n",chromosomes,i);
-                // insert chromname into hashtable 
+                // insert chromname into hashtable
                 insert_keyvalue(ht, varlist[i].chrom, strlen(varlist[i].chrom), chromosomes);
                 strcpy(prevchrom, varlist[i].chrom);
                 chromosomes++;
@@ -250,7 +266,7 @@ void build_intervalmap(CHROMVARS* chromvars, int chromosomes, VARIANT* varlist, 
         }
     }
     chromvars[j].last = i;
-    //	int** intervalmap; // map 1000bp of chromosome to first snp in that region indexed by snp_array 
+    //	int** intervalmap; // map 1000bp of chromosome to first snp in that region indexed by snp_array
     // first SNP to the right of the given base position including that position
     for (j = 0; j < chromosomes; j++) {
         blocks = (int) (varlist[chromvars[j].last].position / BSIZE) + 2;
@@ -279,7 +295,7 @@ int calculate_rightshift(VARIANT* varlist, int ss, REFLIST* reflist) {
     a1 = strlen(varlist[ss].allele1);
     a2 = strlen(varlist[ss].allele2);
     if (a1 > a2 && a2 == 1) {
-        i = varlist[ss].position; // first base of deletion assuming position is +1 and not previous base 
+        i = varlist[ss].position; // first base of deletion assuming position is +1 and not previous base
         j = varlist[ss].position + a1 - a2;
         while (i - 1 < reflist->lengths[reflist->current] && j - 1 < reflist->lengths[reflist->current] && reflist->sequences[reflist->current][i - 1] == reflist->sequences[reflist->current][j - 1]) {
             i++;
@@ -337,7 +353,7 @@ int read_variantfile_oldformat(char* snpfile, VARIANT* varlist, HASHTABLE* ht, i
     time_t ts;
     time(&ts);
     srand48((long int) ts);
-    FILE* sf; //  char ch ='0'; 
+    FILE* sf; //  char ch ='0';
 
     char allele1[256];
     char allele2[256];
@@ -374,9 +390,9 @@ int read_variantfile_oldformat(char* snpfile, VARIANT* varlist, HASHTABLE* ht, i
             varlist[i].type = strlen(allele2);
         }
         if (strcmp(varlist[i].chrom, prevchrom) != 0) {
-            //fprintf(stdout,"%d %s %d %s %s %s %d %s\n",varlist[i].type,varlist[i].chrom,varlist[i].position,allele1,allele2,genotype,quality,prevchrom); 
+            //fprintf(stdout,"%d %s %d %s %s %s %d %s\n",varlist[i].type,varlist[i].chrom,varlist[i].position,allele1,allele2,genotype,quality,prevchrom);
             //			fprintf(stderr,"chromosomes %d %d\n",chromosomes,i);
-            // insert chromname into hashtable 
+            // insert chromname into hashtable
             insert_keyvalue(ht, varlist[i].chrom, strlen(varlist[i].chrom), chromosomes);
             strcpy(prevchrom, varlist[i].chrom);
             chromosomes++;
@@ -388,5 +404,3 @@ int read_variantfile_oldformat(char* snpfile, VARIANT* varlist, HASHTABLE* ht, i
     return chromosomes;
 
 }
-
-
