@@ -24,18 +24,18 @@ int print_fragment(FRAGMENT* fragment, VARIANT* varlist, FILE* outfile) {
        fprintf(stdout,"\n");
      */
     // varid is the index of the variant in the list of variants (this should actually  be the index in the VCF file)
-    // fragment is printed using 1-based coordinate system instead of 0-based since this is encoded in HapCUT 
+    // fragment is printed using 1-based coordinate system instead of 0-based since this is encoded in HapCUT
 
     fragment->blocks = 1;
     for (i = 0; i < fragment->variants - 1; i++) {
         if (fragment->alist[i + 1].varid - fragment->alist[i].varid != 1) fragment->blocks++;
     }
     fprintf(outfile, "%d %s", fragment->blocks, fragment->id);
-    
+
     //new format prints col 3 as data type (0 for normal, 1 for HiC) and col 4 as mate 2 index
     if (NEW_FORMAT)
         fprintf(outfile, " %d -1 -1", DATA_TYPE);
-    
+
     //for (i=0;i<fragment->variants;i++) fprintf(stdout,"%c",fragment->alist[i].qv);
     // varid is printed with offset of 1 rather than 0 since that is encoded in the Hapcut program
     fprintf(outfile, " %d %c", fragment->alist[0].varid + 1, fragment->alist[0].allele);
@@ -50,7 +50,7 @@ int print_fragment(FRAGMENT* fragment, VARIANT* varlist, FILE* outfile) {
     return 0;
 }
 
-// make sure they are in the correct order, i+1 could be < i 
+// make sure they are in the correct order, i+1 could be < i
 
 int print_matepair(FRAGMENT* f1, FRAGMENT* f2, VARIANT* varlist, FILE* outfile) {
     if (PRINT_FRAGMENTS == 0) return 0;
@@ -72,7 +72,7 @@ int print_matepair(FRAGMENT* f1, FRAGMENT* f2, VARIANT* varlist, FILE* outfile) 
     //new format prints col 3 as data type (0 for normal, 1 for HiC) and col 4 as mate 2 index
     if (NEW_FORMAT)
         fprintf(outfile, " %d %d %d", DATA_TYPE, f2->alist[0].varid+1, f1->absIS);
-    
+
     // varid is printed with offset of 1 rather than 0 since that is encoded in the Hapcut program
     fprintf(outfile, " %d %c", f1->alist[0].varid + 1, f1->alist[0].allele);
 
@@ -96,14 +96,14 @@ int print_matepair(FRAGMENT* f1, FRAGMENT* f2, VARIANT* varlist, FILE* outfile) 
     //	for (i=0;i<f2->variants;i++) fprintf(outfile,"%d:%d,",varlist[f2->alist[i].varid].type,varlist[f2->alist[i].varid].position);
     /*
        fprintf(outfile,"mated frag %s matepos %d vars %d \t",f1->id,f1->matepos,f1->variants);
-       for (j=0;j<f1->variants;j++) 
+       for (j=0;j<f1->variants;j++)
        {
        k = f1->alist[j].varid;
        fprintf(outfile,"%d %s %d %c/%c %c %c \t",k,varlist[k].chrom,varlist[k].position,varlist[k].allele1,varlist[k].allele2,f1->alist[j].allele,f1->alist[j].qv);
        }
        fprintf(outfile,"\n");
        fprintf(outfile,"mated frag %s matepos %d vars %d \t",f2->id,f2->matepos,f2->variants);
-       for (j=0;j<f2->variants;j++) 
+       for (j=0;j<f2->variants;j++)
        {
        k = f2->alist[j].varid;
        fprintf(stdout,"%d %s %d %c/%c %c %c \t",k,varlist[k].chrom,varlist[k].position,varlist[k].allele1,varlist[k].allele2,f2->alist[j].allele,f2->alist[j].qv);
@@ -125,7 +125,7 @@ void clean_fragmentlist(FRAGMENT* flist, int* fragments, VARIANT* varlist, int c
     if (*fragments > 1) qsort(flist, *fragments, sizeof (FRAGMENT), compare_fragments);
     // sort such that mate pairs are together and reverse sorted by starting position of second read in a mate-piar
     //for (i=0;i<*fragments;i++) fprintf(stdout,"frag %s %d vars %d \n",flist[i].id,flist[i].alist[0].varid,flist[i].variants);
-    if (currchrom == prevchrom) // need to ignore the top of the fragment list 
+    if (currchrom == prevchrom) // need to ignore the top of the fragment list
     {
         first = 0;
         while (flist[first].matepos >= currpos && first < *fragments) first++;
@@ -134,7 +134,7 @@ void clean_fragmentlist(FRAGMENT* flist, int* fragments, VARIANT* varlist, int c
 
     if (*fragments > 1) // bug fixed jan 13 2012, when there is only one fragment, we don't need to check if it is part of mate-pair
     {
-        // serious bug fixed here: mate-pairs being examined twice April 5 2012 
+        // serious bug fixed here: mate-pairs being examined twice April 5 2012
         // check this code for corrrectness: mate-pairs will be adjacent to each other.
         i = first;
         while (i < (*fragments) - 1) {
@@ -205,11 +205,13 @@ void clean_fragmentlist(FRAGMENT* flist, int* fragments, VARIANT* varlist, int c
                     }
 
                 }
+                else if (flist[i].variants+flist[i+1].variants ==2 && SINGLEREADS ==1)print_fragment(&flist[i],varlist,fragment_file); // added 05/31/2017 for OPE
+
                 //else if (flist[i].variants ==1 && flist[i+1].variants >1) print_fragment(&flist[i+1],varlist);
                 //else if (flist[i].variants > 1 && flist[i+1].variants ==1) print_fragment(&flist[i],varlist);
                 // april 27 2012 these PE reads were being ignored until now
                 i += 2;
-                // what about overlapping paired-end reads.... reads..... ???? jan 13 2012, 
+                // what about overlapping paired-end reads.... reads..... ???? jan 13 2012,
             } else if (flist[i].variants >= 2 || SINGLEREADS == 1) {
                 print_fragment(&flist[i], varlist, fragment_file);
                 i++;
@@ -236,5 +238,3 @@ void clean_fragmentlist(FRAGMENT* flist, int* fragments, VARIANT* varlist, int c
     (*fragments) = first;
     free(fragment.alist);
 }
-
-
