@@ -125,11 +125,13 @@ rule index_genome:
 # link reads into 10X molecule haplotype fragments
 rule link_fragments:
     params: job_name = 'link_fragments.{chrom}'
-    input:  bam = TENX_BAM,
-            vcf = '%s/{chrom}.vcf' % VCF_DIR,
-            frag = 'data/unlinked_frag/{chrom}'
+    input: bam = TENX_BAM,
+           bai = TENX_BAM + '.bai',
+           vcf = '%s/{chrom}.vcf' % VCF_DIR,
+           frag = 'data/unlinked_frag/{chrom}'
     output: hairs = 'data/10X/{chrom}',
-    shell:  link_fragments(input.frag, input.vcf, input.bam, output.hairs, 20000, False)
+    run:
+        link_fragments(input.frag, input.vcf, input.bam, output.hairs, 20000, False)
 
 # extract UNLINKED haplotype informative reads
 rule extractHAIRS:
