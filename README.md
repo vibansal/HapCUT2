@@ -99,7 +99,7 @@ Field 11 is useful for controlling mismatch (single SNV) haplotype errors, simil
 
 (1) use extractHAIRS to convert BAM file to the compact fragment file format containing only haplotype-relevant information. This is a necessary precursor step to running HapCUT2.
 ```
-./build/extractHAIRS --bam reads.sorted.bam --VCF variants.VCF --out unlinked_fragment_file
+./build/extractHAIRS --10X 1 --bam reads.sorted.bam --VCF variants.VCF --out unlinked_fragment_file
 ```
 (2) use LinkFragments to link fragments into barcoded molecules:
 ```
