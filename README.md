@@ -109,6 +109,26 @@ Important note: flag "--split_blocks 1" (compute switch error confidence and aut
 
 Field 11 is useful for controlling mismatch (single SNV) haplotype errors, similarly to field 9. The default behavior of HapCUT2 is to prune individual SNVs for which this confidence is less than 6.98 (probability of error 0.2), as these are highly likely to be errors.
 
+## 10X Genomics Linked-Reads
+10X Genomics Linked Reads require an extra step to link short reads together into barcoded molecules:
+
+(1) use extractHAIRS to convert BAM file to the compact fragment file format containing only haplotype-relevant information. This is a necessary precursor step to running HapCUT2.
+```
+./build/extractHAIRS --bam reads.sorted.bam --VCF variants.VCF --out unlinked_fragment_file
+```
+(2) use LinkFragments to link fragments into barcoded molecules:
+```
+python3 utilities/LinkFragments.py --bam reads.sorted.bam --VCF variants.VCF --fragments unlinked_fragment_file --out linked_fragment_file
+```
+(3) use HAPCUT2 to assemble fragment file into haplotype blocks.
+```
+./build/HAPCUT2 --nf 1 --fragments linked_fragment_file --vcf variantcalls.vcf --output haplotype_output_file
+```
+
+## Hi-C (Proximity Ligation) Sequencing Reads
+
+For improved haplotype accuracy with Hi-C reads, use the --HiC 1 option for both extractHAIRS and HapCUT2 steps.
+
 ## Calculating Haplotype Statistics
 The calculate_haplotype_statistics script in the utilities directory calculates haplotype error rates with respect to a reference haplotype, as well as completeness statistics such as N50 and AN50.
 
