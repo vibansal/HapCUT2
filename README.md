@@ -1,21 +1,6 @@
 HapCUT2: robust and accurate haplotype assembly for diverse sequencing technologies
 ======
 
-## Important Announcement:
-For simplicity, the switch confidence and SNP confidence scores in the last two columns of output are now being represented as phred-scaled probabilities of error, like standard quality scores. Note that the old way printed log10(1-P(error)) instead. In the new format, 0 represents low quality. 100 represents high-quality.
-
-```
-OLD       => NEW
--0.000434 => 30.00
-```
-
-Also the ```--threshold``` parameter is being interpreted in the same way, rather than as an unscaled floating-point probability:
-
-```
-OLD               => NEW
---threshold 0.999 => --threshold 30.0
-```
-
 ## About:
 HapCUT2 is a maximum-likelihood-based tool for assembling haplotypes from DNA sequence reads, designed to "just work" with excellent speed and accuracy.
 We found that previously described haplotype assembly methods are specialized for specific read technologies or protocols, with slow or inaccurate performance on others. With this in mind, HapCUT2 is designed for speed and accuracy across diverse sequencing technologies, including but not limited to:
@@ -142,3 +127,25 @@ The directory **reproduce_hapcut2_paper** contains the source code and pipeline 
 ## Example pipelines for various types of sequencing data
 
 The directory **recipes** contains example pipelines to assemble haplotypes from various types of sequencing data.
+
+## Updates and Announcements:
+
+#### July 24, 2017
+The pipeline for phasing 10X Genomics linked reads has been updated. If you are currently using the old 10X pipeline, it is recommended to switch to the new one now. The new pipeline uses a new LinkFragments.py script to link haplotype fragments from short reads into long haplotype fragments based on their barcode. See the instructions above and the updated "10X" and "HiC + 10X" workflows in the recipes folder.
+
+There are two significant differences between the LinkFragments pipeline and the old FragmentCut-based pipeline -- firstly, it circumvents a bug present in the FragmentCut code that resulted in loss of variants from 10X molecules. Secondly, it uses corrected BX barcodes rather than RX barcodes to link reads together which will result in more short reads being assigned to the correct molecule. On a practical level, the new approach meshes better with the production extractHAIRS code. Single-step 10X haplotype fragment generation may be integrated directly into the extractHAIRS tool in the future if there is demand.
+
+#### May 4, 2017
+For simplicity, the switch confidence and SNP confidence scores in the last two columns of output are now being represented as phred-scaled probabilities of error, like standard quality scores. Note that the old way printed log10(1-P(error)) instead. In the new format, 0 represents low quality. 100 represents high-quality.
+
+```
+OLD       => NEW
+-0.000434 => 30.00
+```
+
+Also the ```--threshold``` parameter is being interpreted in the same way, rather than as an unscaled floating-point probability:
+
+```
+OLD               => NEW
+--threshold 0.999 => --threshold 30.0
+```
