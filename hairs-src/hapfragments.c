@@ -33,7 +33,12 @@ int print_fragment(FRAGMENT* fragment, VARIANT* varlist, FILE* outfile) {
     fprintf(outfile, "%d %s", fragment->blocks, fragment->id);
 
     //new format prints col 3 as data type (0 for normal, 1 for HiC) and col 4 as mate 2 index
-    if (NEW_FORMAT)
+    if (DATA_TYPE == 2){
+        if(fragment->barcode != NULL)
+            fprintf(outfile, " 2 %s -1", fragment->barcode);
+        else
+            fprintf(outfile, " 2 NULL -1");
+    }else if (NEW_FORMAT)
         fprintf(outfile, " %d -1 -1", DATA_TYPE);
 
     //for (i=0;i<fragment->variants;i++) fprintf(stdout,"%c",fragment->alist[i].qv);
@@ -70,7 +75,13 @@ int print_matepair(FRAGMENT* f1, FRAGMENT* f2, VARIANT* varlist, FILE* outfile) 
     //	for (i=0;i<f2->variants;i++) fprintf(outfile,"%c",f2->alist[i].qv);
 
     //new format prints col 3 as data type (0 for normal, 1 for HiC) and col 4 as mate 2 index
-    if (NEW_FORMAT)
+    if (DATA_TYPE == 2){
+        if(f1->barcode != NULL)
+            fprintf(outfile, " 2 %s -1", f1->barcode);
+        else
+            fprintf(outfile, " 2 NULL -1");
+    }
+    else if (NEW_FORMAT)
         fprintf(outfile, " %d %d %d", DATA_TYPE, f2->alist[0].varid+1, f1->absIS);
 
     // varid is printed with offset of 1 rather than 0 since that is encoded in the Hapcut program
@@ -118,7 +129,7 @@ int print_matepair(FRAGMENT* f1, FRAGMENT* f2, VARIANT* varlist, FILE* outfile) 
 // also takes care of overlapping paired-end reads to avoid duplicates in fragments
 
 void clean_fragmentlist(FRAGMENT* flist, int* fragments, VARIANT* varlist, int currchrom, int currpos, int prevchrom) {
-    int i = 0, j = 0, k = 0, first = 0, sl = 0;
+    int i = 0, j = 0, k = 0, first = 0, sl = 0, bl = 0;
     FRAGMENT fragment;
     fragment.variants = 0;
     fragment.alist = (allele*) malloc(sizeof (allele)*1000);
@@ -196,6 +207,14 @@ void clean_fragmentlist(FRAGMENT* flist, int* fragments, VARIANT* varlist, int c
                         fragment.id = (char*) malloc(sl + 1);
                         for (j = 0; j < sl; j++) fragment.id[j] = flist[i].id[j];
                         fragment.id[j] = '\0';
+                        if (flist[i].barcode == NULL){
+                            fragment.barcode = NULL;
+                        }else{
+                            bl = strlen(flist[i].barcode);
+                            fragment.barcode = (char*) malloc(bl + 1);
+                            for (j = 0; j < bl; j++) fragment.barcode[j] = flist[i].barcode[j];
+                            fragment.barcode[j] = '\0';
+                        }
 
                         //for (j=0;j<flist[i].variants;j++) fprintf(stdout,"%d ",flist[i].alist[j].varid); fprintf(stdout,"| ");
                         //for (j=0;j<flist[i+1].variants;j++) fprintf(stdout,"%d ",flist[i+1].alist[j].varid);

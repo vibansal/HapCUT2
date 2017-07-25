@@ -28,7 +28,7 @@ int compare_read_SNP(struct alignedread* read, VARIANT* varlist, int ss, int sta
     if (match != '-' && read->quality[l1 + offset] - QVoffset >= MINQ && varlist[ss].type == 0) {
         fragment->alist[fragment->variants].varid = ss;
         fragment->alist[fragment->variants].allele = match;
-        //assign base quality to be minimum of base quality and mapping quality 
+        //assign base quality to be minimum of base quality and mapping quality
         if (read->mquality < (int) read->quality[l1 + offset] - QVoffset) fragment->alist[fragment->variants].qv = (char) (read->mquality + QVoffset);
         else fragment->alist[fragment->variants].qv = read->quality[l1 + offset];
         fragment->variants++;
@@ -80,8 +80,8 @@ int compare_read_INDEL(struct alignedread* read, VARIANT* varlist, int ss, int s
     }
 
     // need to limit these loops to reduce computation time for long reads....
-    //for (j=offset-1+a1;j<clength;j++) { if (reflist->sequences[reflist->current][start+l2-1+j] != read->sequence[l1+j])score1++; } 
-    //for (j=offset-1+a2;j<clength;j++) { if (reflist->sequences[reflist->current][start+l2-1+j+a1-a2] != read->sequence[l1+j])score2++; } 
+    //for (j=offset-1+a1;j<clength;j++) { if (reflist->sequences[reflist->current][start+l2-1+j] != read->sequence[l1+j])score1++; }
+    //for (j=offset-1+a2;j<clength;j++) { if (reflist->sequences[reflist->current][start+l2-1+j+a1-a2] != read->sequence[l1+j])score2++; }
 
     j = offset - 1 + a1;
     while (j < clength || j - a1 + a2 < clength) {
@@ -114,10 +114,10 @@ int compare_read_INDEL(struct alignedread* read, VARIANT* varlist, int ss, int s
         fprintf(stdout, " allele2 %d/%d\t", score2, b2);
     }
 
-    // calculate score3 where we assume that the base-base alignment from right-end of read is correct 
+    // calculate score3 where we assume that the base-base alignment from right-end of read is correct
     // last base in read l1+read->cigarlist[i]-1 aligns to position start+l2+clength-2 on read
-    // varlist[ss].position + length of deletion /length of insertion 
-    //s1 = varlist[ss].position + a1; s2 = l1+s1-start-l2-1; 
+    // varlist[ss].position + length of deletion /length of insertion
+    //s1 = varlist[ss].position + a1; s2 = l1+s1-start-l2-1;
 
     /* score to the left of indel with reference allele */
     s1 = start - 1 + l2 + clength - 1;
@@ -164,16 +164,16 @@ int compare_read_INDEL(struct alignedread* read, VARIANT* varlist, int ss, int s
             s1--;
             if (read->sequence[s2] != 'N') b4++;
         }
-        //while (s1 >= varlist[ss].position+a1) { fprintf(stdout,"%c-%c ",reflist->sequences[reflist->current][s1-1],read->sequence[s2-1]); s1--; s2--; } 
+        //while (s1 >= varlist[ss].position+a1) { fprintf(stdout,"%c-%c ",reflist->sequences[reflist->current][s1-1],read->sequence[s2-1]); s1--; s2--; }
         if (pflag) fprintf(stdout, "%d %d scorealt %d| %d ", s1, s2, score4, b4);
     }
 
-    // if difference between scores ==1, assign low base quality to allele, if both scores > 0, assign LBQ 
-    // determine the read supports ref-allele, var-allele or ambiguous 
+    // if difference between scores ==1, assign low base quality to allele, if both scores > 0, assign LBQ
+    // determine the read supports ref-allele, var-allele or ambiguous
     int allele = -1;
     int quality = 20; // base quality
     int op;
-    if (score1 < score2) // reference allele matches the read better than variant allele going left -> right 
+    if (score1 < score2) // reference allele matches the read better than variant allele going left -> right
     {
         //if (b3 == 0 && b4 ==0) allele = 0;
         if (score3 < score4) allele = 0; // should this be changed to strictly less than
@@ -187,13 +187,13 @@ int compare_read_INDEL(struct alignedread* read, VARIANT* varlist, int ss, int s
         if (allele == 1 && CL != read->cigs - 1 && (CL != read->cigs - 2 || op != BAM_CSOFT_CLIP)) allele = -2;
         if (score1 - score2 == 1) quality = 13;
         //else if (score2 ==0) quality = 30; else quality = 20;
-    } else if (score1 == score2) // equal match score going from left to right  
+    } else if (score1 == score2) // equal match score going from left to right
     {
         op = read->cigarlist[read->cigs - 1]&0xf;
         if (score3 <= score4) allele = -1;
         else if (score3 - score4 >= 2 && score4 < 2) allele = 1;
         if (allele == 1 && CL != read->cigs - 1 && (CL != read->cigs - 2 || op != BAM_CSOFT_CLIP)) allele = -2;
-        //if (score4 ==0) quality = 30; else quality = 20; 
+        //if (score4 ==0) quality = 30; else quality = 20;
     }
 
     if (partialflag == 1 && allele == 1) allele = -1;
@@ -223,26 +223,30 @@ int compare_read_INDEL(struct alignedread* read, VARIANT* varlist, int ss, int s
 // find the variants that are covered by the read and determine the alleles at each of those variants
 
 int extract_variants_read(struct alignedread* read, HASHTABLE* ht, CHROMVARS* chromvars, VARIANT* varlist, int paired, FRAGMENT* fragment, int chrom, REFLIST* reflist) {
+
     int start = read->position;
     int end = start + read->span;
     int ss = 0, firstvar = 0, j = 0, ov = 0, i = 0;
     j = (int) (start / BSIZE);
-    if (j >= chromvars[chrom].blocks) return 0; // another BUG april29 2011 found here 
+    if (j >= chromvars[chrom].blocks) return 0; // another BUG april29 2011 found here
+
     ss = chromvars[chrom].intervalmap[j];
+
     if (ss < 0 || ss >= VARIANTS) return 0;
 
-    // check if ss is less than first variant for the chromosome 'chrom', if so assign it to the first variant 
+    // check if ss is less than first variant for the chromosome 'chrom', if so assign it to the first variant
     if (ss < chromvars[chrom].first) ss = chromvars[chrom].first;
 
     if (varlist[ss].position <= end) {
-        while (varlist[ss].position < start && ss < VARIANTS && ss <= chromvars[chrom].last) ss++;
+        while (ss < VARIANTS && varlist[ss].position < start && ss <= chromvars[chrom].last) ss++;
         firstvar = ss;
-        while (varlist[ss].position <= end && ss < VARIANTS && ss <= chromvars[chrom].last) {
+        while (ss < VARIANTS && varlist[ss].position <= end && ss <= chromvars[chrom].last) {
             //printf("variant %s %d %c %c \n",varlist[ss].chrom,varlist[ss].position,varlist[ss].allele1,varlist[ss].allele2);
             ov++;
             ss++;
         }
     }
+
     //fprintf(stderr,"chrom %d variants %d ss %d first %d-%d span %d-%d\n",chrom,VARIANTS,ss,chromvars[chrom].first,chromvars[chrom].last,start,end);
     //fprintf(stderr,"ov %d %d\n",ov,firstvar);
     if ((paired == 0 && ov < 2 && SINGLEREADS == 0) || (paired == 0 && ov < 1 && SINGLEREADS == 1) || (paired == 1 && ov < 1)) return 0;
@@ -251,13 +255,14 @@ int extract_variants_read(struct alignedread* read, HASHTABLE* ht, CHROMVARS* ch
     int l1 = 0, l2 = 0; // l1 is advance on read, l2 is advance on reference genome
     int op = 0, ol = 0;
     for (i = 0; i < read->cigs; i++) {
-        //fprintf(stdout,"%c %d \t",(char)read->cigarlist[i+1],read->cigarlist[i]); 
+        //fprintf(stdout,"%c %d \t",(char)read->cigarlist[i+1],read->cigarlist[i]);
         while (varlist[ss].position < start + l2 && ss <= chromvars[chrom].last) ss++;
         op = read->cigarlist[i]&0xf;
         ol = read->cigarlist[i] >> 4;
         if (op == BAM_CMATCH) {
-            while (varlist[ss].position >= start + l2 && varlist[ss].position < start + l2 + ol && ss <= chromvars[chrom].last) {
-                // function call 
+            while (ss <= chromvars[chrom].last && varlist[ss].position >= start + l2 && varlist[ss].position < start + l2 + ol) {
+
+                // function call
                 if (varlist[ss].heterozygous == '1' && varlist[ss].type == 0) compare_read_SNP(read, varlist, ss, start, l1, l2, fragment);
                 else if (varlist[ss].heterozygous == '2' && varlist[ss].type == 0) {
                     compare_read_SNP(read, varlist, ss, start, l1, l2, fragment);
@@ -299,23 +304,23 @@ int extract_variants_read(struct alignedread* read, HASHTABLE* ht, CHROMVARS* ch
         else if (op == BAM_CSOFT_CLIP) l1 += ol;
         else if (op == BAM_CHARD_CLIP) l2 += 0;
     }
-    return 1;
+    return 0;
     //	printf("read %s %d %s %d %d %d %s XM %d parsed %d %d %d vars %d\n",read->readid,read->flag,read->chrom,read->position,read->mquality,read->IS,read->cigar,read->XM,chrom,start,end,ov);
 }
 
-int copy_fragment(FRAGMENT* fnew, FRAGMENT* fragment, struct alignedread* read) {
-    int i = 0;
-    fnew->variants = fragment->variants;
-    fnew->paired = 1;
-    fnew->alist = (allele*) malloc(sizeof (allele) * fragment->variants);
-    fnew->absIS   = fragment->absIS;
-    for (i = 0; i < fragment->variants; i++) {
-        fnew->alist[i].varid = fragment->alist[i].varid;
-        fnew->alist[i].allele = fragment->alist[i].allele;
-        fnew->alist[i].qv = fragment->alist[i].qv;
-    }
-    return 0;
-}
+//int copy_fragment(FRAGMENT* fnew, FRAGMENT* fragment, struct alignedread* read) {
+//    int i = 0, sl;
+//    fnew->variants = fragment->variants;
+//    fnew->paired = 1;
+//    fnew->alist = (allele*) malloc(sizeof (allele) * fragment->variants);
+//    fnew->absIS   = fragment->absIS;
+//    for (i = 0; i < fragment->variants; i++) {
+//        fnew->alist[i].varid = fragment->alist[i].varid;
+//        fnew->alist[i].allele = fragment->alist[i].allele;
+//        fnew->alist[i].qv = fragment->alist[i].qv;
+//    }
+//}
+
 
 // add a fragment to the flist whose mate is yet to be seen
 
@@ -326,7 +331,7 @@ int add_fragment(FRAGMENT* flist, FRAGMENT* fragment, struct alignedread* read, 
     flist[fragments].absIS = fragment->absIS;
     // april 10 2012 change made for Poplar data to not use matepos...
     if (read->IS > 0) flist[fragments].matepos = read->mateposition;
-        //if (read->IS > 0) flist[fragments].matepos = read->position + read->IS; 
+        //if (read->IS > 0) flist[fragments].matepos = read->position + read->IS;
     else flist[fragments].matepos = read->position;
 
     flist[fragments].alist = (allele*) malloc(sizeof (allele) * fragment->variants);
@@ -339,6 +344,13 @@ int add_fragment(FRAGMENT* flist, FRAGMENT* fragment, struct alignedread* read, 
     flist[fragments].id = (char*) malloc(sl + 1);
     for (i = 0; i < sl; i++) flist[fragments].id[i] = read->readid[i];
     flist[fragments].id[i] = '\0';
+    if (read->barcode == NULL){
+        flist[fragments].barcode = NULL;
+    }else{
+        sl = strlen(read->barcode);
+        flist[fragments].barcode = (char*) malloc(sl + 1);
+        for (i = 0; i < sl; i++) flist[fragments].barcode[i] = read->barcode[i];
+        flist[fragments].barcode[i] = '\0';
+    }
     return 0;
 }
-

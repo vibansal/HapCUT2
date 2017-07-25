@@ -1,0 +1,60 @@
+# author: Peter Edge
+# 12/19/2016
+# email: pedge@eng.ucsd.edu
+
+# this is a snakemake Snakefile, written using snakemake 3.5.5
+
+localrules: all
+
+################################################################################
+# USER CONFIG
+# change this list to limit the chromosomes analyzed
+chroms = ['chr{}'.format(x) for x in range(1,23)]+['chrX'] #,'chrY']
+# edit these to point to the correct paths for binaries / jars
+# or just the program name if you have them in your PATH
+#REFERENCE    = 'data/reference.fa'#'/path/to/reference_genome'
+TENX_BAM     = 'data/10X.bam'
+VCF_DIR      = 'data/VCFs'            # vcf files should be in this directory and formatted as chr1.vcf, chr2.vcf...
+HAPCUT2      = 'HAPCUT2'
+EXTRACTHAIRS = 'extractHAIRS'
+SAMTOOLS     = 'samtools' # samtools 1.3, htslib 1.3
+################################################################################
+
+from LinkFragments import link_fragments
+
+rule all:
+    input:
+        expand('output/{chrom}.hap',chrom=chroms)
+
+# run HapCUT2 to assemble haplotypes from combined 10X haplotype fragments
+rule run_hapcut2:
+    params: job_name = '{chrom}.hapcut2_10X',
+    input:  frag_file = 'data/10X/{chrom}',
+            vcf_file  = '%s/{chrom}.vcf' % VCF_DIR
+    output: hap = 'output/{chrom}.hap',
+    shell: '{HAPCUT2} --fragments {input.frag_file} --vcf {input.vcf_file} --output {output.hap} --nf 1'
+
+# link reads into 10X molecule haplotype fragments
+rule link_fragments:
+    params: job_name = 'link_fragments.{chrom}'
+    input:  bam = TENX_BAM,
+            bai = TENX_BAM + '.bai',
+            vcf = '%s/{chrom}.vcf' % VCF_DIR,
+            frag = 'data/unlinked_frag/{chrom}'
+    output: hairs = 'data/10X/{chrom}',
+    shell:  link_fragments(input.frag, input.vcf, input.bam, output.hairs, 20000, False)
+
+# extract UNLINKED haplotype informative reads
+rule extractHAIRS:
+    params: job_name  = 'extracthairs.{chrom}',
+    input:  bam = TENX_BAM,
+            vcf = '%s/{chrom}.vcf' % VCF_DIR
+    output: frag = 'data/unlinked_frag/{chrom}'
+    shell: '{EXTRACTHAIRS} --10X 1 --bam {input.bam} --VCF {input.vcf} > {output.frag}'
+
+# index bamfile
+rule index_bam:
+    params: job_name = 'index_bam{x}'
+    input:  bam = '{x}.bam'
+    output: bai = '{x}.bam.bai'
+    shell:  '{SAMTOOLS} index {input.bam} {output.bai}'

@@ -277,9 +277,14 @@ void build_intervalmap(CHROMVARS* chromvars, int chromosomes, VARIANT* varlist, 
         //fprintf(stderr,"blocks for chrom %d: %d \n",j,blocks);
         k = chromvars[j].first;
         for (i = 0; i < blocks; i++) {
-            while (varlist[k].position <= BSIZE * i && k < chromvars[j].last) k++;
-            if (k == chromvars[j].last) break;
-            if (varlist[k].position > BSIZE * i && chromvars[j].intervalmap[i] == -1) chromvars[j].intervalmap[i] = k;
+            if (k == chromvars[j].last){
+                chromvars[j].intervalmap[i] = k;
+                continue;
+            }
+            while (varlist[k].position < BSIZE * i && k < chromvars[j].last) k++;
+            if (varlist[k].position >= BSIZE * i && chromvars[j].intervalmap[i] == -1) chromvars[j].intervalmap[i] = k;
+            //if (k == chromvars[j].last) break;
+
             //		if (chromvars[j].intervalmap[i] != -1) printf("FSNPtoright chrom %d block %d: %d %d \n",j,BSIZE*i,chromvars[j].intervalmap[i],varlist[chromvars[j].intervalmap[i]].position);
             //			else printf("FSNPtoright chrom %d block %d: %d \n",j,BSIZE*i,intervalmap[j][i]);
         }

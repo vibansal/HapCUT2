@@ -78,6 +78,7 @@ void print_options() {
     fprintf(stderr, "--mbq <INT> : minimum base quality to consider a base for haplotype fragment, default 13\n");
     fprintf(stderr, "--mmq <INT> : minimum read mapping quality to consider a read for phasing, default 20\n");
     fprintf(stderr, "--hic <0/1> : sets default maxIS to 40MB, prints matrix in new HiC format\n");
+    fprintf(stderr, "--10X <0/1> : 10X reads. NOTE: Output fragments MUST be processed with LinkReads.py script after extractHAIRS to work with HapCUT2.\n");
     fprintf(stderr, "--new_format, --nf <0/1> : prints matrix in new format. Requires --new_format option when running HapCUT2.\n");
     fprintf(stderr, "--VCF <FILENAME> : variant file with genotypes for a single individual in VCF format\n");
     fprintf(stderr, "--variants : variant file in hapCUT format (use this option or --VCF option but not both), this option will be phased out in future releases\n");
@@ -163,7 +164,9 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
             fragment.variants = 0; // v1 =0; v2=0;
             if (chrom >= 0 && PEONLY == 0) {
                 fragment.id = read->readid;
+                fragment.barcode = read->barcode;
                 extract_variants_read(read,ht,chromvars,varlist,0,&fragment,chrom,reflist);
+
                 if (fragment.variants >= 2 || (SINGLEREADS == 1 && fragment.variants >= 1)) {
                     // instead of printing fragment, we could change this to update genotype likelihoods
                     print_fragment(&fragment, varlist, fragment_file);
@@ -171,10 +174,12 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
             }
         } else // paired-end read
         {
-            //fprintf(stdout,"tid %d %d \n",read->tid,read->mtid);
             fragment.variants = 0;
             fragment.id = read->readid; //v1 =0; v2=0;
+            fragment.barcode = read->barcode;
+
             if (chrom >=0) extract_variants_read(read,ht,chromvars,varlist,1,&fragment,chrom,reflist);
+
             //fprintf(stderr,"paired read stats %s %d flag %d IS %d\n",read->chrom,read->cigs,read->flag,read->IS);
             if (fragment.variants > 0) {
                 //fprintf(stderr,"variants %d read %s %s \n",fragment.variants,read->chrom,read->readid);
@@ -199,7 +204,11 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
         }
 
         reads += 1;
-        if (reads % 2000000 == 0) fprintf(stderr, "processed %d reads, useful fragments %d\n", reads, fragments);
+        if (reads % 2000000 == 0){
+            fprintf(stderr, "processed %d reads", reads);
+            if (DATA_TYPE != 2) fprintf(stderr, ", paired end fragments %d", fragments);
+            fprintf(stderr, "\n");
+        }
         prevchrom = chrom;
         prevtid = read->tid;
         free_readmemory(read);
@@ -209,6 +218,8 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
         clean_fragmentlist(flist, &fragments, varlist, -1, read->position, prevchrom);
     }
     bam_destroy1(b);
+
+    free(flist); free(read); free(fragment.alist);
     return 0;
 }
 
@@ -227,7 +238,7 @@ int main(int argc, char** argv) {
     sampleid[0] = '-';
     sampleid[1] = '\0';
     int samplecol = 10; // default if there is a single sample in the VCF file
-    int i = 0, variants = 0, hetvariants = 0;
+    int i = 0, j = 0, variants = 0, hetvariants = 0;
     char** bamfilelist = NULL;
     int bamfiles = 0;
 
@@ -258,6 +269,14 @@ int main(int argc, char** argv) {
                 MAX_IS = 40000000;
                 NEW_FORMAT = 1;
                 DATA_TYPE = 1;
+            }
+        }
+        else if (strcmp(argv[i], "--10X") == 0 || strcmp(argv[i], "--10x") == 0){
+            check_input_0_or_1(argv[i + 1]);
+            if (atoi(argv[i + 1])){
+                SINGLEREADS = 1;
+                NEW_FORMAT = 1;
+                DATA_TYPE = 2;
             }
         }
         else if (strcmp(argv[i], "--new_format") == 0 || strcmp(argv[i], "--nf") == 0){
@@ -366,8 +385,50 @@ int main(int argc, char** argv) {
 			if (parse_ok != 0) return parse_ok;
         }
     }
+
     if (logfile != NULL) fclose(logfile);
     if (fragment_file != NULL && fragment_file != stdout) fclose(fragment_file);
+
+    for (i=0;i<reflist->ns;i++){
+		free(reflist->names[i]);
+		free(reflist->sequences[i]);
+	}
+	free(reflist->names);
+	free(reflist->sequences);
+	free(reflist->lengths);
+	//free(reflist->offsets);
+
+	for (i=0;i<variants;i++){
+		free(varlist[i].genotype);
+		free(varlist[i].allele1);
+		free(varlist[i].allele2);
+		free(varlist[i].RA);
+		free(varlist[i].AA);
+		free(varlist[i].chrom);
+	}
+
+	for (i=0;i<chromosomes;i++){
+		free(chromvars[i].intervalmap);
+	}
+	free(chromvars);
+
+    for (i=0;i<ht.htsize;i++){
+        if (ht.blist[i] != NULL){
+            for(j=0;j<ht.bucketlengths[i];j++){
+                free(ht.blist[i]->key);
+            }
+            free(ht.blist[i]);
+        }
+    }
+    free(ht.blist);
+    free(ht.bucketlengths);
+
+	free(sampleid); free(varlist); free(reflist);
+	if (bamfiles > 0 && strcmp(variantfile,"None") !=0){
+		for (i=0;i<bamfiles;i++)
+			free(bamfilelist[i]);
+		free(bamfilelist);
+	}
 
     return 0;
 }

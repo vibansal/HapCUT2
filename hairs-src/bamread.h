@@ -21,6 +21,7 @@ struct alignedread {
     char* readid;
     char* chrom;
     char* matechrom;
+    char* barcode;
     int matech;
     char matestrand;
     int flag;

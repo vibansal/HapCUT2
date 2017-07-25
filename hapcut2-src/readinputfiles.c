@@ -144,6 +144,12 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
                     dtype = 10 * dtype + (int) (blockseq[l] - 48);
                 }
                 Flist[i].data_type = dtype;
+
+                if (dtype == 2){
+                    fprintf(stderr,"ERROR: Unlinked 10X fragments given as input. Unlinked 10X Fragments must be processed with LinkFragments.py script.\n\nExample:\n extractHAIRS --bam <BAM> --vcf <VCF> --out unlinked_fragments.frag --10X 1;\npython LinkFragments.py --fragments unlinked_fragments.frag --bam <BAM> --vcf <VCF> --out linked_fragments.frag\n");
+                    exit(1);
+                }
+
                 type = 5;
             } else if (type == 5){
                 // read in the position of mate 2
