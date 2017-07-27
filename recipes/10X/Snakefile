@@ -18,12 +18,11 @@ TENX_BAM     = 'data/10X.bam'
 VCF_DIR      = 'data/VCFs'            # vcf files should be in this directory and formatted as chr1.vcf, chr2.vcf...
 SAMTOOLS     = 'samtools' # samtools 1.3, htslib 1.3
 ################################################################################
-import sys,os 
+import sys,os
 utilities_dir = os.path.join(HAPCUT2_REPO,'utilities')
 sys.path.append(utilities_dir)
-
-HAPCUT2      = 'HAPCUT2'
-EXTRACTHAIRS = 'extractHAIRS'
+HAPCUT2      = os.path.join(HAPCUT2_REPO,'build','HAPCUT2')
+EXTRACTHAIRS = os.path.join(HAPCUT2_REPO,'build','extractHAIRS')
 
 from LinkFragments import link_fragments
 
