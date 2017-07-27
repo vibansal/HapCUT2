@@ -12,6 +12,7 @@ localrules: all
 chroms = ['chr{}'.format(x) for x in range(1,23)]+['chrX'] #,'chrY']
 # edit these to point to the correct paths for binaries / jars
 # or just the program name if you have them in your PATH
+HAPCUT2_REPO = '/path/to/cloned/HapCUT2' # absolute path to cloned HapCUT2 git repo
 REFERENCE    = 'data/reference.fa'#'/path/to/reference_genome'
 HIC_FASTQ    = 'data/hic_{mate}.fastq' # path must end in _{mate}.fastq, with two files ending in _1.fastq _2.fastq both present
 VCF_DIR      = 'data/VCFs'            # vcf files should be in this directory and formatted as chr1.vcf, chr2.vcf...
@@ -23,7 +24,11 @@ PICARD       = '/path/to/picard'   # picard version 2.8
 BAMTOOLS     = 'bamtools' # version 2.4
 ################################################################################
 
-
+import sys,os
+utilities_dir = os.path.join(HAPCUT2_REPO,'utilities')
+sys.path.append(utilities_dir)
+HAPCUT2      = os.path.join(HAPCUT2_REPO,'build','HAPCUT2')
+EXTRACTHAIRS = os.path.join(HAPCUT2_REPO,'build','extractHAIRS')
 
 import HiC_repair
 
