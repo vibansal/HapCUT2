@@ -47,6 +47,13 @@ char* GROUPNAME; // for fragments from different pools, SRRxxx
 FILE* fragment_file;
 int TRI_ALLELIC = 0;
 
+int* fcigarlist; // global variable
+
+int MATCH = 1;
+int MISMATCH = -1;
+int GAP_OPEN = -1;
+int GAP_EXTEND = -1;
+
 // DATA TYPE
 // 0 : generic reads
 // 1 : HiC
@@ -78,8 +85,11 @@ void print_options() {
     fprintf(stderr, "--qvoffset <33/64> : quality value offset, 33/64 depending on how quality values were encoded, default is 33 \n");
     fprintf(stderr, "--mbq <INT> : minimum base quality to consider a base for haplotype fragment, default 13\n");
     fprintf(stderr, "--mmq <INT> : minimum read mapping quality to consider a read for phasing, default 20\n");
+    fprintf(stderr, "--realign_variants <0/1> : Perform sensitive realignment and scoring of variants.\n");
     fprintf(stderr, "--hic <0/1> : sets default maxIS to 40MB, prints matrix in new HiC format\n");
     fprintf(stderr, "--10X <0/1> : 10X reads. NOTE: Output fragments MUST be processed with LinkReads.py script after extractHAIRS to work with HapCUT2.\n");
+    fprintf(stderr, "--pacbio <0/1> : Pacific Biosciences reads. Similar to --realign_variants, but with alignment parameters tuned for PacBio reads.\n");
+    fprintf(stderr, "--ONT, --ont <0/1> : Oxford nanopore technology reads. Similar to --realign_variants, but with alignment parameters tuned for Oxford Nanopore Reads.\n");
     fprintf(stderr, "--new_format, --nf <0/1> : prints matrix in new format. Requires --new_format option when running HapCUT2.\n");
     fprintf(stderr, "--VCF <FILENAME> : variant file with genotypes for a single individual in VCF format\n");
     fprintf(stderr, "--variants : variant file in hapCUT format (use this option or --VCF option but not both), this option will be phased out in future releases\n");
@@ -109,6 +119,9 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
     int reads = 0;
     struct alignedread* read = (struct alignedread*) malloc(sizeof (struct alignedread));
 
+    if (REALIGN_VARIANTS){
+        fcigarlist = calloc(sizeof(int),400000);
+    }
     int i = 0;
     int chrom = 0; //int sl=0;
     // int v1,v2;
@@ -226,6 +239,9 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
     bam_destroy1(b);
 
     free(flist); free(read); free(fragment.alist);
+    if (REALIGN_VARIANTS){
+        free(fcigarlist);
+    }
     return 0;
 }
 
@@ -284,11 +300,33 @@ int main(int argc, char** argv) {
                 NEW_FORMAT = 1;
                 DATA_TYPE = 2;
             }
-        }else if (strcmp(argv[i], "--realign_variants") == 0 || strcmp(argv[i], "--pacbio") == 0 || strcmp(argv[i], "--ont") == 0 || strcmp(argv[i], "--ONT") == 0){
+        }else if (strcmp(argv[i], "--realign_variants") == 0){
             check_input_0_or_1(argv[i + 1]);
             if (atoi(argv[i + 1])){
                 REALIGN_VARIANTS = 1;
             }
+        }else if (strcmp(argv[i], "--pacbio") == 0){
+            check_input_0_or_1(argv[i + 1]);
+            if (atoi(argv[i + 1])){
+                REALIGN_VARIANTS = 1;
+            }
+
+            MATCH = log10(0.86);
+            MISMATCH = log10(0.01);
+            GAP_OPEN = log10(0.12);
+            GAP_EXTEND = log10(0.12);
+
+        }else if (strcmp(argv[i], "--ont") == 0 || strcmp(argv[i], "--ONT") == 0){
+            check_input_0_or_1(argv[i + 1]);
+            if (atoi(argv[i + 1])){
+                REALIGN_VARIANTS = 1;
+            }
+
+            MATCH = log10(0.86);
+            MISMATCH = log10(0.01);
+            GAP_OPEN = log10(0.12);
+            GAP_EXTEND = log10(0.12);
+
         }else if (strcmp(argv[i], "--new_format") == 0 || strcmp(argv[i], "--nf") == 0){
             check_input_0_or_1(argv[i + 1]);
             NEW_FORMAT = atoi(argv[i + 1]);

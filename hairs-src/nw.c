@@ -16,10 +16,10 @@
 
 extern int VERBOSE;
 
-#define MATCH log10(0.86)
-#define MISMATCH log10(0.01)
-#define GAP_OPEN log10(0.1)
-#define GAP_EXTEND log10(0.03)
+extern int MATCH;
+extern int MISMATCH;
+extern int GAP_OPEN;
+extern int GAP_EXTEND;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -128,7 +128,7 @@ double nw(char* str1, char* str2,int VERBOSE)
 	//and include the margin explicitly in this: the result should be the same
 	i = len_v-1;
 	xy max_mat; max_mat.v = -INFINITY; max_mat.x = i;
-	char w;
+	//char w;
 
 	//    for(j = 0; j < len_h; j++) {
 	//we want to be within the margin and also within the matrix
@@ -136,15 +136,15 @@ double nw(char* str1, char* str2,int VERBOSE)
 		//            printf("consider (%d,%d)\n", i, j);
 		if(m[i][j].v >= max_mat.v) {
 			max_mat.y = j; max_mat.v = m[i][j].v; max_mat.w = m[i][j].w;
-			w = 'm';
+			//w = 'm';
 		}
 		if(ix[i][j].v >= max_mat.v) {
 			max_mat.y = j; max_mat.v = ix[i][j].v; max_mat.w = ix[i][j].w;
-			w = 'x';
+			//w = 'x';
 		}
 		if(iy[i][j].v >= max_mat.v) {
 			max_mat.y = j; max_mat.v = iy[i][j].v; max_mat.w = iy[i][j].w;
-			w = 'y';
+			//w = 'y';
 		}
 	}
 

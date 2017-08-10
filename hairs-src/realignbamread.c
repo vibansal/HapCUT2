@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <stdlib.h>
 
+int VERBOSE = 0;
 int MINLEN= 10;
 // find the variants that are covered by the read and determine the alleles at each of those variants
 int SHORT_HAP_CUTOFF = 20;
@@ -52,7 +53,7 @@ int parse_cigar(struct alignedread* read,REFLIST* reflist,int* fcigarlist)
 	//fprintf(stdout,"%c \n",reflist->sequences[current][10000]);	//return -1;
 
 	int f=0;
-	int i=0,t=0, l1=0,l2=0; int l=0,j=0; int m=0; int op;
+	int i=0,t=0, l1=0,l2=0; int l=0; int m=0; int op;
 	for (i=0;i<read->cigs;i++)
 	{
 		op = read->cigarlist[i]&0xf; l = read->cigarlist[i]>>4;
@@ -98,7 +99,10 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 		exit(1);
 	}
 
-	for (j=positions[0];j<positions[2];j++) subread[j-positions[0]] = read->sequence[j]; subread[j-positions[0]]='\0';
+	for (j=positions[0];j<positions[2];j++){
+        subread[j-positions[0]] = read->sequence[j];
+    }
+    subread[j-positions[0]]='\0';
 
 	char* refhap = malloc(positions[3]-positions[1]+1);
 	char* althap;
@@ -124,7 +128,10 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 		// if the i-th bit from the right is 1, computed as h & (pow(2,i)), then the haplotype contains the i-th variant
 
 		// don't forget +1 to strlen for end character
-		for (j=positions[1];j<positions[3];j++) refhap[j-positions[1]] = reflist->sequences[reflist->current][j-1];  refhap[j-positions[1]]  ='\0';
+		for (j=positions[1];j<positions[3];j++){
+            refhap[j-positions[1]] = reflist->sequences[reflist->current][j-1];
+        }
+        refhap[j-positions[1]]  ='\0';
 
 		total_ref_len = 0;
 		total_alt_len = 0;
@@ -169,7 +176,6 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 		if (VERBOSE) fprintf(stdout,"%s hap%d \n",althap,h);
 
 		double altscore = nw(althap,subread,0);
-	    double align_qual;
 
 		// for an index s in the short haplotype,
 		// maintain the log sum of scores that have a variant at s
@@ -202,6 +208,7 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 		//total_score = addlogs(total_score, refscore);
 		total_score = addlogs(total_score, altscore);
 
+        free(althap);
 	}
 	if (VERBOSE) fprintf(stdout,"**********************************************\n");
 
@@ -241,14 +248,14 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 		else varlist[ss].A1 += 1;
 	}
 
-	free(subread);free(refhap); free(althap); free(max_haps);free(ref_score_single); free(alt_score_single);
+	free(subread);free(refhap); free(max_haps);free(ref_score_single); free(alt_score_single);
+
+    return 0;
 }
 
 int compare_read_HAPs(struct alignedread* read,VARIANT* varlist,int* snplst, int n_snps, int hap_pos[], int* fcigarlist,int fcigs,int f1, int f2, REFLIST* reflist, FRAGMENT* fragment){
 	int op = fcigarlist[f1+1]&0xf; int ol = fcigarlist[f1+1]>>4;
 	int offset = varlist[snplst[0]].position-hap_pos[1];
-
-	int j=0;
 
 	int positions[4] = {hap_pos[0],hap_pos[1],hap_pos[2],hap_pos[3]}; // left anchor position on read, left pos on ref, right position on read, right position on ref...
 
@@ -345,6 +352,8 @@ int compare_read_HAPs(struct alignedread* read,VARIANT* varlist,int* snplst, int
 	assert(reflist->current >= 0 && (varlist[ss].position > positions[1] && varlist[ss].position < positions[3]));
 
 	realign_HAPs(read,reflist,positions,varlist, snplst, n_snps, fragment);
+
+    return 0;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -353,7 +362,7 @@ int realign_and_extract_variants_read(struct alignedread* read,HASHTABLE* ht,CHR
 	//fprintf(stderr,"%s \n",read->readid);
 
     int* snplst = malloc(MAX_SNPs_SHORT_HAP*sizeof(int));
-	int start = read->position; int end = start + read->span; int ss=0,firstvar=0,lastvar=0,j=0,ov=0,i=0;
+	int start = read->position; int end = start + read->span; int ss=0,firstvar=0,j=0,ov=0,i=0;
 	j = (int)(start/BSIZE);
 	if (j >= chromvars[chrom].blocks) return 0; // another BUG april29 2011 found here
 	ss = chromvars[chrom].intervalmap[j];
@@ -364,12 +373,14 @@ int realign_and_extract_variants_read(struct alignedread* read,HASHTABLE* ht,CHR
 
 	if (varlist[ss].position <= end)
 	{
-		while(ss < VARIANTS-1 && ss <= chromvars[chrom].last && varlist[ss].position < start) ss++; firstvar = ss;
+		while(ss < VARIANTS-1 && ss <= chromvars[chrom].last && varlist[ss].position < start){
+            ss++;
+        }
+        firstvar = ss;
 		while (ss < VARIANTS-1 && ss <= chromvars[chrom].last && varlist[ss].position <= end)
 		{
 			ov++; ss++;
 		}
-		lastvar = ss;
 	}
 	if ((paired ==0 && ov < 2 && SINGLEREADS ==0) || (paired ==0 && ov < 1 && SINGLEREADS ==1) || (paired ==1 && ov < 1)) return 0;
 	ss = firstvar; // use variable firstvar to store first variant that overlaps this read
@@ -431,7 +442,7 @@ int realign_and_extract_variants_read(struct alignedread* read,HASHTABLE* ht,CHR
 				if (varlist[ss].heterozygous == '1'){
                     //fprintf(stderr,"%d %s",varlist[ss].position, varlist[ss].allele1, varlist[ss].allele2);
 					// If this variant is far away from the last variant, then analyze the cluster of variants seen up til now
-					if (n_snps > 0 && (varlist[ss].position - prev_snp_position > SHORT_HAP_CUTOFF) || (n_snps == MAX_SNPs_SHORT_HAP)){
+					if (n_snps > 0 && ((varlist[ss].position - prev_snp_position > SHORT_HAP_CUTOFF) || (n_snps == MAX_SNPs_SHORT_HAP))){
 
 						compare_read_HAPs(read,varlist,snplst,n_snps,hap_pos,fcigarlist,fcigs,f1,f2,reflist,fragment);
 
@@ -503,7 +514,7 @@ int realign_and_extract_variants_read(struct alignedread* read,HASHTABLE* ht,CHR
 		compare_read_HAPs(read,varlist,snplst,n_snps,hap_pos,fcigarlist,fcigs,f1,f2,reflist,fragment);
 	}
 
-    free(snplst)
+    free(snplst);
 
 	return 0;
 }
