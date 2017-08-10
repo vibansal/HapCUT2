@@ -38,6 +38,7 @@ int VCFformat = 0;
 int PARSEINDELS = 0;
 int SINGLEREADS = 0;
 int LONG_READS = 0;
+int REALIGN_VARIANTS = 0;
 //int QVoffset = 33; declared in samread.h
 FILE* logfile;
 int PFLAG = 1;
@@ -58,10 +59,10 @@ int DATA_TYPE = 0;
 // column 5 is the absolute insert size
 int NEW_FORMAT = 0;
 
-
 //int get_chrom_name(struct alignedread* read,HASHTABLE* ht,REFLIST* reflist);
 
 #include "parsebamread.c"
+#include "realignbamread.c"
 #include "fosmidbam_hairs.c" // code for parsing fosmid pooled sequence data
 
 //disabled sam file reading
@@ -163,9 +164,14 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
         {
             fragment.variants = 0; // v1 =0; v2=0;
             if (chrom >= 0 && PEONLY == 0) {
+
                 fragment.id = read->readid;
                 fragment.barcode = read->barcode;
-                extract_variants_read(read,ht,chromvars,varlist,0,&fragment,chrom,reflist);
+                if (REALIGN_VARIANTS){
+                    extract_variants_read(read,ht,chromvars,varlist,0,&fragment,chrom,reflist);
+                }else{
+                    extract_variants_read(read,ht,chromvars,varlist,0,&fragment,chrom,reflist);
+                }
 
                 if (fragment.variants >= 2 || (SINGLEREADS == 1 && fragment.variants >= 1)) {
                     // instead of printing fragment, we could change this to update genotype likelihoods
@@ -278,8 +284,12 @@ int main(int argc, char** argv) {
                 NEW_FORMAT = 1;
                 DATA_TYPE = 2;
             }
-        }
-        else if (strcmp(argv[i], "--new_format") == 0 || strcmp(argv[i], "--nf") == 0){
+        }else if (strcmp(argv[i], "--realign_variants") == 0 || strcmp(argv[i], "--pacbio") == 0 || strcmp(argv[i], "--ont") == 0 || strcmp(argv[i], "--ONT") == 0){
+            check_input_0_or_1(argv[i + 1]);
+            if (atoi(argv[i + 1])){
+                REALIGN_VARIANTS = 1;
+            }
+        }else if (strcmp(argv[i], "--new_format") == 0 || strcmp(argv[i], "--nf") == 0){
             check_input_0_or_1(argv[i + 1]);
             NEW_FORMAT = atoi(argv[i + 1]);
         }else if (strcmp(argv[i], "--maxIS") == 0)
