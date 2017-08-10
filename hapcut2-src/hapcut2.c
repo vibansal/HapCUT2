@@ -284,7 +284,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
             generate_clist_structure(Flist, fragments, snpfrag, snps, new_components, clist);
         }
         components = new_components;
-    }else if(ERROR_ANALYSIS_MODE){
+    }else if(ERROR_ANALYSIS_MODE && !HIC){
         for (k=0; k<components; k++){
             // run split_block but don't actually split, just get posterior probabilities
             split_block(HAP1, clist, k, Flist, snpfrag, &new_components);
@@ -393,8 +393,8 @@ int main(int argc, char** argv) {
         // HAPLOTYPE POST-PROCESSING OPTIONS
         else if (strcmp(argv[i], "--threshold") == 0 || strcmp(argv[i], "--t") == 0){
             THRESHOLD = 1.0 - unphred(atof(argv[i + 1]));
-        }else if (strcmp(argv[i], "--split_blocks") == 0 || strcmp(argv[i], "--sb") == 0){
-            SPLIT_BLOCKS = atoi(argv[i + 1]);
+        //}else if (strcmp(argv[i], "--split_blocks") == 0 || strcmp(argv[i], "--sb") == 0){
+            //SPLIT_BLOCKS = atoi(argv[i + 1]);
         }else if (strcmp(argv[i], "--split_threshold") == 0 || strcmp(argv[i], "--st") == 0){
             SPLIT_THRESHOLD = 1.0 - unphred(atof(argv[i + 1]));
         }else if (strcmp(argv[i], "--call_homozygous") == 0 || strcmp(argv[i], "--ch") == 0){
@@ -438,9 +438,8 @@ int main(int argc, char** argv) {
         }
     }
 
-    if (SPLIT_BLOCKS && HIC){
-        fprintf_time(stderr,"Point-based block-splitting should not be used with Hi-C data. Exiting.");
-        exit(0);
+    if (ERROR_ANALYSIS_MODE && HIC){
+        fprintf_time(stderr,"WARNING: Switch error quality scores are not intended for use with Hi-C data. Scores will be left blank.\n");
     }
 
     if (flag != 3) // three essential arguments are not supplied
@@ -448,8 +447,6 @@ int main(int argc, char** argv) {
         print_hapcut_options();
         return 0;
     }
-
-    fprintf(stdout, "\n\nIMPORTANT: Note that input for --threshold option and confidence scores in output have changed to Phred-scaled quality values.\n See README at https://github.com/vibansal/HapCUT2 for more information.\n\n");
 
 	fprintf(stderr, "\n\n");
     fprintf_time(stderr, "fragment file: %s\n", fragfile);

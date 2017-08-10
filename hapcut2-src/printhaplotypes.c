@@ -6,6 +6,7 @@ extern int ERROR_ANALYSIS_MODE;
 extern int SPLIT_BLOCKS;
 extern int SKIP_PRUNE;
 extern float THRESHOLD;
+extern int HIC;
 
 void print_hapcut_options() {
     fprintf(stdout, "\nHapCUT2: robust and accurate haplotype assembly for diverse sequencing technologies\n\n");
@@ -93,7 +94,7 @@ int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
 
             // generate the string for the switch confidence
             char switch_conf[100];
-            if (SPLIT_BLOCKS || ERROR_ANALYSIS_MODE){
+            if ((SPLIT_BLOCKS || ERROR_ANALYSIS_MODE)&&(!HIC)){
                 float switch_conf_fl = -10.0 * subtractlogs(0,snpfrag[t].post_notsw);
                 if (switch_conf_fl > 100.0){
                     switch_conf_fl = 100.0;
