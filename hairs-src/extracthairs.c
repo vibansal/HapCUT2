@@ -46,13 +46,16 @@ int PRINT_FRAGMENTS = 1;
 char* GROUPNAME; // for fragments from different pools, SRRxxx
 FILE* fragment_file;
 int TRI_ALLELIC = 0;
+int VERBOSE = 0;
 
 int* fcigarlist; // global variable
 
-int MATCH = 1;
-int MISMATCH = -1;
-int GAP_OPEN = -1;
-int GAP_EXTEND = -1;
+float MATCH = 1;
+float MISMATCH = -1;
+float INSERTION_OPEN = -1;
+float INSERTION_EXTEND = -1;
+float DELETION_OPEN = -1;
+float DELETION_EXTEND = -1;
 
 // DATA TYPE
 // 0 : generic reads
@@ -181,11 +184,10 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
                 fragment.id = read->readid;
                 fragment.barcode = read->barcode;
                 if (REALIGN_VARIANTS){
-                    extract_variants_read(read,ht,chromvars,varlist,0,&fragment,chrom,reflist);
+                    realign_and_extract_variants_read(read,ht,chromvars,varlist,0,&fragment,chrom,reflist);
                 }else{
                     extract_variants_read(read,ht,chromvars,varlist,0,&fragment,chrom,reflist);
                 }
-
                 if (fragment.variants >= 2 || (SINGLEREADS == 1 && fragment.variants >= 1)) {
                     // instead of printing fragment, we could change this to update genotype likelihoods
                     print_fragment(&fragment, varlist, fragment_file);
@@ -311,22 +313,31 @@ int main(int argc, char** argv) {
                 REALIGN_VARIANTS = 1;
             }
 
-            MATCH = log10(0.86);
+            // scores based on https://www.researchgate.net/figure/230618348_fig1_Characterization-of-Pacific-Biosciences-dataa-Base-error-mode-rate-for-deletions
+            MATCH = log10(1.0 - (0.01 + 0.071 + 0.037)); //log10(1.0 - (0.01 + 0.12 + 0.02));
             MISMATCH = log10(0.01);
-            GAP_OPEN = log10(0.12);
-            GAP_EXTEND = log10(0.12);
+            INSERTION_OPEN = log10(0.071); //log10(0.12);
+            DELETION_OPEN = log10(0.037); //log10(0.02);
+            // estimated these empirically from bam file
+            INSERTION_EXTEND = log10(0.26);
+            DELETION_EXTEND = log10(0.12);
 
         }else if (strcmp(argv[i], "--ont") == 0 || strcmp(argv[i], "--ONT") == 0){
             check_input_0_or_1(argv[i + 1]);
             if (atoi(argv[i + 1])){
                 REALIGN_VARIANTS = 1;
             }
+            // scores based on http://www.nature.com/nmeth/journal/v12/n4/abs/nmeth.3290.html
+            MATCH = log10(1.0 - (0.051 + 0.049 + 0.078));
+            MISMATCH = log10(0.051);
+            INSERTION_OPEN = log10(0.049);
+            INSERTION_EXTEND = log10(0.03); // this number has no basis in anything
+            DELETION_OPEN = log10(0.078);
+            DELETION_EXTEND = log10(0.03); // this number also has no basis in anything
 
-            MATCH = log10(0.86);
-            MISMATCH = log10(0.01);
-            GAP_OPEN = log10(0.12);
-            GAP_EXTEND = log10(0.12);
-
+        }else if (strcmp(argv[i], "--verbose") == 0 || strcmp(argv[i], "--v") == 0){
+            check_input_0_or_1(argv[i + 1]);
+            VERBOSE = atoi(argv[i + 1]);
         }else if (strcmp(argv[i], "--new_format") == 0 || strcmp(argv[i], "--nf") == 0){
             check_input_0_or_1(argv[i + 1]);
             NEW_FORMAT = atoi(argv[i + 1]);
@@ -368,6 +379,10 @@ int main(int argc, char** argv) {
             fprintf(stderr, "\nERROR: Invalid Option \"%s\" specified.\n",argv[i]);
             exit(1);
         }
+    }
+    if (REALIGN_VARIANTS && strcmp(fastafile, "None") == 0) {
+        fprintf(stderr, "\nERROR: In order to realign variants (including --pacbio and --ont options), reference fasta file must be provided with --ref option.\n");
+        exit(1);
     }
     if (bamfiles > 0 && strcmp(variantfile, "None") != 0) {
         bamfilelist = (char**) malloc(sizeof (char*)*bamfiles);

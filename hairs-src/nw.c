@@ -16,10 +16,14 @@
 
 extern int VERBOSE;
 
-extern int MATCH;
-extern int MISMATCH;
-extern int GAP_OPEN;
-extern int GAP_EXTEND;
+extern float MATCH;
+extern float MISMATCH;
+extern float GAP_OPEN;
+extern float GAP_EXTEND;
+extern float INSERTION_OPEN;
+extern float INSERTION_EXTEND;
+extern float DELETION_OPEN;
+extern float DELETION_EXTEND;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -62,8 +66,8 @@ double nw(char* str1, char* str2,int VERBOSE)
 	{
 		for(i = 0; i < len_v; i++) for(j = 0; j < len_h; j++) m[i][j].v = ix[i][j].v = iy[i][j].v = -INFINITY;
 		m[0][0].v = 0;
-		for(j = 0; j < len_h; j++) iy[0][j].v = GAP_OPEN + GAP_EXTEND*j;
-		for(i = 0; i < len_v; i++) ix[i][0].v = GAP_OPEN + GAP_EXTEND*i;
+		for(j = 0; j < len_h; j++) iy[0][j].v = DELETION_OPEN + DELETION_EXTEND*j;
+		for(i = 0; i < len_v; i++) ix[i][0].v = INSERTION_OPEN + INSERTION_EXTEND*i;
 	}
 	else
 	{
@@ -97,24 +101,24 @@ double nw(char* str1, char* str2,int VERBOSE)
 
 				/*I_x*/
 				double max_ix = -INFINITY;
-				if(m[i-1][j].v + GAP_OPEN >= max_ix) {
-					max_ix = m[i-1][j].v + GAP_OPEN + GAP_EXTEND;
+				if(m[i-1][j].v + INSERTION_OPEN >= max_ix) {
+					max_ix = m[i-1][j].v + INSERTION_OPEN + INSERTION_EXTEND;
 					ix[i][j].w = 'm';
 				}
-				if(ix[i-1][j].v + GAP_EXTEND >= max_ix) {
-					max_ix = ix[i-1][j].v + GAP_EXTEND;
+				if(ix[i-1][j].v + INSERTION_EXTEND >= max_ix) {
+					max_ix = ix[i-1][j].v + INSERTION_EXTEND;
 					ix[i][j].w = 'x';
 				}
 				ix[i][j].v = max_ix;
 
 				/*I_y */
 				double max_iy = -INFINITY;
-				if(m[i][j-1].v + GAP_OPEN >= max_iy) {
-					max_iy = m[i][j-1].v + GAP_OPEN + GAP_EXTEND;
+				if(m[i][j-1].v + DELETION_OPEN >= max_iy) {
+					max_iy = m[i][j-1].v + DELETION_OPEN + DELETION_EXTEND;
 					iy[i][j].w = 'm';
 				}
-				if(iy[i][j-1].v + GAP_EXTEND >= max_iy) {
-					max_iy = iy[i][j-1].v + GAP_EXTEND;
+				if(iy[i][j-1].v + DELETION_EXTEND >= max_iy) {
+					max_iy = iy[i][j-1].v + DELETION_EXTEND;
 					iy[i][j].w = 'y';
 				}
 				iy[i][j].v = max_iy;

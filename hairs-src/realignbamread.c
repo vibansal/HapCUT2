@@ -4,13 +4,13 @@
 #include <assert.h>
 #include <stdlib.h>
 
-int VERBOSE = 0;
 int MINLEN= 10;
+int COMPLEXITY_K = 5; // anchor sequences must have unique kmers of this length
 // find the variants that are covered by the read and determine the alleles at each of those variants
 int SHORT_HAP_CUTOFF = 20;
 extern int VERBOSE;
 extern int REALIGN_ALL;
-
+extern int PARSEINDELS;
 float TINYLOG = -10000;
 int MIN_QUAL = 10;
 int MAX_SNPs_SHORT_HAP = 10; // max number of SNVs in a short haplotype
@@ -83,6 +83,36 @@ int parse_cigar(struct alignedread* read,REFLIST* reflist,int* fcigarlist)
 	return f;
 }
 
+// returns 1 if kmers in seq are unique, else 0
+int test_complexity(char* seq, int k){
+    //fprintf(stderr,"seq: %s",seq);
+    int i = 0, j = 0, q = 0, match = 1;
+    int l = strlen(seq);
+
+    for (i = 0; i < l - k + 1; i++){
+        for (j = 0; j < l - k + 1; j++){
+            if (i == j)
+                continue;
+
+            match = 1;
+            for (q = 0; q < k; q++){
+                if (seq[i+q] != seq[j+q]){
+                    match = 0;
+                    break;
+                }
+            }
+
+            if (match){
+                //fprintf(stderr," fail\n");
+                return 0;
+            }
+        }
+    }
+    //fprintf(stderr," pass\n");
+
+    return 1;
+}
+
 // make sure that the code works for indels/complex-vars |  illumina reads |  low-complexity regions | GENERIC CODE
 
 int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VARIANT* varlist, int* snplst, int n_snps, FRAGMENT* fragment)
@@ -105,9 +135,17 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
     subread[j-positions[0]]='\0';
 
 	char* refhap = malloc(positions[3]-positions[1]+1);
+
+    // don't forget +1 to strlen for end character
+    for (j=positions[1];j<positions[3];j++){
+        refhap[j-positions[1]] = reflist->sequences[reflist->current][j-1];
+    }
+    refhap[j-positions[1]]  ='\0';
+
 	char* althap;
 	int h=0, s=0, ss=0, max_hap=0, ref_len=0, alt_len=0, total_ref_len=0, total_alt_len=0, n_max_haps = 0, rand_ix = 0;
-	double total_score = TINYLOG, max_score = -1000000000, align_qual = 0;
+	double total_score = TINYLOG, max_score = -1000000000;
+    int align_qual = 0;
 	int* max_haps = (int*) calloc(pow(2,n_snps),sizeof(int));
 
 	double* ref_score_single = malloc(MAX_SNPs_SHORT_HAP * sizeof(double));
@@ -119,19 +157,14 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 	}
 
     if (VERBOSE) fprintf(stderr,subread);
-	fprintf(stderr,"read %d:%d:%d ",positions[0],positions[2],positions[2]-positions[0]);
-	fprintf(stderr,"on ref %d:%d:%d\n",positions[1],positions[3],positions[3]-positions[1]);
+    if (VERBOSE) fprintf(stderr,"\n");
+	if (VERBOSE) fprintf(stderr,"read %d:%d:%d ",positions[0],positions[2],positions[2]-positions[0]);
+	if (VERBOSE) fprintf(stderr,"on ref %d:%d:%d\n",positions[1],positions[3],positions[3]-positions[1]);
 	for (h = 0; h < pow(2,n_snps); h++){
 
 		// we represent a haplotype with integer h
 		// in particular the n_snps least significant bits
 		// if the i-th bit from the right is 1, computed as h & (pow(2,i)), then the haplotype contains the i-th variant
-
-		// don't forget +1 to strlen for end character
-		for (j=positions[1];j<positions[3];j++){
-            refhap[j-positions[1]] = reflist->sequences[reflist->current][j-1];
-        }
-        refhap[j-positions[1]]  ='\0';
 
 		total_ref_len = 0;
 		total_alt_len = 0;
@@ -173,9 +206,11 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 
 		althap[k] = '\0';
 
-		if (VERBOSE) fprintf(stdout,"%s hap%d \n",althap,h);
+		if (VERBOSE) fprintf(stdout,"hap%d %s ",h,althap);
 
 		double altscore = nw(althap,subread,0);
+
+		if (VERBOSE) fprintf(stdout,"score: %f \n",altscore);
 
 		// for an index s in the short haplotype,
 		// maintain the log sum of scores that have a variant at s
@@ -223,15 +258,22 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 	for (s = 0; s < n_snps; s++){
 
 		ss = snplst[s];
+
+        if (varlist[ss].type != 0 && !PARSEINDELS){
+            continue;
+        }
+
 		fragment->alist[fragment->variants].varid = ss;
 
 		if (max_hap & (int)(pow(2,s))){
 			align_qual = (int) (-10.0 * (ref_score_single[s] - total_score));
+
 			if (align_qual < MIN_QUAL) continue;
 
 			fragment->alist[fragment->variants].allele = '1';
 		}else{
 			align_qual = (int) (-10.0 * (alt_score_single[s] - total_score));
+
 			if (align_qual < MIN_QUAL) continue;
 
 			fragment->alist[fragment->variants].allele = '0';
@@ -256,6 +298,8 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 int compare_read_HAPs(struct alignedread* read,VARIANT* varlist,int* snplst, int n_snps, int hap_pos[], int* fcigarlist,int fcigs,int f1, int f2, REFLIST* reflist, FRAGMENT* fragment){
 	int op = fcigarlist[f1+1]&0xf; int ol = fcigarlist[f1+1]>>4;
 	int offset = varlist[snplst[0]].position-hap_pos[1];
+    char* anchor_seq = malloc(MINLEN+1);
+    int anchor_start = 0, anchor_end = 0, j = 0;
 
 	int positions[4] = {hap_pos[0],hap_pos[1],hap_pos[2],hap_pos[3]}; // left anchor position on read, left pos on ref, right position on read, right position on ref...
 
@@ -281,13 +325,35 @@ int compare_read_HAPs(struct alignedread* read,VARIANT* varlist,int* snplst, int
 		}
 
 		if (op == BAM_CEQUAL && ol >= MINLEN){
-			flag =0;
-			positions[0] += ol-MINLEN;
-			positions[1] += ol-MINLEN;
+
+            // don't forget +1 to strlen for end character
+            anchor_start = positions[1]+ol-MINLEN - COMPLEXITY_K;
+            anchor_end   = anchor_start + MINLEN + COMPLEXITY_K;
+            if (anchor_start < 0)
+                anchor_start = 0;
+            if (anchor_end >= reflist->lengths[reflist->current])
+                anchor_end = reflist->lengths[reflist->current];
+
+            for (j = anchor_start; j < anchor_end; j++){
+                anchor_seq[j-anchor_start] = reflist->sequences[reflist->current][j-1];
+            }
+            anchor_seq[j-anchor_start]  ='\0';
+
+            if (test_complexity(anchor_seq, COMPLEXITY_K)){
+    			flag =0;
+                positions[0] += ol-MINLEN;
+    			positions[1] += ol-MINLEN;
+            }
 		}
 
 		f1--;
 	}
+
+    if (flag){ // didn't find a left anchor
+        free(anchor_seq);
+        return 0;
+    }
+
 	if (VERBOSE) fprintf(stdout," left |");
 
 	flag = 1;
@@ -318,14 +384,34 @@ int compare_read_HAPs(struct alignedread* read,VARIANT* varlist,int* snplst, int
 			positions[3] += ol;
 		}
 
-		if (f2 > f2_bak && op == BAM_CEQUAL && ol >= MINLEN)
-		{
-			flag =0;
-			positions[2] -= ol-MINLEN;
-			positions[3] -= ol-MINLEN;
+		if (f2 > f2_bak && op == BAM_CEQUAL && ol >= MINLEN){
+
+            // don't forget +1 to strlen for end character
+            anchor_start = positions[3] - ol - COMPLEXITY_K;
+            anchor_end = anchor_start + MINLEN + COMPLEXITY_K;
+            if (anchor_start < 0)
+                anchor_start = 0;
+            if (anchor_end >= reflist->lengths[reflist->current])
+                anchor_end = reflist->lengths[reflist->current];
+
+            for (j = anchor_start; j < anchor_end; j++){
+                anchor_seq[j - anchor_start] = reflist->sequences[reflist->current][j-1];
+            }
+            anchor_seq[j-anchor_start]  ='\0';
+
+            if (test_complexity(anchor_seq, COMPLEXITY_K)){
+    			flag =0;
+                positions[2] -= ol-MINLEN;
+    			positions[3] -= ol-MINLEN;
+            }
 		}
 		f2++;
 	}
+
+    if (flag){ // didn't find a right anchor
+        free(anchor_seq);
+        return 0;
+    }
 
 	if (VERBOSE) fprintf(stdout,"found right-anchor\n");
 
@@ -353,6 +439,7 @@ int compare_read_HAPs(struct alignedread* read,VARIANT* varlist,int* snplst, int
 
 	realign_HAPs(read,reflist,positions,varlist, snplst, n_snps, fragment);
 
+    free(anchor_seq);
     return 0;
 }
 
@@ -362,7 +449,7 @@ int realign_and_extract_variants_read(struct alignedread* read,HASHTABLE* ht,CHR
 	//fprintf(stderr,"%s \n",read->readid);
 
     int* snplst = malloc(MAX_SNPs_SHORT_HAP*sizeof(int));
-	int start = read->position; int end = start + read->span; int ss=0,firstvar=0,j=0,ov=0,i=0;
+	int start = read->position; int end = start + read->span; int ss=0,firstvar=0,j=0,ov=0, i=0, k=0, has_a_SNV = 0;
 	j = (int)(start/BSIZE);
 	if (j >= chromvars[chrom].blocks) return 0; // another BUG april29 2011 found here
 	ss = chromvars[chrom].intervalmap[j];
@@ -420,7 +507,6 @@ int realign_and_extract_variants_read(struct alignedread* read,HASHTABLE* ht,CHR
 
 	for (i=0;i<fcigs;i++)
 	{
-
 		while (ss < VARIANTS && ss <= chromvars[chrom].last && varlist[ss].position < l2){
 			ss++;
 		}
@@ -444,7 +530,17 @@ int realign_and_extract_variants_read(struct alignedread* read,HASHTABLE* ht,CHR
 					// If this variant is far away from the last variant, then analyze the cluster of variants seen up til now
 					if (n_snps > 0 && ((varlist[ss].position - prev_snp_position > SHORT_HAP_CUTOFF) || (n_snps == MAX_SNPs_SHORT_HAP))){
 
-						compare_read_HAPs(read,varlist,snplst,n_snps,hap_pos,fcigarlist,fcigs,f1,f2,reflist,fragment);
+                        // if we aren't parsing INDELs, make sure this short haplotype has at least one SNV
+                        has_a_SNV = 0;
+                        for (k = 0; k < n_snps; k++){
+                            if (varlist[snplst[k]].type == 0){
+                                has_a_SNV = 1;
+                            }
+                        }
+
+                        if (has_a_SNV || PARSEINDELS){
+							compare_read_HAPs(read,varlist,snplst,n_snps,hap_pos,fcigarlist,fcigs,f1,f2,reflist,fragment);
+                        }
 
 						// empty the current cluster of variants
 						n_snps = 0;
@@ -511,7 +607,19 @@ int realign_and_extract_variants_read(struct alignedread* read,HASHTABLE* ht,CHR
 
 	// might have a straggler SNP left over
 	if(n_snps > 0){
-		compare_read_HAPs(read,varlist,snplst,n_snps,hap_pos,fcigarlist,fcigs,f1,f2,reflist,fragment);
+
+        // if we aren't parsing INDELs, make sure this short haplotype has at least one SNV
+        has_a_SNV = 0;
+        for (k = 0; k < n_snps; k++){
+            if (varlist[snplst[k]].type == 0){
+                has_a_SNV = 1;
+            }
+        }
+
+        //
+        if (has_a_SNV || PARSEINDELS){
+            compare_read_HAPs(read,varlist,snplst,n_snps,hap_pos,fcigarlist,fcigs,f1,f2,reflist,fragment);
+        }
 	}
 
     free(snplst);

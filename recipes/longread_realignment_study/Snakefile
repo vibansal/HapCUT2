@@ -1,0 +1,172 @@
+# author: Peter Edge
+# 12/19/2016
+# email: pedge@eng.ucsd.edu
+
+# this is a snakemake Snakefile, written using snakemake 3.5.5
+
+################################################################################
+# USER CONFIG
+# edit these to point to the correct paths for binaries / jars
+# or just the program name if you have them in your PATH
+HAPCUT2_DIR  = '/home/peter/git/HapCUT2' #'/oasis/tscc/scratch/pedge/longread_realignment/HapCUT2'
+SAMTOOLS     = 'samtools' # samtools 1-2, htslib 1.21
+BAMTOOLS     = 'bamtools' # version 2.4
+################################################################################
+
+import sys, os
+HAPCUT2      = os.path.join(HAPCUT2_DIR,'build/HAPCUT2')
+EXTRACTHAIRS = os.path.join(HAPCUT2_DIR,'build/extractHAIRS')
+UTILITIES    = os.path.join(HAPCUT2_DIR,'utilities')
+
+sys.path.append(UTILITIES)
+import calculate_haplotype_statistics as chs
+
+localrules: all
+
+# change this list to limit the chromosomes analyzed
+chroms = ['chr{}'.format(x) for x in range(1,23)]+['chrX'] #,'chrY']
+
+HG38_VCF_URL = 'ftp://platgene_ro@ussd-ftp.illumina.com/2017-1.0/hg38/small_variants/NA12878/NA12878.vcf.gz'
+HG19_VCF_URL = 'ftp://platgene_ro@ussd-ftp.illumina.com/2017-1.0/hg19/small_variants/NA12878/NA12878.vcf.gz'
+PACBIO_URL   = 'ftp://ftp-trace.ncbi.nlm.nih.gov/giab/ftp/data/NA12878/NA12878_PacBio_MtSinai/sorted_final_merged.bam'
+HG19_URL     = 'http://hgdownload.cse.ucsc.edu/goldenpath/hg19/bigZips/hg19.2bit'
+HG38_URL     = 'ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/technical/reference/GRCh38_reference_genome/GRCh38_full_analysis_set_plus_decoy_hla.fa'
+PLATINUM_GENOMES_VCF_URL = 'ftp://platgene_ro@ussd-ftp.illumina.com/2017-1.0/{version}/small_variants/NA12878/NA12878.vcf.gz'
+ONT_BAM_URL  = 'http://s3.amazonaws.com/nanopore-human-wgs/{chrom}.sorted.bam'
+TWOBITTOFASTA_URL = 'http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/twoBitToFa'
+
+datatypes = ['pacbio', 'ont']
+
+rule all:
+    input:
+        expand('output/{d}/realign{r}/results/error.p',d=datatypes,r=[0,1])
+
+# run HapCUT2 to assemble haplotypes from combined Hi-C + 10X haplotype fragments
+rule count_accuracy:
+    params: job_name = 'calculate_error_rates.{datatype}.realign{realign}',
+    input:  assembly_files = expand('output/{{datatype}}/realign{{realign}}/haps/{chrom}.hap',chrom=chroms),
+            frag_files = expand('data/{{datatype}}/realign{{realign}}/frag/{chrom}.frag',chrom=chroms),
+            vcf_files = expand('data/{{datatype}}/VCFs/{chrom}.vcf',chrom=chroms),
+            phased_vcf_files = expand('data/{{datatype}}/VCFs/{chrom}.vcf',chrom=chroms),
+            #contig_size_file = sys.path.append(UTILITIES,'hg19.chrom.sizes')
+    output: pickle = 'output/{datatype}/realign{realign}/results/error.p',
+    run:
+        err = chs.hapblock_vcf_error_rate_multiple(input.assembly_files, input.frag_files, input.vcf_files, input.phased_vcf_files, contig_size_file=None, largest_blk_only=False)
+        pickle.dump(err,open(output.pickle,'wb'))
+        print(err)
+
+# run HapCUT2 to assemble haplotypes from combined Hi-C + longread haplotype fragments
+rule run_hapcut2:
+    params: job_name = '{chrom}.{datatype}.realign{realign}.hapcut2',
+    input:  frag_file = 'data/{datatype}/realign{realign}/frag/{chrom}.frag',
+            vcf_file  = 'data/{datatype}/VCFs/{chrom}.vcf'
+    output: hap = 'output/{datatype}/realign{realign}/haps/{chrom}.hap'
+    run:
+        shell('{HAPCUT2} --fragments {input.frag_file} --vcf {input.vcf_file} --output {output.hap} --{wildcards.datatype} {wildcards.realign}')
+
+# convert Hi-C bam files to haplotype fragment files
+rule extract_hairs:
+    params: job_name = '{chrom}.extracthairs',
+    input:  bam_file  = 'data/{datatype}/bams/{chrom}.bam',
+            vcf_file  = 'data/{datatype}/VCFs/{chrom}.vcf',
+            ref_file  = 'data/{datatype}/ref.fa',
+            fai_file  = 'data/{datatype}/ref.fa.fai',
+    output: frag      = 'data/{datatype}/realign{realign}/frag/{chrom}.frag'
+    shell:  '{EXTRACTHAIRS} --bam {input.bam_file} --VCF {input.vcf_file} --ref {input.ref_file} --{wildcards.datatype} {wildcards.realign} > {output.frag}'
+
+#index bamfile
+rule index_bam:
+    params: job_name = 'index_bam{x}'
+    input:  bam = '{x}.bam'
+    output: bai = '{x}.bam.bai'
+    shell:  '{SAMTOOLS} index {input.bam} {output.bai}'
+
+# index fasta reference
+rule index_fasta:
+    params: job_name = lambda wildcards: 'index_fa.{}'.format(str(wildcards.x).replace("/", "."))
+    input:  fa  = '{x}.fa'
+    output: fai = '{x}.fa.fai'
+    shell:  '{SAMTOOLS} faidx {input.fa}'
+
+# download hg19 reference, for the aligned pacbio reads
+rule download_hg19_pacbio:
+    params: job_name = 'download_hg19_pacbio',
+            url      = HG19_URL
+    output: fa = 'data/pacbio/ref.fa'
+    shell:
+        '''
+        wget {params.url} -O {output.fa}.2bit
+        wget {TWOBITTOFASTA_URL}
+        ./twoBitToFa {output.fa}.2bit > {output.fa}
+        '''
+
+# download hg38 reference, for the aligned oxford nanopore reads
+rule download_hg38_ont:
+    params: job_name = 'download_hg38_ont',
+            url      = HG38_URL
+    output: fa = 'data/ont/ref.fa',
+            fai = 'data/ont/ref.fa.fai'
+    shell:
+        '''
+        wget {params.url} -O {output.fa}
+        wget {params.url}.fai -O {output.fa}.fai
+        '''
+
+# split platinum genomes variant file into files for separate chromosome
+rule split_platinum_genomes_VCF_hg19:
+    params: job_name = 'split_platinum_genomes_VCF.hg19.{chrom}'
+    input:  vcf = 'data/hg19.NA12878.vcf.gz'
+    output: vcf = 'data/pacbio/VCFs/{chrom}.vcf'
+    shell: 'gunzip -c {input.vcf} | grep -P "^{wildcards.chrom}\t" > {output.vcf}'
+
+# split platinum genomes variant file into files for separate chromosome
+rule split_platinum_genomes_VCF_hg38:
+    params: job_name = 'split_platinum_genomes_VCF.hg38.{chrom}'
+    input:  vcf = 'data/hg38.NA12878.vcf.gz'
+    output: vcf = 'data/ont/VCFs/{chrom}.vcf'
+    shell: 'gunzip -c {input.vcf} | grep -P "^{wildcards.chrom}\t" > {output.vcf}'
+
+# download set of variants for NA12878 from platinum genomes
+rule download_platinum_genomes_VCF:
+    params: job_name = 'download_platinum_genomes_VCF.{version}',
+            url      = PLATINUM_GENOMES_VCF_URL
+    output: vcf = 'data/{version}.NA12878.vcf.gz'
+    shell: 'wget {params.url} -O {output.vcf}'
+
+# split pacbio bam file by chromosome
+# the automatic naming convention for split bams is really goofy so rename them
+rule split_pacbio_bam:
+    params: job_name = 'split_pacbio_bam',
+            stub     = 'data/pacbio/bams/split/pacbio',
+    input:  bam = 'data/pacbio.sorted_final_merged.bam'
+    output: expand('data/pacbio/bams/{chrom}.bam',chrom=chroms)
+    shell:
+        '''
+        {BAMTOOLS} split -in {input.bam} -reference -stub {params.stub}
+        for chrom in {chroms}; do
+            mv data/pacbio/bams/split/pacbio.REF_${{chrom}}.bam data/pacbio/bams/${{chrom}}.bam;
+        done;
+        '''
+
+# download ~44x coverage oxford nanopore reads for NA12878, in BAM format aligned to hg19
+rule download_pacbio_bam:
+    params: job_name = 'download_pacbio_bam'
+    output: bam = 'data/pacbio.sorted_final_merged.bam',
+            bai = 'data/pacbio.sorted_final_merged.bam.bai'
+    shell:
+        '''
+        wget {PACBIO_URL} -O {output.bam}
+        wget {PACBIO_URL}.bai -O {output.bai}
+        '''
+
+# download ~30x coverage oxford nanopore reads for NA12878, in BAM format aligned to hg38
+rule download_ONT_bam:
+    params: job_name = 'download_ONT_bam.{chrom}',
+            url      = ONT_BAM_URL
+    output: bam = 'data/ont/bams/{chrom}.bam',
+            bai = 'data/ont/bams/{chrom}.bam.bai'
+    shell:
+        '''
+        wget {params.url} -O {output.bam}
+        wget {params.url}.bai {output.bai}
+        '''

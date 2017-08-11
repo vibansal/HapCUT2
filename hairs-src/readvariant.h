@@ -1,5 +1,5 @@
 #ifndef _READVARIANT_H
-#define _READVARIANT_H 
+#define _READVARIANT_H
 #include<stdio.h>
 #include<stdlib.h>
 #include<time.h>
@@ -23,7 +23,7 @@ typedef struct {
     short altalleles;
     char* RA;
     char* AA; // alternate alleles
-    double* GLL; // genotype likelihoods added 11/25/13 
+    double* GLL; // genotype likelihoods added 11/25/13
     char* genotype; // encoded as integers 0 1 2 3 4 5 6 7
     short type;
     // changed this to char* on April 3 2012
@@ -34,7 +34,7 @@ typedef struct {
     int A1, A2;
     int H1, H2;
     // total reads covering this variant (haploid/diploid, A1-> reads supporting reference allele (single-read)
-    //	float L11,L12,L22; // genotype likelihoods for three possible genotypes 
+    //	float L11,L12,L22; // genotype likelihoods for three possible genotypes
 } VARIANT;
 
 // information about the variants on each chromosome
@@ -57,7 +57,7 @@ typedef struct
 {
         char* id; 	int variants; allele* alist;
         int blocks; int paired; int matepos;
-	
+
 } FRAGMENT;
 
 int compare_fragments(const void *a,const void *b);
