@@ -8,7 +8,7 @@
 # USER CONFIG
 # edit these to point to the correct paths for binaries / jars
 # or just the program name if you have them in your PATH
-HAPCUT2_DIR  = '/home/peter/git/HapCUT2' #'/oasis/tscc/scratch/pedge/longread_realignment/HapCUT2'
+HAPCUT2_DIR  = '/oasis/tscc/scratch/pedge/longread_realignment/HapCUT2'
 SAMTOOLS     = 'samtools' # samtools 1-2, htslib 1.21
 BAMTOOLS     = 'bamtools' # version 2.4
 ################################################################################
@@ -20,6 +20,7 @@ UTILITIES    = os.path.join(HAPCUT2_DIR,'utilities')
 
 sys.path.append(UTILITIES)
 import calculate_haplotype_statistics as chs
+from prune_haplotype import prune_hapblock_file
 
 localrules: all
 
@@ -44,7 +45,7 @@ rule all:
 # run HapCUT2 to assemble haplotypes from combined Hi-C + 10X haplotype fragments
 rule count_accuracy:
     params: job_name = 'calculate_error_rates.{datatype}.realign{realign}',
-    input:  assembly_files = expand('output/{{datatype}}/realign{{realign}}/haps/{chrom}.hap',chrom=chroms),
+    input:  assembly_files = expand('output/{{datatype}}/realign{{realign}}/haps/{chrom}.hap.pruned',chrom=chroms),
             frag_files = expand('data/{{datatype}}/realign{{realign}}/frag/{chrom}.frag',chrom=chroms),
             vcf_files = expand('data/{{datatype}}/VCFs/{chrom}.vcf',chrom=chroms),
             phased_vcf_files = expand('data/{{datatype}}/VCFs/{chrom}.vcf',chrom=chroms),
@@ -55,6 +56,14 @@ rule count_accuracy:
         pickle.dump(err,open(output.pickle,'wb'))
         print(err)
 
+# prune haplotype blocks using HapCUT2 quality scores for maximum accuracy
+rule prune_haplotype:
+    params: job_name = "prune_haplotype.{datatype}.realign{realign}.{chrom}",
+    input:  hap = 'output/{datatype}/realign{realign}/haps/{chrom}.hap'
+    output: hap = 'output/{datatype}/realign{realign}/haps/{chrom}.hap.pruned'
+    run:
+        prune_hapblock_file(input.hap, output.hap, snp_conf_cutoff=90, split_conf_cutoff=30, use_refhap_heuristic=False)
+
 # run HapCUT2 to assemble haplotypes from combined Hi-C + longread haplotype fragments
 rule run_hapcut2:
     params: job_name = '{chrom}.{datatype}.realign{realign}.hapcut2',
@@ -62,7 +71,7 @@ rule run_hapcut2:
             vcf_file  = 'data/{datatype}/VCFs/{chrom}.vcf'
     output: hap = 'output/{datatype}/realign{realign}/haps/{chrom}.hap'
     run:
-        shell('{HAPCUT2} --fragments {input.frag_file} --vcf {input.vcf_file} --output {output.hap} --{wildcards.datatype} {wildcards.realign}')
+        shell('{HAPCUT2} --fragments {input.frag_file} --vcf {input.vcf_file} --output {output.hap} --ea 1')
 
 # convert Hi-C bam files to haplotype fragment files
 rule extract_hairs:
