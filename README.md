@@ -7,10 +7,13 @@ We found that previously described haplotype assembly methods are specialized fo
 - NGS short reads (Illumina HiSeq)
 - clone-based sequencing (Fosmid or BAC clones)
 - SMRT reads (PacBio)
+- Oxford Nanopore reads
 - 10X Genomics Linked-Reads
 - proximity-ligation (Hi-C) reads
 - high-coverage sequencing (>40x coverage-per-SNP) using above technologies
 - combinations of the above technologies (e.g. scaffold long reads with Hi-C reads)
+
+See below for specific examples of command line options and best practices for some of these technologies.
 
 ## Citation:
 If you use HapCUT2 in your research, please cite:
