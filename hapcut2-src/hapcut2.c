@@ -34,6 +34,7 @@ int SPLIT_BLOCKS = 0;
 int DISCRETE_PRUNING = 0;
 int ERROR_ANALYSIS_MODE = 0;
 int SKIP_PRUNE = 0;
+int SNVS_BEFORE_INDELS = 0;
 
 int AUTODETECT_LONGREADS = 1;
 int LONG_READS = 0; // if this variable is 1, the data contains long read data
@@ -161,7 +162,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
     // INITIALIZE RANDOM HAPLOTYPES
     HAP1 = (char*) malloc(snps + 1);
     for (i = 0; i < snps; i++) {
-        if (snpfrag[i].frags == 0) {
+        if (snpfrag[i].frags == 0 || (SNVS_BEFORE_INDELS && (strlen(snpfrag[i].allele0) != 1 || strlen(snpfrag[i].allele1) != 1))) {
             HAP1[i] = '-';
         } else if (drand48() < 0.5) {
             HAP1[i] = '0';
@@ -406,6 +407,9 @@ int main(int argc, char** argv) {
         }else if (strcmp(argv[i], "--error_analysis_mode") == 0 || strcmp(argv[i], "--ea") == 0){
             check_input_0_or_1(argv[i + 1]);
             ERROR_ANALYSIS_MODE = atoi(argv[i + 1]);
+        }else if (strcmp(argv[i], "--SNVs_before_indels") == 0 || strcmp(argv[i], "--si") == 0){
+            check_input_0_or_1(argv[i + 1]);
+            SNVS_BEFORE_INDELS = atoi(argv[i + 1]);
         }
         // ADVANCED OPTIONS
         else if (strcmp(argv[i], "--nf") == 0 || strcmp(argv[i], "--new_format") == 0){

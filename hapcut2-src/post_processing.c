@@ -17,6 +17,7 @@ extern int SPLIT_BLOCKS;
 extern int HTRANS_READ_LOWBOUND;
 extern char HTRANS_DATA_OUTFILE[10000];
 extern int HTRANS_MAX_WINDOW;
+extern int SNVS_BEFORE_INDELS;
 
 float HIC_EM_THRESHOLD = 0.99; // use a strict-ish threshold for the HiC haplotype SNPs that we'll estimate h-trans from
 
@@ -35,6 +36,9 @@ void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfr
     float post_hap, post_hapf, post_00, post_11;
 
     for (i = 0; i < snps; i++) {
+
+        // "unmask" indel variant
+        if (SNVS_BEFORE_INDELS && (strlen(snpfrag[i].allele0) != 1 || strlen(snpfrag[i].allele1) != 1)) HAP1[i] = '0';
 
         // we only care about positions that are haplotyped
         if (!(HAP1[i] == '1' || HAP1[i] == '0')) continue;
@@ -91,15 +95,15 @@ void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfr
             post_11 = log_hom_prior + P_data_H11 - total;
 
             // change the status of SNPs that are above/below threshold
-            if (post_00 > log10(THRESHOLD)){
+            if (post_00 > log10(0.5)){
                 snpfrag[i].genotypes[0] = '0';
                 snpfrag[i].genotypes[2] = '0';
                 snpfrag[i].post_hap     = post_00;
-            }else if (post_11 > log10(THRESHOLD)){
+            }else if (post_11 > log10(0.5)){
                 snpfrag[i].genotypes[0] = '1';
                 snpfrag[i].genotypes[2] = '1';
                 snpfrag[i].post_hap     = post_11;
-            }else if (post_hapf > log10(THRESHOLD)){
+            }else if (post_hapf > log10(0.5)){
                 flip(HAP1[i]);                // SNP should be flipped
                 snpfrag[i].post_hap = post_hapf;
             }else{
@@ -116,7 +120,7 @@ void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfr
             post_hapf = log_het_prior + P_data_Hf - total;
 
             // change the status of SNPs that are above/below threshold
-            if (post_hapf > log10(THRESHOLD)){
+            if (post_hapf > log10(0.5)){
                 flip(HAP1[i]);                // SNP should be flipped
                 snpfrag[i].post_hap = post_hapf;
             }else{
