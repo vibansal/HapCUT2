@@ -3,14 +3,16 @@
 # email: pedge@eng.ucsd.edu
 
 # this is a snakemake Snakefile, written using snakemake 3.5.5
+localrules: all
 
 ################################################################################
 # USER CONFIG
 # edit these to point to the correct paths for binaries / jars
 # or just the program name if you have them in your PATH
-HAPCUT2_DIR  = '/home/peter/git/HapCUT2' #'/oasis/tscc/scratch/pedge/longread_realignment/HapCUT2'
+HAPCUT2_DIR  = '/oasis/tscc/scratch/pedge/longread_realignment/HapCUT2'
 SAMTOOLS     = 'samtools' # samtools 1-2, htslib 1.21
 BAMTOOLS     = 'bamtools' # version 2.4
+TWOBITTOFASTA = 'twoBitToFa' # can be downloaded from 'http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/twoBitToFa'
 ################################################################################
 
 import sys, os
@@ -20,8 +22,7 @@ UTILITIES    = os.path.join(HAPCUT2_DIR,'utilities')
 
 sys.path.append(UTILITIES)
 import calculate_haplotype_statistics as chs
-
-localrules: all
+from prune_haplotype import prune_hapblock_file
 
 # change this list to limit the chromosomes analyzed
 chroms = ['chr{}'.format(x) for x in range(1,23)]+['chrX'] #,'chrY']
@@ -33,7 +34,6 @@ HG19_URL     = 'http://hgdownload.cse.ucsc.edu/goldenpath/hg19/bigZips/hg19.2bit
 HG38_URL     = 'ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/technical/reference/GRCh38_reference_genome/GRCh38_full_analysis_set_plus_decoy_hla.fa'
 PLATINUM_GENOMES_VCF_URL = 'ftp://platgene_ro@ussd-ftp.illumina.com/2017-1.0/{version}/small_variants/NA12878/NA12878.vcf.gz'
 ONT_BAM_URL  = 'http://s3.amazonaws.com/nanopore-human-wgs/{chrom}.sorted.bam'
-TWOBITTOFASTA_URL = 'http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/twoBitToFa'
 
 datatypes = ['pacbio', 'ont']
 
@@ -44,7 +44,7 @@ rule all:
 # run HapCUT2 to assemble haplotypes from combined Hi-C + 10X haplotype fragments
 rule count_accuracy:
     params: job_name = 'calculate_error_rates.{datatype}.realign{realign}',
-    input:  assembly_files = expand('output/{{datatype}}/realign{{realign}}/haps/{chrom}.hap',chrom=chroms),
+    input:  assembly_files = expand('output/{{datatype}}/realign{{realign}}/haps/{chrom}.hap.pruned',chrom=chroms),
             frag_files = expand('data/{{datatype}}/realign{{realign}}/frag/{chrom}.frag',chrom=chroms),
             vcf_files = expand('data/{{datatype}}/VCFs/{chrom}.vcf',chrom=chroms),
             phased_vcf_files = expand('data/{{datatype}}/VCFs/{chrom}.vcf',chrom=chroms),
@@ -55,6 +55,14 @@ rule count_accuracy:
         pickle.dump(err,open(output.pickle,'wb'))
         print(err)
 
+# prune haplotype blocks using HapCUT2 quality scores for maximum accuracy
+rule prune_haplotype:
+    params: job_name = "prune_haplotype.{datatype}.realign{realign}.{chrom}",
+    input:  hap = 'output/{datatype}/realign{realign}/haps/{chrom}.hap'
+    output: hap = 'output/{datatype}/realign{realign}/haps/{chrom}.hap.pruned'
+    run:
+        prune_hapblock_file(input.hap, output.hap, snp_conf_cutoff=90, split_conf_cutoff=30, use_refhap_heuristic=False)
+
 # run HapCUT2 to assemble haplotypes from combined Hi-C + longread haplotype fragments
 rule run_hapcut2:
     params: job_name = '{chrom}.{datatype}.realign{realign}.hapcut2',
@@ -62,7 +70,7 @@ rule run_hapcut2:
             vcf_file  = 'data/{datatype}/VCFs/{chrom}.vcf'
     output: hap = 'output/{datatype}/realign{realign}/haps/{chrom}.hap'
     run:
-        shell('{HAPCUT2} --fragments {input.frag_file} --vcf {input.vcf_file} --output {output.hap} --{wildcards.datatype} {wildcards.realign}')
+        shell('{HAPCUT2} --fragments {input.frag_file} --vcf {input.vcf_file} --output {output.hap} --ea 1')
 
 # convert Hi-C bam files to haplotype fragment files
 rule extract_hairs:
@@ -92,12 +100,11 @@ rule index_fasta:
 rule download_hg19_pacbio:
     params: job_name = 'download_hg19_pacbio',
             url      = HG19_URL
-    output: fa = 'data/pacbio/ref.fa'
+    output: 'data/pacbio/ref.fa'
     shell:
         '''
-        wget {params.url} -O {output.fa}.2bit
-        wget {TWOBITTOFASTA_URL}
-        ./twoBitToFa {output.fa}.2bit > {output.fa}
+        wget {params.url} -O {output}.2bit
+        {TWOBITTOFASTA} {output}.2bit {output}
         '''
 
 # download hg38 reference, for the aligned oxford nanopore reads
@@ -131,17 +138,18 @@ rule download_platinum_genomes_VCF:
     params: job_name = 'download_platinum_genomes_VCF.{version}',
             url      = PLATINUM_GENOMES_VCF_URL
     output: vcf = 'data/{version}.NA12878.vcf.gz'
-    shell: 'wget {params.url} -O {output.vcf}'
+    shell: 'curl -o {output.vcf} {params.url}'
 
 # split pacbio bam file by chromosome
 # the automatic naming convention for split bams is really goofy so rename them
 rule split_pacbio_bam:
     params: job_name = 'split_pacbio_bam',
             stub     = 'data/pacbio/bams/split/pacbio',
-    input:  bam = 'data/pacbio.sorted_final_merged.bam'
+    input:  bam = 'data/pacbio/NA12878.sorted_final_merged.bam'
     output: expand('data/pacbio/bams/{chrom}.bam',chrom=chroms)
     shell:
         '''
+        mkdir -p data/pacbio/bams/split
         {BAMTOOLS} split -in {input.bam} -reference -stub {params.stub}
         for chrom in {chroms}; do
             mv data/pacbio/bams/split/pacbio.REF_${{chrom}}.bam data/pacbio/bams/${{chrom}}.bam;
@@ -151,8 +159,8 @@ rule split_pacbio_bam:
 # download ~44x coverage oxford nanopore reads for NA12878, in BAM format aligned to hg19
 rule download_pacbio_bam:
     params: job_name = 'download_pacbio_bam'
-    output: bam = 'data/pacbio.sorted_final_merged.bam',
-            bai = 'data/pacbio.sorted_final_merged.bam.bai'
+    output: bam = 'data/pacbio/NA12878.sorted_final_merged.bam',
+            bai = 'data/pacbio/NA12878.sorted_final_merged.bam.bai'
     shell:
         '''
         wget {PACBIO_URL} -O {output.bam}
@@ -168,5 +176,5 @@ rule download_ONT_bam:
     shell:
         '''
         wget {params.url} -O {output.bam}
-        wget {params.url}.bai {output.bai}
+        wget {params.url}.bai -O {output.bai}
         '''
