@@ -114,11 +114,25 @@ python3 utilities/LinkFragments.py --bam reads.sorted.bam --VCF variants.VCF --f
 
 For improved haplotype accuracy with Hi-C reads, use the --HiC 1 option for both extractHAIRS and HapCUT2 steps.
 
+## Pacific Biosciences and Oxford Nanopore Sequencing Reads
+
+Use the --pacbio 1 and --ont 1 options in extractHAIRS for greatly improved accuracy when using Pacific Biosciences and Oxford Nanopore reads, respectively. It is also highly recommended to split blocks based on the switch quality score, which can be computed using the --ea 1 option in HapCUT2.
+
+Here is an example using Pacific Biosciences data (replace --pacbio with --ont for oxford nanopore):
+```
+./build/extractHAIRS --pacbio 1 --bam reads.sorted.bam --VCF variants.VCF --out fragment_file
+./build/HAPCUT2 --ea 1 --fragments fragment_file --vcf variantcalls.vcf --output haplotype_output_file
+python3 utilities/prune_haplotype.py -i haplotype_output_file -o haplotype_output_file.pruned --min_mismatch_qual 30 --min_switch_qual 30
+# the quality-filtered haplotype is in haplotype_output_file.pruned
+```
+
+(note: the default alignment parameters for pacbio and oxford nanopore are not yet finalized, there will be significant improvements in accuracy regardless.)
+
 ## Calculating Haplotype Statistics
 The calculate_haplotype_statistics script in the utilities directory calculates haplotype error rates with respect to a reference haplotype, as well as completeness statistics such as N50 and AN50.
 
 ## Converting HapCUT2 output to VCF format
-Nils Homer has developed a tool HapCutToVcf that will soon support converting HapCUT2-formatted haplotype blocks into VCF format. It will be included with the fgbio tool suite, available [here](https://github.com/fulcrumgenomics/fgbio).
+Nils Homer has developed a tool HapCutToVcf that supports converting HapCUT2-formatted haplotype blocks into VCF format. It will be included with the fgbio tool suite, available [here](https://github.com/fulcrumgenomics/fgbio).
 
 ## Reproducing the HapCUT2 manuscript
 
