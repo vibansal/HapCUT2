@@ -128,9 +128,7 @@ Here is an example using Pacific Biosciences data (replace --pacbio with --ont f
 python3 utilities/prune_haplotype.py -i haplotype_output_file -o haplotype_output_file.pruned --min_mismatch_qual 30 --min_switch_qual 30
 # the quality-filtered haplotype is in haplotype_output_file.pruned
 ```
-
-(note: the default alignment parameters for pacbio and oxford nanopore are not yet finalized, there will be significant improvements in accuracy regardless.)
-
+The --indels option may be used if desired -- the realignment strategy used with these options allows better detection of indel variants in fragments than the previous approach.
 ## Calculating Haplotype Statistics
 The calculate_haplotype_statistics script in the utilities directory calculates haplotype error rates with respect to a reference haplotype, as well as completeness statistics such as N50 and AN50.
 
@@ -152,7 +150,11 @@ Extracthairs now has optimizations for error prone long read technologies (Pacif
 
 In the case of a cluster of n variants that are nearby one another (distance to nearest variant < 20 bps), the alignments of read-windows to each variant might not be independent. In this case, all (2^n) possible haplotypes for those variants are enumerated and a read-window spanning the cluster is aligned to each haplotype sequence. The maximum scoring haplotype is selected to determine the allele call for each variant position in the cluster, and the "base quality score" of each position is derived from the sum of posterior probabilities of haplotypes that do not contain that allele in that position.
 
+This also allows for more sensitive phasing of indel variants -- previously these were harder to detect from CIGAR string information alone, but the new approach allows better phasing of arbitrary insertions, deletions, MNPs, etc.
+
 What this means for users: use the --pacbio 1 option with Pacific Biosciences reads, and use the --ont 1 option with Oxford Nanopore reads. See newly created section above for a full example execution.
+
+(note: the default alignment parameters for pacbio and oxford nanopore are not yet finalized, but there will be SIGNIFICANT improvements in accuracy regardless, over the previous approach.)
 
 #### July 24, 2017
 The pipeline for phasing 10X Genomics linked reads has been updated. If you are currently using the old 10X pipeline, it is recommended to switch to the new one now. The new pipeline uses a new LinkFragments.py script to link haplotype fragments from short reads into long haplotype fragments based on their barcode. See the instructions above and the updated "10X" and "HiC + 10X" workflows in the recipes folder.
