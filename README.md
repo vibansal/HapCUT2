@@ -147,6 +147,13 @@ The directory **recipes** contains example pipelines to assemble haplotypes from
 
 ## Updates and Announcements:
 
+#### August 14, 2017
+Extracthairs now has optimizations for error prone long read technologies (Pacific Biosciences and Oxford Nanopore). The strategy performs a sensitive realignment in a window around the potential variant. A read-window is aligned to both the reference sequence, and the variant sequence (reference sequence modified to contain the variant). An allele call is assigned based on the best alignment, and the "base quality" of the allele call is determined by a bayesian posterior calculated using both alignment scores.
+
+In the case of a cluster of n variants that are nearby one another (distance to nearest variant < 20 bps), the alignments of read-windows to each variant might not be independent. In this case, all (2^n) possible haplotypes for those variants are enumerated and a read-window spanning the cluster is aligned to each haplotype sequence. The maximum scoring haplotype is selected to determine the allele call for each variant position in the cluster, and the "base quality score" of each position is derived from the sum of posterior probabilities of haplotypes that do not contain that allele in that position.
+
+What this means for users: use the --pacbio 1 option with Pacific Biosciences reads, and use the --ont 1 option with Oxford Nanopore reads. See newly created section above for a full example execution.
+
 #### July 24, 2017
 The pipeline for phasing 10X Genomics linked reads has been updated. If you are currently using the old 10X pipeline, it is recommended to switch to the new one now. The new pipeline uses a new LinkFragments.py script to link haplotype fragments from short reads into long haplotype fragments based on their barcode. See the instructions above and the updated "10X" and "HiC + 10X" workflows in the recipes folder.
 
