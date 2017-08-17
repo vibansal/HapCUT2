@@ -28,7 +28,7 @@ void split_blocks_old(char* HAP, struct BLOCK* clist, int components, struct fra
 //int maxcut_split_blocks(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1, int iter);
 void improve_hap(char* HAP, struct BLOCK* clist, int components, int snps, int fragments, struct fragment* Flist, struct SNPfrags* snpfrag);
 int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struct SNPfrags* snpfrag);
-int prune_HiC_cluster(int max_window, char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, struct SNPfrags* snpfrag, int* components_ptr);
+int prune_HiC_cluster(int max_window, char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, struct SNPfrags* snpfrag,int fragments);
 
 void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1, int call_homozygous) {
     int i, j, f;
@@ -259,8 +259,8 @@ int split_block(char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, s
 }
 
 
-int prune_HiC_cluster(int max_window, char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, struct SNPfrags* snpfrag, int* components_ptr) {
-    int i1, i2, j, f, s, w, ws;
+int prune_HiC_cluster(int max_window, char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, struct SNPfrags* snpfrag, int fragments) {
+    int i1, i2, j1, j2, f, s, w, ws;
     float P_data_H, P_data_Hsw, post_sw, post_notsw;
 
     if (clist[k].phased <= 16){
@@ -270,7 +270,7 @@ int prune_HiC_cluster(int max_window, char* HAP, struct BLOCK* clist, int k, str
     if (max_window > (int)(clist[k].phased / 3)){
         max_window = (int)(clist[k].phased / 3);
     }
-
+    int* seen_frag = (int*) malloc(fragments*sizeof(int));
     // consider an error window of size w
     for (w = 2; w < max_window; w++){
         // s1 is the first SNP
@@ -284,12 +284,24 @@ int prune_HiC_cluster(int max_window, char* HAP, struct BLOCK* clist, int k, str
             P_data_Hsw = 0; // switches at i and j
 
             //looping over fragments in component c and sum up read probabilities
-            for (j = 0; j < clist[k].frags; j++) {
-                // normal haplotype
-                f = clist[k].flist[j];
-                P_data_H += fragment_ll(Flist, f, HAP, -1, -1, -1);
-                // haplotype with switch error starting at i
-                P_data_Hsw += fragment_ll(Flist, f, HAP, -1, i1, i2);
+            //for (j = 0; j < clist[k].frags; j++) {
+            //looping over fragments overlapping i and sum up read probabilities
+            memset(seen_frag, 0, fragments*sizeof(int));
+            for (j1 = i1; j1 < i2; j1++){
+                for (j2 = 0; j2 < snpfrag[j1].frags; j2++) {
+
+                    f = snpfrag[j1].flist[j2];
+
+                    if (seen_frag[f])
+                        continue;
+                    seen_frag[f] = 1;
+
+                    // normal haplotype
+                    //f = clist[k].flist[j];
+                    P_data_H += fragment_ll(Flist, f, HAP, -1, -1, -1);
+                    // haplotype with switch error starting at i
+                    P_data_Hsw += fragment_ll(Flist, f, HAP, -1, i1, i2);
+                }
             }
             // posterior probability of no switch error
             post_sw = P_data_Hsw - addlogs(P_data_H, P_data_Hsw);
