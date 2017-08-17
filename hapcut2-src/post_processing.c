@@ -316,6 +316,8 @@ int prune_HiC_cluster(int max_window, char* HAP, struct BLOCK* clist, int k, str
         }
     }
 
+    free(seen_frag);
+
     return 0;
 }
 
