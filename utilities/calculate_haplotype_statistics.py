@@ -26,6 +26,7 @@ def parse_args():
     parser.add_argument('-pv', '--phased_vcf', nargs='*', type = str, help='compute errors with respect to this phased single-individual VCF file(s). NOTE: Files must be separated by contig/chromosome! (Use with no arguments to use same VCF(s) from --vcf.)')
     parser.add_argument('-h2', '--reference_haplotype_blocks', nargs='+', type = str, help='compute errors with respect to this haplotype block file(s)')
     parser.add_argument('-v2', '--reference_vcf', nargs='*', type = str, help='VCF file(s) that was used to generate h2 haplotype fragments and phase h2 haplotype (--vcf in extractHAIRS and HapCUT2). Use with no arguments to use same VCF(s) from --vcf.')
+    parser.add_argument('-i', '--indels', nargs='?', action="store_true", help='Use this flag to consider indel variants. Default: Indels ignored.',default=False)
     parser.add_argument('-c', '--contig_size_file', nargs='?', type = str, help='Tab-delimited file with size of contigs (<contig>\\t<size>). If not provided, N50 will not be calculated.')
 
     # default to help option. credit to unutbu: http://stackoverflow.com/questions/4042452/display-help-message-with-python-argparse-when-script-is-called-without-any-argu
@@ -36,7 +37,7 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-def parse_hapblock_file(hapblock_file,vcf_file):
+def parse_hapblock_file(hapblock_file,vcf_file,indels=False):
 
     snp_ix = 0
     vcf_dict = dict()
@@ -58,8 +59,25 @@ def parse_hapblock_file(hapblock_file,vcf_file):
                 print("VCF file:             " + vcf_file)
                 exit(1)
 
+            a0 = el[3]
+            a1 = el[4]
+            a2 = None
+            if ',' in a1:
+                a1,a2 = a1.split(',')
+
+            genotype = el[9].split(':')[0]
+            consider = True
+            if not (len(genotype) == 3 and genotype[0] in ['0','1','2'] and
+                    genotype[1] in ['/','|'] and genotype[2] in ['0','1','2']):
+                cosider = False
+
+            if (not indels) and (('0' in genotype and len(a0) != 1) or
+                ('1' in genotype and len(a1) != 1) or ('2' in genotype and len(a2) != 1)):
+                cosider = False
+
             genomic_pos = int(el[1])-1
-            vcf_dict[snp_ix] = genomic_pos
+            if consider:
+                vcf_dict[snp_ix] = genomic_pos
             snp_ix += 1
 
     blocklist = [] # data will be a list of blocks, each with a list tying SNP indexes to haplotypes
@@ -72,33 +90,33 @@ def parse_hapblock_file(hapblock_file,vcf_file):
                 blocklist.append([])
                 continue
 
-            elements = line.strip().split('\t')
-            if len(elements) < 3: # not enough elements to have a haplotype
+            el = line.strip().split('\t')
+            if len(el) < 3: # not enough elements to have a haplotype
                 continue
 
-            snp_ix = int(elements[0])-1
+            snp_ix = int(el[0])-1
             pos = vcf_dict[snp_ix]
 
-            if len(elements) >= 5:
+            if len(el) >= 5:
 
-                chrom = elements[3]
+                chrom = el[3]
                 if chrom != CHROM:
                     print("ERROR: Chromosome in haplotype block file doesn't match chromosome in VCF")
                     print("Haplotype block file: " + hapblock_file)
                     print("VCF file:             " + vcf_file)
                     exit(1)
 
-                pos2 = int(elements[4])-1
+                pos2 = int(el[4])-1
                 assert(pos == pos2) # if present, genomic position in haplotype block file should match that from VCF
 
-            allele1 = elements[1]
-            allele2 = elements[2]
+            allele1 = el[1]
+            allele2 = el[2]
 
             blocklist[-1].append((snp_ix, pos, allele1, allele2))
 
     return blocklist
 
-def parse_vcf_phase(vcf_file, CHROM):
+def parse_vcf_phase(vcf_file, CHROM, indels = False):
 
     block = []
 
@@ -110,20 +128,38 @@ def parse_vcf_phase(vcf_file, CHROM):
             if line[0] == '#':
                 continue
 
-            elements = line.strip().split('\t')
-            if len(elements) < 10:
+            el = line.strip().split('\t')
+            if len(el) < 10:
                 continue
 
-            phase_data = elements[9]
-            chrom = elements[0]
+            phase_data = el[9]
+
+            a0 = el[3]
+            a1 = el[4]
+            a2 = None
+            if ',' in a1:
+                a1,a2 = a1.split(',')
+
+            genotype = el[9].split(':')[0]
+            consider = True
+
+            if not (len(genotype) == 3 and genotype[0] in ['0','1','2'] and
+                    genotype[1] in ['/','|'] and genotype[2] in ['0','1','2']):
+                consider = False
+
+            if (not indels) and (('0' in genotype and len(a0) != 1) or
+                ('1' in genotype and len(a1) != 1) or ('2' in genotype and len(a2) != 1)):
+                consider = False
+
+            chrom = el[0]
 
             if chrom != CHROM:
                 print("ERROR: Chromosome in reference haplotype VCF doesn't match chromosome in VCF used for phasing")
                 print("reference haplotype VCF: " + vcf_file)
 
                 exit(1)
-            pos = int(elements[1])-1
-            if phase_data[0:3] == '1|0' or phase_data[0:3] == '0|1':
+            pos = int(el[1])-1
+            if consider and phase_data[0:3] == '1|0' or phase_data[0:3] == '0|1':
                 block.append((snp_ix, pos, phase_data[0:1], phase_data[2:3]))
 
             snp_ix += 1
@@ -131,7 +167,7 @@ def parse_vcf_phase(vcf_file, CHROM):
     return [block] # we return a list containing the single block so format consistent with hapblock file format
 
 # given a VCF file, simply count the number of heterozygous SNPs present.
-def count_SNPs(vcf_file):
+def count_SNPs(vcf_file,indels=False):
     count = 0
     with open(vcf_file,'r') as infile:
         for line in infile:
@@ -141,9 +177,20 @@ def count_SNPs(vcf_file):
             if len(el) < 5:
                 continue
 
-            GT = el[9][:3]
+            a0 = el[3]
+            a1 = el[4]
+            a2 = None
+            if ',' in a1:
+                a1,a2 = a1.split(',')
 
-            if GT not in ['0|1','1|0','0/1','1/0']:
+            genotype = el[9][:3]
+
+            if not (len(genotype) == 3 and genotype[0] in ['0','1','2'] and
+                    genotype[1] in ['/','|'] and genotype[2] in ['0','1','2']):
+                continue
+
+            if (not indels) and (('0' in genotype and len(a0) != 1) or
+                ('1' in genotype and len(a1) != 1) or ('2' in genotype and len(a2) != 1)):
                 continue
 
             count += 1
@@ -447,47 +494,47 @@ N50:                  {}
 max block snp frac:   {}
             '''.format(self.get_switch_rate(), self.get_mismatch_rate(),
                    self.get_flat_error_rate(), self.get_missing_rate(),
-                   self.get_phased_count(), 
+                   self.get_phased_count(),
                    self.get_AN50(),self.get_N50(),self.get_max_blk_snp_percent()))
 
         return s
 
 # compute error rates by using another haplotype block file as ground truth
-def hapblock_hapblock_error_rate_multiple(truth_files, truth_vcf_files, assembly_files, frag_files, vcf_files, contig_size_file):
+def hapblock_hapblock_error_rate_multiple(truth_files, truth_vcf_files, assembly_files, frag_files, vcf_files, contig_size_file,indels):
 
     err = error_result()
     for truth_file, truth_vcf_file, assembly_file, frag_file, vcf_file in zip(truth_files, truth_vcf_files, assembly_files, frag_files, vcf_files):
-        err += hapblock_hapblock_error_rate(truth_file, truth_vcf_file, assembly_file, frag_file, vcf_file, contig_size_file)
+        err += hapblock_hapblock_error_rate(truth_file, truth_vcf_file, assembly_file, frag_file, vcf_file, contig_size_file, indels)
 
     return err
 
 # compute error rates by using another haplotype block file as ground truth
-def hapblock_hapblock_error_rate(truth_file, truth_vcf_file, assembly_file, frag_file, vcf_file, contig_size_file):
+def hapblock_hapblock_error_rate(truth_file, truth_vcf_file, assembly_file, frag_file, vcf_file, contig_size_file,indels):
 
     # parse and get stuff to compute error rates
     t_blocklist = parse_hapblock_file(truth_file,truth_vcf_file)
     a_blocklist = parse_hapblock_file(assembly_file,vcf_file)
     # compute error result object
-    err = error_rate_calc(t_blocklist, a_blocklist, vcf_file, frag_file, contig_size_file)
+    err = error_rate_calc(t_blocklist, a_blocklist, vcf_file, frag_file, contig_size_file,indels)
     return err
 
 # compute error rates by using phase data in a VCF as ground truth
 # requires VCF to have trio phase information
-def hapblock_vcf_error_rate_multiple(assembly_files, frag_files, vcf_files, phased_vcf_files, contig_size_file, largest_blk_only=False):
+def hapblock_vcf_error_rate_multiple(assembly_files, frag_files, vcf_files, phased_vcf_files, contig_size_file, indels, largest_blk_only=False):
 
     err = error_result()
     for assembly_file, frag_file, vcf_file, phased_vcf_file in zip(assembly_files, frag_files, vcf_files, phased_vcf_files):
-        err += hapblock_vcf_error_rate(assembly_file, frag_file, vcf_file, phased_vcf_file, contig_size_file)
+        err += hapblock_vcf_error_rate(assembly_file, frag_file, vcf_file, phased_vcf_file, contig_size_file, indels)
 
     return err
 
 # compute error rates by using phase data in a VCF as ground truth
 # requires VCF to have phase information
-def hapblock_vcf_error_rate(assembly_file, frag_file, vcf_file, phased_vcf_file, contig_size_file, largest_blk_only=False):
+def hapblock_vcf_error_rate(assembly_file, frag_file, vcf_file, phased_vcf_file, contig_size_file, indels, largest_blk_only=False):
 
     # parse and get stuff to compute error rates
     CHROM = get_ref_name(vcf_file)
-    t_blocklist = parse_vcf_phase(phased_vcf_file, CHROM)
+    t_blocklist = parse_vcf_phase(phased_vcf_file, CHROM, indels)
     a_blocklist = parse_hapblock_file(assembly_file,vcf_file)
     # compute error result object
     if largest_blk_only:
@@ -498,14 +545,14 @@ def hapblock_vcf_error_rate(assembly_file, frag_file, vcf_file, phased_vcf_file,
 
         a_blocklist = [largest_blk]
 
-    err = error_rate_calc(t_blocklist, a_blocklist, vcf_file, frag_file, contig_size_file)
+    err = error_rate_calc(t_blocklist, a_blocklist, vcf_file, frag_file, contig_size_file, indels)
     return err
 
 # num_covered should be the number of SNPs with coverage in the fragment matrix file
-def error_rate_calc(t_blocklist, a_blocklist, vcf_file, frag_file, contig_size_file, phase_set=None):
+def error_rate_calc(t_blocklist, a_blocklist, vcf_file, frag_file, contig_size_file, indels=False, phase_set=None):
 
     ref_name    = get_ref_name(vcf_file)
-    num_snps = count_SNPs(vcf_file)
+    num_snps = count_SNPs(vcf_file,indels)
     num_covered = count_covered_positions(frag_file)
 
     switch_count   = 0
@@ -532,6 +579,7 @@ def error_rate_calc(t_blocklist, a_blocklist, vcf_file, frag_file, contig_size_f
 
         for snp_ix, pos, a1, a2 in blk:
 
+            #print('{}\t{}\t{}\t{}'.format(snp_ix, pos, a1, a2))
             if a1 == '-' or (phase_set != None and snp_ix not in phase_set):
                 missing_loc.append(pos)
             else:
@@ -724,6 +772,6 @@ if __name__ == '__main__':
     phased_vcf = args.vcf if args.phased_vcf == [] else args.phased_vcf
 
     if args.phased_vcf != None:
-        print(hapblock_vcf_error_rate_multiple(args.haplotype_blocks, args.fragments, args.vcf, phased_vcf, args.contig_size_file))
+        print(hapblock_vcf_error_rate_multiple(args.haplotype_blocks, args.fragments, args.vcf, phased_vcf, args.contig_size_file, args.indels))
     elif args.reference_haplotype_blocks != None:
-        print(hapblock_hapblock_error_rate_multiple(args.reference_haplotype_blocks, reference_vcf, args.haplotype_blocks, args.fragments, args.vcf, args.contig_size_file))
+        print(hapblock_hapblock_error_rate_multiple(args.reference_haplotype_blocks, reference_vcf, args.haplotype_blocks, args.fragments, args.vcf, args.contig_size_file, args.indels))

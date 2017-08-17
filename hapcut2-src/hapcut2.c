@@ -302,7 +302,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
 
     if (HIC_PRUNING){
         for (k=0; k<components; k++){
-            prune_HiC_cluster(MAX_HIC_ERROR_WINDOW,HAP1, clist, k, Flist, snpfrag, &new_components);
+            prune_HiC_cluster(MAX_HIC_ERROR_WINDOW,HAP1, clist, k, Flist, snpfrag, fragments);
         }
     }
 
