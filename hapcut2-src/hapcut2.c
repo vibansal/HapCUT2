@@ -51,7 +51,7 @@ char HTRANS_DATA_INFILE[10000];
 char HTRANS_DATA_OUTFILE[10000];
 int MAX_IS = -1;
 int HIC_PRUNING = 0;
-int MAX_HIC_ERROR_WINDOW = 30;
+int MAX_HIC_ERROR_WINDOW = 10;
 
 #include "find_maxcut.c"   // function compute_good_cut
 #include "post_processing.c"  // post-processing functions
