@@ -31,6 +31,7 @@ void print_hapcut_options() {
     //fprintf(stderr, "--split_threshold, --st <float>:    PHRED SCALED threshold for splitting blocks (range 0-100, larger values split more). default: 0\n");
     fprintf(stderr, "--call_homozygous, --ch <0/1>:      call positions as homozygous if they appear to be false heterozygotes. default: 0\n");
     fprintf(stderr, "--discrete_pruning, --dp <0/1>:     use discrete heuristic to prune SNPs. default: 0\n");
+    fprintf(stderr, "--hic_pruning, --hp <0/1>:     use experimental HiC pruning method. default: 0\n");
     fprintf(stderr, "--error_analysis_mode, --ea <0/1>:  compute switch confidence scores and print to haplotype file but don't split blocks or prune. default: 0\n");
 
     fprintf(stderr, "\nAdvanced Options:\n");
@@ -55,6 +56,11 @@ int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
     //char fn[200]; sprintf(fn,"%s-%d.phase",fname,score);
     FILE* fp;
     fp = fopen(outfile, "w");
+    if (!fp){
+        fprintf(stderr, "\nERROR: Couldn't open output haplotype file: %s\n\n",outfile);
+        exit(1);
+    }
+
 
     for (i = 0; i < blocks; i++) {
         span = snpfrag[clist[i].lastvar].position - snpfrag[clist[i].offset].position;

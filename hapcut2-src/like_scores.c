@@ -1,6 +1,8 @@
 /* functions to calculate likelihoods P(read| haplotype) for sequencing errors and chimeric fragments */
 
 #include "common.h"
+#include <assert.h>     /* assert */
+
 extern int HIC;
 
 void calculate_fragscore(struct fragment* Flist, int f, char* h, float* ll) {
@@ -136,7 +138,7 @@ void update_fragscore(struct fragment* Flist, int f, char* h) {
     if (HIC == 0 || Flist[f].data_type == 0){ // normal fragment
         // normal LL calculation
         Flist[f].ll = addlogs(p0,p1);
-    } else if (HIC && Flist[f].data_type == 1){ // HiC fragment 
+    } else if (HIC && Flist[f].data_type == 1){ // HiC fragment
         // Hi-C LL calculation accounting for h-trans
         normal_ll = addlogs(p0,p1);
         htrans_ll = addlogs(p0h,p1h);
@@ -155,8 +157,10 @@ void update_fragscore(struct fragment* Flist, int f, char* h) {
 // return score as return value
 // homozygous: 0-based index of a homozygous position. -1 if no homozygous pos
 
-// switch_ix: 0-based index of the switch error being tested, -1 if none
-float fragment_ll(struct fragment* Flist, int f, char* h, int homozygous, int switch_ix) {
+// switch_ix1: 0-based index of the first switch error being tested, -1 if none
+// switch_ix2: 0-based index of the second switch error being tested, -1 if none
+
+float fragment_ll(struct fragment* Flist, int f, char* h, int homozygous, int switch_ix1, int switch_ix2) {
     int j = 0, k = 0;
     float p0 = 0, p1 = 0, p0h = 0, p1h =0, prob = 0, prob1 = 0, prob2 = 0;
     float good = 0, bad = 0, ll=0;
@@ -180,7 +184,8 @@ float fragment_ll(struct fragment* Flist, int f, char* h, int homozygous, int sw
                 else bad += prob1;
 
                 // this is likelihood based calculation
-                switched = (switch_ix != -1 && snp_ix >= switch_ix);
+                assert(switch_ix2 == -1);
+                switched = (switch_ix1 != -1 && snp_ix >= switch_ix1);
                 if ((h[snp_ix] == Flist[f].list[j].hap[k]) != switched) { // true if match, or not match but switched
                     p0 += prob2;
                     if (snp_ix != homozygous)
@@ -215,7 +220,8 @@ float fragment_ll(struct fragment* Flist, int f, char* h, int homozygous, int sw
                 if (h[Flist[f].list[j].offset + k] == Flist[f].list[j].hap[k]) good += prob1;
                 else bad += prob1;
 
-                if (h[snp_ix] == Flist[f].list[j].hap[k]) { // true if match, or not match but switched
+                switched = (switch_ix1 != -1 && snp_ix >= switch_ix1 && snp_ix < switch_ix2);
+                if ((h[snp_ix] == Flist[f].list[j].hap[k]) != switched) { // true if match, or not match but switched
                     p0 += prob2;
                     if (snp_ix != homozygous)
                         p1 += prob;
@@ -229,8 +235,9 @@ float fragment_ll(struct fragment* Flist, int f, char* h, int homozygous, int sw
                         p1 += prob;
                 }
 
-                if (((h[snp_ix] == Flist[f].list[j].hap[k])&&(!htrans_flipped))
-                  ||((h[snp_ix] != Flist[f].list[j].hap[k])&&(htrans_flipped))){ // true if match, or not match but switched
+
+                if ((((h[snp_ix] == Flist[f].list[j].hap[k])&&(!htrans_flipped))
+                  ||((h[snp_ix] != Flist[f].list[j].hap[k])&&(htrans_flipped))) != switched){ // true if match, or not match but switched
                     p0h += prob2;
                     if (snp_ix != homozygous)
                         p1h += prob;

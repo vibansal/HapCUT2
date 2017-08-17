@@ -50,6 +50,8 @@ int HTRANS_MAX_WINDOW = 4000000; // maximum window size for h-trans estimation
 char HTRANS_DATA_INFILE[10000];
 char HTRANS_DATA_OUTFILE[10000];
 int MAX_IS = -1;
+int HIC_PRUNING = 0;
+int MAX_HIC_ERROR_WINDOW = 30;
 
 #include "find_maxcut.c"   // function compute_good_cut
 #include "post_processing.c"  // post-processing functions
@@ -297,6 +299,13 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
         discrete_pruning(snps, fragments, Flist, snpfrag, HAP1);
         likelihood_pruning(snps, Flist, snpfrag, HAP1, CALL_HOMOZYGOUS);
     }
+
+    if (HIC_PRUNING){
+        for (k=0; k<components; k++){
+            prune_HiC_cluster(MAX_HIC_ERROR_WINDOW,HAP1, clist, k, Flist, snpfrag, &new_components);
+        }
+    }
+
     // PRINT OUTPUT FILE
     fprintf_time(stderr, "OUTPUTTING PRUNED HAPLOTYPE ASSEMBLY TO FILE %s\n", outputfile);
     print_hapfile(clist, components, HAP1, Flist, fragments, snpfrag, variantfile, miscalls, outputfile);
@@ -404,6 +413,9 @@ int main(int argc, char** argv) {
         }else if (strcmp(argv[i], "--discrete_pruning") == 0 || strcmp(argv[i], "--dp") == 0){
             check_input_0_or_1(argv[i + 1]);
             DISCRETE_PRUNING = atoi(argv[i + 1]);
+        }else if (strcmp(argv[i], "--hic_pruning") == 0 || strcmp(argv[i], "--hp") == 0){
+            check_input_0_or_1(argv[i + 1]);
+            HIC_PRUNING = atoi(argv[i + 1]);
         }else if (strcmp(argv[i], "--error_analysis_mode") == 0 || strcmp(argv[i], "--ea") == 0){
             check_input_0_or_1(argv[i + 1]);
             ERROR_ANALYSIS_MODE = atoi(argv[i + 1]);
