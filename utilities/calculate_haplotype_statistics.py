@@ -69,11 +69,14 @@ def parse_hapblock_file(hapblock_file,vcf_file,indels=False):
             consider = True
             if not (len(genotype) == 3 and genotype[0] in ['0','1','2'] and
                     genotype[1] in ['/','|'] and genotype[2] in ['0','1','2']):
-                cosider = False
+                consider = False
+
+            if genotype[0] == genotype[2]:
+                consider = False
 
             if (not indels) and (('0' in genotype and len(a0) != 1) or
                 ('1' in genotype and len(a1) != 1) or ('2' in genotype and len(a2) != 1)):
-                cosider = False
+                consider = False
 
             genomic_pos = int(el[1])-1
             if consider:
@@ -95,6 +98,10 @@ def parse_hapblock_file(hapblock_file,vcf_file,indels=False):
                 continue
 
             snp_ix = int(el[0])-1
+            
+            if snp_ix not in vcf_dict:
+                continue
+
             pos = vcf_dict[snp_ix]
 
             if len(el) >= 5:
@@ -147,6 +154,9 @@ def parse_vcf_phase(vcf_file, CHROM, indels = False):
                     genotype[1] in ['/','|'] and genotype[2] in ['0','1','2']):
                 consider = False
 
+            if genotype[0] == genotype[2]:
+                consider = False
+
             if (not indels) and (('0' in genotype and len(a0) != 1) or
                 ('1' in genotype and len(a1) != 1) or ('2' in genotype and len(a2) != 1)):
                 consider = False
@@ -187,6 +197,9 @@ def count_SNPs(vcf_file,indels=False):
 
             if not (len(genotype) == 3 and genotype[0] in ['0','1','2'] and
                     genotype[1] in ['/','|'] and genotype[2] in ['0','1','2']):
+                continue
+
+            if genotype[0] == genotype[2]:
                 continue
 
             if (not indels) and (('0' in genotype and len(a0) != 1) or
