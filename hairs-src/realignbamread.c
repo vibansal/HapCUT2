@@ -14,8 +14,10 @@ extern int PARSEINDELS;
 float TINYLOG = -10000;
 int MIN_QUAL = 10;
 int MAX_SNPs_SHORT_HAP = 10; // max number of SNVs in a short haplotype
-#define addlogs(a, b) ((a > b) ? (a + log10(1 + pow(10, b - a))) : (b + log10(1 + pow(10, a - b))))
-#define subtractlogs(a, b) ((a > b) ? (a + log10(1 - pow(10, b - a))) : (b + log10(1 - pow(10, a - b))))
+// given a=log10(x) and b=log10(y), returns log10(x+y)
+#define addlogs(a, b) (((a) > (b)) ? ((a) + log10(1.0 + pow(10.0, (b) - (a)))) : ((b) + log10(1.0 + pow(10.0, (a) - (b)))))
+// given a=log10(x) and b=log10(y), returns log10(x-y)
+#define subtractlogs(a, b) (((a) > (b)) ? ((a) + log10(1.0 - pow(10, (b) - (a)))) : ((b) + log10(1.0 - pow(10.0, (a) - (b)))))
 
 // credit to Jeff Mercado at stack overflow for the original version of this function found here: https://stackoverflow.com/questions/5370753/using-stdlibs-qsort-to-sort-an-array-of-strings
 int compare_strings(const void* a, const void* b)

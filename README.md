@@ -7,10 +7,13 @@ We found that previously described haplotype assembly methods are specialized fo
 - NGS short reads (Illumina HiSeq)
 - clone-based sequencing (Fosmid or BAC clones)
 - SMRT reads (PacBio)
+- Oxford Nanopore reads
 - 10X Genomics Linked-Reads
 - proximity-ligation (Hi-C) reads
 - high-coverage sequencing (>40x coverage-per-SNP) using above technologies
 - combinations of the above technologies (e.g. scaffold long reads with Hi-C reads)
+
+See below for specific examples of command line options and best practices for some of these technologies.
 
 ## Citation:
 If you use HapCUT2 in your research, please cite:
@@ -114,11 +117,23 @@ python3 utilities/LinkFragments.py --bam reads.sorted.bam --VCF variants.VCF --f
 
 For improved haplotype accuracy with Hi-C reads, use the --HiC 1 option for both extractHAIRS and HapCUT2 steps.
 
+## Pacific Biosciences and Oxford Nanopore Sequencing Reads
+
+Use the --pacbio 1 and --ont 1 options in extractHAIRS for greatly improved accuracy when using Pacific Biosciences and Oxford Nanopore reads, respectively. It is also highly recommended to split blocks based on the switch quality score, which can be computed using the --ea 1 option in HapCUT2.
+
+Here is an example using Pacific Biosciences data (replace --pacbio with --ont for oxford nanopore):
+```
+./build/extractHAIRS --pacbio 1 --bam reads.sorted.bam --VCF variants.VCF --out fragment_file
+./build/HAPCUT2 --ea 1 --fragments fragment_file --vcf variantcalls.vcf --output haplotype_output_file
+python3 utilities/prune_haplotype.py -i haplotype_output_file -o haplotype_output_file.pruned --min_mismatch_qual 30 --min_switch_qual 30
+# the quality-filtered haplotype is in haplotype_output_file.pruned
+```
+The --indels option may be used if desired -- the realignment strategy used with these options allows better detection of indel variants in fragments than the previous approach.
 ## Calculating Haplotype Statistics
 The calculate_haplotype_statistics script in the utilities directory calculates haplotype error rates with respect to a reference haplotype, as well as completeness statistics such as N50 and AN50.
 
 ## Converting HapCUT2 output to VCF format
-Nils Homer has developed a tool HapCutToVcf that will soon support converting HapCUT2-formatted haplotype blocks into VCF format. It will be included with the fgbio tool suite, available [here](https://github.com/fulcrumgenomics/fgbio).
+Nils Homer has developed a tool HapCutToVcf that supports converting HapCUT2-formatted haplotype blocks into VCF format. It will be included with the fgbio tool suite, available [here](https://github.com/fulcrumgenomics/fgbio).
 
 ## Reproducing the HapCUT2 manuscript
 
@@ -129,6 +144,17 @@ The directory **reproduce_hapcut2_paper** contains the source code and pipeline 
 The directory **recipes** contains example pipelines to assemble haplotypes from various types of sequencing data.
 
 ## Updates and Announcements:
+
+#### August 14, 2017
+Extracthairs now has optimizations for error prone long read technologies (Pacific Biosciences and Oxford Nanopore). The strategy performs a sensitive realignment in a window around the potential variant. A read-window is aligned to both the reference sequence, and the variant sequence (reference sequence modified to contain the variant). An allele call is assigned based on the best alignment, and the "base quality" of the allele call is determined by a bayesian posterior calculated using both alignment scores.
+
+In the case of a cluster of n variants that are nearby one another (distance to nearest variant < 20 bps), the alignments of read-windows to each variant might not be independent. In this case, all (2^n) possible haplotypes for those variants are enumerated and a read-window spanning the cluster is aligned to each haplotype sequence. The maximum scoring haplotype is selected to determine the allele call for each variant position in the cluster, and the "base quality score" of each position is derived from the sum of posterior probabilities of haplotypes that do not contain that allele in that position.
+
+This also allows for more sensitive phasing of indel variants -- previously these were harder to detect from CIGAR string information alone, but the new approach allows better phasing of arbitrary insertions, deletions, MNPs, etc.
+
+What this means for users: use the --pacbio 1 option with Pacific Biosciences reads, and use the --ont 1 option with Oxford Nanopore reads. See newly created section above for a full example execution.
+
+(note: the default alignment parameters for pacbio and oxford nanopore are not yet finalized, but there will be SIGNIFICANT improvements in accuracy regardless, over the previous approach.)
 
 #### July 24, 2017
 The pipeline for phasing 10X Genomics linked reads has been updated. If you are currently using the old 10X pipeline, it is recommended to switch to the new one now. The new pipeline uses a new LinkFragments.py script to link haplotype fragments from short reads into long haplotype fragments based on their barcode. See the instructions above and the updated "10X" and "HiC + 10X" workflows in the recipes folder.
