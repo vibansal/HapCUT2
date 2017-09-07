@@ -10,9 +10,9 @@ extern int MINQ;
 #define MAXBUF 100000
 
 // given a=log10(x) and b=log10(y), returns log10(x+y)
-#define addlogs(a, b) ((a > b) ? (a + log10(1 + pow(10, b - a))) : (b + log10(1 + pow(10, a - b))))
+#define addlogs(a, b) (((a) > (b)) ? ((a) + log10(1.0 + pow(10.0, (b) - (a)))) : ((b) + log10(1.0 + pow(10.0, (a) - (b)))))
 // given a=log10(x) and b=log10(y), returns log10(x-y)
-#define subtractlogs(a, b) ((a > b) ? (a + log10(1 - pow(10, b - a))) : (b + log10(1 - pow(10, a - b))))
+#define subtractlogs(a, b) (((a) > (b)) ? ((a) + log10(1.0 - pow(10, (b) - (a)))) : ((b) + log10(1.0 - pow(10.0, (a) - (b)))))
 
 #define flip(allele) if (allele == '1') allele = '0'; else if (allele == '0') allele = '1'
 
