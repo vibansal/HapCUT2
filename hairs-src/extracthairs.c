@@ -331,9 +331,9 @@ int main(int argc, char** argv) {
             MATCH = log10(1.0 - (0.051 + 0.049 + 0.078));
             MISMATCH = log10(0.051);
             INSERTION_OPEN = log10(0.049);
-            INSERTION_EXTEND = log10(0.03); // this number has no basis in anything
+            INSERTION_EXTEND = log10(0.25); // this number has no basis in anything
             DELETION_OPEN = log10(0.078);
-            DELETION_EXTEND = log10(0.03); // this number also has no basis in anything
+            DELETION_EXTEND = log10(0.25); // this number also has no basis in anything
 
         }else if (strcmp(argv[i], "--verbose") == 0 || strcmp(argv[i], "--v") == 0){
             check_input_0_or_1(argv[i + 1]);
