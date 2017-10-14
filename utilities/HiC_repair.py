@@ -251,7 +251,7 @@ def repair_chimeras(bamfile1, bamfile2, outfile, min_mapq):
         # f2_aln[0] has primary alignment for mate2, f2_aln[1:] are secondary alignments for mate 2
 
         f1_aln = [f1]
-        f2_aln = [f1]
+        f2_aln = [f2]
 
         while f1_next and f1.qname == f1_next.qname:
             f1_aln.append(f1_next)
