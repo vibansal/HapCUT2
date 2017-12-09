@@ -474,7 +474,7 @@ int main(int argc, char** argv) {
 		free(chromvars[i].intervalmap);
 	}
 	free(chromvars);
-
+    /*
     for (i=0;i<ht.htsize;i++){
         if (ht.blist[i] != NULL){
             for(j=0;j<ht.bucketlengths[i];j++){
@@ -483,9 +483,10 @@ int main(int argc, char** argv) {
             free(ht.blist[i]);
         }
     }
+ 
     free(ht.blist);
     free(ht.bucketlengths);
-
+    */
 	free(sampleid); free(varlist); free(reflist);
 	if (bamfiles > 0 && strcmp(variantfile,"None") !=0){
 		for (i=0;i<bamfiles;i++)
