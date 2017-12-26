@@ -125,8 +125,8 @@ int parse_variant(VARIANT* variant, char* buffer, int samplecol) {
     // check that the genotype field is diploid
     if ((gl >= 3 && (variant->genotype[1] == '/' || variant->genotype[1] == '|')) &&
        (gl == 3 || variant->genotype[3] == ':') &&
-       (variant->genotype[0] == '0' || variant->genotype[0] == '1' || variant->genotype[0] == '2'
-     || variant->genotype[2] == '0' || variant->genotype[2] == '1' || variant->genotype[2] == '2')){
+       (variant->genotype[0] == '0' || variant->genotype[0] == '1' || variant->genotype[0] == '2') &&
+       (variant->genotype[2] == '0' || variant->genotype[2] == '1' || variant->genotype[2] == '2')){
 
         if (variant->genotype[0] != '2' && variant->genotype[2] != '2') // both alleles are 0/1
         {
@@ -208,8 +208,8 @@ int parse_variant(VARIANT* variant, char* buffer, int samplecol) {
             return 0;
         }
     } else {
-        variant->heterozygous = '0';
-        return 0;
+        fprintf(stdout, "\nERROR: Non-diploid VCF entry detected. Each VCF entry must have a diploid genotype (GT) field consisting of two alleles in the set {0,1,2} separated by either \'/\' or \'|\'. For example, \"1/1\", \"0/1\", and \"0|2\" are valid diploid genotypes for HapCUT2, but \"1\", \"0/3\", and \"0/0/1\" are not.\nThe invalid entry is: \n\n%s\n", buffer);
+        exit(1);
     }
         //free(variant->genotype); free(variant->AA); free(variant->RA); free(variant->chrom);
 }
