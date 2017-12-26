@@ -15,8 +15,7 @@ We found that previously described haplotype assembly methods are specialized fo
 
 See below for specific examples of command line options and best practices for some of these technologies.
 
-## Note:
-At this time HapCUT2 is for diploid organisms only. VCF input should contain diploid variants only.
+NOTE: At this time HapCUT2 is for diploid organisms only. VCF input should contain diploid variants.
 
 ## Citation:
 If you use HapCUT2 in your research, please cite:
