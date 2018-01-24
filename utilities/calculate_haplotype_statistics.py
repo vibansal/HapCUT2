@@ -26,7 +26,7 @@ def parse_args():
     parser.add_argument('-pv', '--phased_vcf', nargs='*', type = str, help='compute errors with respect to this phased single-individual VCF file(s). NOTE: Files must be separated by contig/chromosome! (Use with no arguments to use same VCF(s) from --vcf.)')
     parser.add_argument('-h2', '--reference_haplotype_blocks', nargs='+', type = str, help='compute errors with respect to this haplotype block file(s)')
     parser.add_argument('-v2', '--reference_vcf', nargs='*', type = str, help='VCF file(s) that was used to generate h2 haplotype fragments and phase h2 haplotype (--vcf in extractHAIRS and HapCUT2). Use with no arguments to use same VCF(s) from --vcf.')
-    parser.add_argument('-i', '--indels', nargs='?', action="store_true", help='Use this flag to consider indel variants. Default: Indels ignored.',default=False)
+    parser.add_argument('-i', '--indels', action="store_true", help='Use this flag to consider indel variants. Default: Indels ignored.',default=False)
     parser.add_argument('-c', '--contig_size_file', nargs='?', type = str, help='Tab-delimited file with size of contigs (<contig>\\t<size>). If not provided, N50 will not be calculated.')
 
     # default to help option. credit to unutbu: http://stackoverflow.com/questions/4042452/display-help-message-with-python-argparse-when-script-is-called-without-any-argu
@@ -177,7 +177,7 @@ def parse_vcf_phase(vcf_file, CHROM, indels = False):
     return [block] # we return a list containing the single block so format consistent with hapblock file format
 
 # given a VCF file, simply count the number of heterozygous SNPs present.
-def count_SNPs(vcf_file,indels=False):
+def count_SNPs(vcf_file):
     count = 0
     with open(vcf_file,'r') as infile:
         for line in infile:
@@ -185,25 +185,6 @@ def count_SNPs(vcf_file,indels=False):
                 continue
             el = line.strip().split('\t')
             if len(el) < 5:
-                continue
-
-            a0 = el[3]
-            a1 = el[4]
-            a2 = None
-            if ',' in a1:
-                a1,a2 = a1.split(',')
-
-            genotype = el[9][:3]
-
-            if not (len(genotype) == 3 and genotype[0] in ['0','1','2'] and
-                    genotype[1] in ['/','|'] and genotype[2] in ['0','1','2']):
-                continue
-
-            if genotype[0] == genotype[2]:
-                continue
-
-            if (not indels) and (('0' in genotype and len(a0) != 1) or
-                ('1' in genotype and len(a1) != 1) or ('2' in genotype and len(a2) != 1)):
                 continue
 
             count += 1
@@ -565,7 +546,7 @@ def hapblock_vcf_error_rate(assembly_file, frag_file, vcf_file, phased_vcf_file,
 def error_rate_calc(t_blocklist, a_blocklist, vcf_file, frag_file, contig_size_file, indels=False, phase_set=None):
 
     ref_name    = get_ref_name(vcf_file)
-    num_snps = count_SNPs(vcf_file,indels)
+    num_snps = count_SNPs(vcf_file)
     num_covered = count_covered_positions(frag_file)
 
     switch_count   = 0
