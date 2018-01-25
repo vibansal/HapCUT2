@@ -592,7 +592,7 @@ def hapblock_vcf_error_rate(assembly_file, frag_file, vcf_file, phased_vcf_file,
 def error_rate_calc(t_blocklist, a_blocklist, vcf_file, frag_file, contig_size_file, indels=False, phase_set=None):
 
     ref_name    = get_ref_name(vcf_file)
-    num_snps = count_SNPs(vcf_file)
+    num_snps = count_SNPs(vcf_file,indels)
     num_covered = count_covered_positions(frag_file, vcf_file, indels)
 
     switch_count   = 0
