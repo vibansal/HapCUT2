@@ -177,7 +177,8 @@ def parse_vcf_phase(vcf_file, CHROM, indels = False):
     return [block] # we return a list containing the single block so format consistent with hapblock file format
 
 # given a VCF file, simply count the number of heterozygous SNPs present.
-def count_SNPs(vcf_file):
+def count_SNPs(vcf_file,indels=False):
+    
     count = 0
     with open(vcf_file,'r') as infile:
         for line in infile:
@@ -187,7 +188,27 @@ def count_SNPs(vcf_file):
             if len(el) < 5:
                 continue
 
+            a0 = el[3]
+            a1 = el[4]
+            a2 = None
+            if ',' in a1:
+                a1,a2 = a1.split(',')
+
+            genotype = el[9][:3]
+
+            if not (len(genotype) == 3 and genotype[0] in ['0','1','2'] and
+                    genotype[1] in ['/','|'] and genotype[2] in ['0','1','2']):
+                continue
+
+            if genotype[0] == genotype[2]:
+                continue
+
+            if (not indels) and (('0' in genotype and len(a0) != 1) or
+                ('1' in genotype and len(a1) != 1) or ('2' in genotype and len(a2) != 1)):
+                continue
+
             count += 1
+            
     return count
 
 # given a VCF file from a single chromosome return the name of that chromosome
@@ -205,7 +226,7 @@ def get_ref_name(vcf_file):
     print("ERROR")
     exit(1)
 
-def count_covered_positions(frag_file):
+def count_covered_positions(frag_file, vcf_file, indels):
 
     covered = set()
 
@@ -235,6 +256,31 @@ def count_covered_positions(frag_file):
                         covered.add(snp_ix)
                         # move along on qual string
 
+    snv_ix = 0
+    if not indels:
+        with open(vcf_file,'r') as infile:
+            for line in infile:
+                if line[:1] == '#':
+                    continue
+                el = line.strip().split('\t')
+                if len(el) < 5:
+                    continue
+
+                a0 = el[3]
+                a1 = el[4]
+                a2 = None
+                if ',' in a1:
+                    a1,a2 = a1.split(',')
+
+                genotype = el[9][:3]
+
+                if (('0' in genotype and len(a0) != 1) or
+                    ('1' in genotype and len(a1) != 1) or ('2' in genotype and len(a2) != 1)):
+                    if snv_ix in covered:
+                        covered.remove(snv_ix)
+
+                snv_ix += 1 
+                        
     return len(covered)
 
 # this function is needed for "counting ahead" at beginning of blocks.
@@ -506,8 +552,8 @@ def hapblock_hapblock_error_rate_multiple(truth_files, truth_vcf_files, assembly
 def hapblock_hapblock_error_rate(truth_file, truth_vcf_file, assembly_file, frag_file, vcf_file, contig_size_file,indels):
 
     # parse and get stuff to compute error rates
-    t_blocklist = parse_hapblock_file(truth_file,truth_vcf_file)
-    a_blocklist = parse_hapblock_file(assembly_file,vcf_file)
+    t_blocklist = parse_hapblock_file(truth_file,truth_vcf_file,indels)
+    a_blocklist = parse_hapblock_file(assembly_file,vcf_file,indels)
     # compute error result object
     err = error_rate_calc(t_blocklist, a_blocklist, vcf_file, frag_file, contig_size_file,indels)
     return err
@@ -529,7 +575,7 @@ def hapblock_vcf_error_rate(assembly_file, frag_file, vcf_file, phased_vcf_file,
     # parse and get stuff to compute error rates
     CHROM = get_ref_name(vcf_file)
     t_blocklist = parse_vcf_phase(phased_vcf_file, CHROM, indels)
-    a_blocklist = parse_hapblock_file(assembly_file,vcf_file)
+    a_blocklist = parse_hapblock_file(assembly_file,vcf_file,indels)
     # compute error result object
     if largest_blk_only:
         largest_blk = []
@@ -547,7 +593,7 @@ def error_rate_calc(t_blocklist, a_blocklist, vcf_file, frag_file, contig_size_f
 
     ref_name    = get_ref_name(vcf_file)
     num_snps = count_SNPs(vcf_file)
-    num_covered = count_covered_positions(frag_file)
+    num_covered = count_covered_positions(frag_file, vcf_file, indels)
 
     switch_count   = 0
     mismatch_count = 0
