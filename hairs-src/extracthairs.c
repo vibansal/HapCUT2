@@ -273,7 +273,7 @@ int main(int argc, char** argv) {
     sampleid[0] = '-';
     sampleid[1] = '\0';
     int samplecol = 10; // default if there is a single sample in the VCF file
-    int i = 0, j = 0, variants = 0, hetvariants = 0;
+    int i = 0, variants = 0, hetvariants = 0;
     char** bamfilelist = NULL;
     int bamfiles = 0;
 
@@ -477,18 +477,20 @@ int main(int argc, char** argv) {
 
 	for (i=0;i<variants;i++){
 		free(varlist[i].genotype);
-		free(varlist[i].allele1);
-		free(varlist[i].allele2);
 		free(varlist[i].RA);
 		free(varlist[i].AA);
 		free(varlist[i].chrom);
+        if (varlist[i].heterozygous == '1'){
+            free(varlist[i].allele1);
+            free(varlist[i].allele2);
+        }
 	}
 
 	for (i=0;i<chromosomes;i++){
 		free(chromvars[i].intervalmap);
 	}
 	free(chromvars);
-
+    /*
     for (i=0;i<ht.htsize;i++){
         if (ht.blist[i] != NULL){
             for(j=0;j<ht.bucketlengths[i];j++){
@@ -497,9 +499,10 @@ int main(int argc, char** argv) {
             free(ht.blist[i]);
         }
     }
+
     free(ht.blist);
     free(ht.bucketlengths);
-
+    */
 	free(sampleid); free(varlist); free(reflist);
 	if (bamfiles > 0 && strcmp(variantfile,"None") !=0){
 		for (i=0;i<bamfiles;i++)

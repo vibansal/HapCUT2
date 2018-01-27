@@ -26,7 +26,7 @@ def parse_args():
     parser.add_argument('-pv', '--phased_vcf', nargs='*', type = str, help='compute errors with respect to this phased single-individual VCF file(s). NOTE: Files must be separated by contig/chromosome! (Use with no arguments to use same VCF(s) from --vcf.)')
     parser.add_argument('-h2', '--reference_haplotype_blocks', nargs='+', type = str, help='compute errors with respect to this haplotype block file(s)')
     parser.add_argument('-v2', '--reference_vcf', nargs='*', type = str, help='VCF file(s) that was used to generate h2 haplotype fragments and phase h2 haplotype (--vcf in extractHAIRS and HapCUT2). Use with no arguments to use same VCF(s) from --vcf.')
-    parser.add_argument('-i', '--indels', nargs='?', action="store_true", help='Use this flag to consider indel variants. Default: Indels ignored.',default=False)
+    parser.add_argument('-i', '--indels', action="store_true", help='Use this flag to consider indel variants. Default: Indels ignored.',default=False)
     parser.add_argument('-c', '--contig_size_file', nargs='?', type = str, help='Tab-delimited file with size of contigs (<contig>\\t<size>). If not provided, N50 will not be calculated.')
 
     # default to help option. credit to unutbu: http://stackoverflow.com/questions/4042452/display-help-message-with-python-argparse-when-script-is-called-without-any-argu
@@ -178,6 +178,7 @@ def parse_vcf_phase(vcf_file, CHROM, indels = False):
 
 # given a VCF file, simply count the number of heterozygous SNPs present.
 def count_SNPs(vcf_file,indels=False):
+    
     count = 0
     with open(vcf_file,'r') as infile:
         for line in infile:
@@ -207,6 +208,7 @@ def count_SNPs(vcf_file,indels=False):
                 continue
 
             count += 1
+            
     return count
 
 # given a VCF file from a single chromosome return the name of that chromosome
@@ -224,7 +226,7 @@ def get_ref_name(vcf_file):
     print("ERROR")
     exit(1)
 
-def count_covered_positions(frag_file):
+def count_covered_positions(frag_file, vcf_file, indels):
 
     covered = set()
 
@@ -254,6 +256,31 @@ def count_covered_positions(frag_file):
                         covered.add(snp_ix)
                         # move along on qual string
 
+    snv_ix = 0
+    if not indels:
+        with open(vcf_file,'r') as infile:
+            for line in infile:
+                if line[:1] == '#':
+                    continue
+                el = line.strip().split('\t')
+                if len(el) < 5:
+                    continue
+
+                a0 = el[3]
+                a1 = el[4]
+                a2 = None
+                if ',' in a1:
+                    a1,a2 = a1.split(',')
+
+                genotype = el[9][:3]
+
+                if (('0' in genotype and len(a0) != 1) or
+                    ('1' in genotype and len(a1) != 1) or ('2' in genotype and len(a2) != 1)):
+                    if snv_ix in covered:
+                        covered.remove(snv_ix)
+
+                snv_ix += 1 
+                        
     return len(covered)
 
 # this function is needed for "counting ahead" at beginning of blocks.
@@ -525,8 +552,8 @@ def hapblock_hapblock_error_rate_multiple(truth_files, truth_vcf_files, assembly
 def hapblock_hapblock_error_rate(truth_file, truth_vcf_file, assembly_file, frag_file, vcf_file, contig_size_file,indels):
 
     # parse and get stuff to compute error rates
-    t_blocklist = parse_hapblock_file(truth_file,truth_vcf_file)
-    a_blocklist = parse_hapblock_file(assembly_file,vcf_file)
+    t_blocklist = parse_hapblock_file(truth_file,truth_vcf_file,indels)
+    a_blocklist = parse_hapblock_file(assembly_file,vcf_file,indels)
     # compute error result object
     err = error_rate_calc(t_blocklist, a_blocklist, vcf_file, frag_file, contig_size_file,indels)
     return err
@@ -548,7 +575,7 @@ def hapblock_vcf_error_rate(assembly_file, frag_file, vcf_file, phased_vcf_file,
     # parse and get stuff to compute error rates
     CHROM = get_ref_name(vcf_file)
     t_blocklist = parse_vcf_phase(phased_vcf_file, CHROM, indels)
-    a_blocklist = parse_hapblock_file(assembly_file,vcf_file)
+    a_blocklist = parse_hapblock_file(assembly_file,vcf_file,indels)
     # compute error result object
     if largest_blk_only:
         largest_blk = []
@@ -566,7 +593,7 @@ def error_rate_calc(t_blocklist, a_blocklist, vcf_file, frag_file, contig_size_f
 
     ref_name    = get_ref_name(vcf_file)
     num_snps = count_SNPs(vcf_file,indels)
-    num_covered = count_covered_positions(frag_file)
+    num_covered = count_covered_positions(frag_file, vcf_file, indels)
 
     switch_count   = 0
     mismatch_count = 0

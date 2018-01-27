@@ -9,12 +9,13 @@ localrules: all
 # USER CONFIG
 # edit these to point to the correct paths for binaries / jars
 # or just the program name if you have them in your PATH
-HAPCUT2_DIR  = '/oasis/tscc/scratch/pedge/longread_realignment/HapCUT2'
+HAPCUT2_DIR  = '/path/to/HapCUT2/directory' #'/oasis/tscc/scratch/pedge/longread_realignment/HapCUT2'
 SAMTOOLS     = 'samtools' # samtools 1-2, htslib 1.21
 BAMTOOLS     = 'bamtools' # version 2.4
 TWOBITTOFASTA = 'twoBitToFa' # can be downloaded from 'http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/twoBitToFa'
 ################################################################################
 
+import pickle
 import sys, os
 HAPCUT2      = os.path.join(HAPCUT2_DIR,'build/HAPCUT2')
 EXTRACTHAIRS = os.path.join(HAPCUT2_DIR,'build/extractHAIRS')
