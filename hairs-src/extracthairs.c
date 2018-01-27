@@ -79,7 +79,7 @@ int NEW_FORMAT = 0;
 //#include "samhairs.c" // has two functions that handle sam file parsing
 
 void print_options();
-int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VARIANT* varlist, REFLIST* reflist);
+int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VARIANT* varlist, REFLIST* reflist,char* regions);
 
 void print_options() {
     fprintf(stderr, "\nExtract haplotype informative reads (HAIRS) from coordinate sorted BAM files \n\n");
@@ -104,6 +104,7 @@ void print_options() {
     //fprintf(stderr,"--triallelic <0/1> : print information about , default 0 \n");
     fprintf(stderr, "--ref <FILENAME> : reference sequence file (in fasta format), optional but required for indels, should be indexed using samtools\n");
     fprintf(stderr, "--out <FILENAME> : output filename for haplotype fragments, if not provided, fragments will be output to stdout\n\n");
+    fprintf(stderr, "--regions chr:start-end > : chromosome and region in BAM file, useful to process individual chromosomes \n\n");
     //fprintf(stderr,"--out : output file for haplotype informative fragments (hairs)\n\n");
 }
 
@@ -117,7 +118,7 @@ void check_input_0_or_1(char* x){
 // extract haplotype informative reads from sorted bam file //
 // need to discard reads that are marked as duplicates using flag //
 
-int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VARIANT* varlist, REFLIST* reflist) {
+int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VARIANT* varlist, REFLIST* reflist,char* regions) {
     fprintf(stderr, "reading sorted bamfile %s \n", bamfile);
     int reads = 0;
     struct alignedread* read = (struct alignedread*) malloc(sizeof (struct alignedread));
@@ -143,9 +144,25 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
         fprintf(stderr, "Fail to open BAM file %s\n", bamfile);
         return -1;
     }
-    bam1_t *b = bam_init1();
+    bam1_t *b;
+    bam_index_t *idx; // bam file index
+    bam_iter_t iter; int ret; // for reading indexed bam files 
+    int ref=-1,beg=0,end=0;
+    if (regions == NULL) b = bam_init1();  // samread(fp,b)
+    else 
+    {
+        if ( (idx = bam_index_load(bamfile)) ==0) { fprintf(stderr,"unable to load bam index for file %s\n",bamfile); return -1; }
+    	bam_parse_region(fp->header,regions,&ref,&beg,&end);   
+        if (ref < 0) { fprintf(stderr,"invalid region for bam file %s \n",regions); return -1; } 
+	fprintf(stderr,"parsing region %s of bam file %d %d-%d\n",regions,ref,beg,end); //return -1;
+        b = bam_init1();
+        iter = bam_iter_query(idx,ref,beg,end); 
+    }
 
-    while (samread(fp, b) >= 0) {
+    while (1) {
+	if (ref < 0) ret = samread(fp,b); 
+	else ret = bam_iter_read(fp->x.bam,iter,b); 
+	if (ret < 0) break;  
         fetch_func(b, fp, read);
         if ((read->flag & (BAM_FUNMAP | BAM_FSECONDARY | BAM_FQCFAIL | BAM_FDUP)) || read->mquality < MIN_MQ) {
             free_readmemory(read);
@@ -168,11 +185,6 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
                 }
             }
         } else chrom = prevchrom;
-
-        //if (read->tid == read->mtid) // use mateposition to calculate insert size, march 12 2013, wrong since we need to consider the readlength/cigar
-        //{
-        //    read->IS = read->mateposition - read->position;
-        //}
 
         fragment.absIS = (read->IS < 0) ? -1 * read->IS : read->IS;
         // add check to see if the mate and its read are on same chromosome, bug for contigs, july 16 2012
@@ -212,13 +224,9 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
                 }
             }
         }
-        // BUG here when the fragment list cannot be cleaned due to long mate-pair fragments (accumulated for large IS)
-        // fragments >= 100000 and we will clean it repeatedly...
-        // need to fix this june 4 2012.... even for long mate-pairs this could be a problem...
         if ((fragments - prevfragments >= 100000) || fragments >= MAXFRAG - 10000 || (chrom != prevchrom && prevchrom != -1 && fragments > 0)) // chrom of current read is not the same as previous read's chromosome...
         {
             if (PFLAG == 1) fprintf(stderr, "cleaning buffer: current chrom %s %d fragments %d\n", read->chrom, read->position, fragments);
-            // BUG HERE when trying to clean empty fragment list (fragments ==0)
             if (fragments > 0) clean_fragmentlist(flist, &fragments, varlist, chrom, read->position, prevchrom);
             prevfragments = fragments;
             //fprintf(stderr,"remaining %d\n",fragments);
@@ -233,7 +241,9 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
         prevchrom = chrom;
         prevtid = read->tid;
         free_readmemory(read);
-    }
+    } // end of while loop over BAM file
+	
+
     if (fragments > 0) {
         fprintf(stderr, "final cleanup of fragment list: %d current chrom %s %d \n", fragments, read->chrom, read->position);
         clean_fragmentlist(flist, &fragments, varlist, -1, read->position, prevchrom);
@@ -252,6 +262,7 @@ int main(int argc, char** argv) {
     char bamfile[1024];
     char variantfile[1024];
     char fastafile[1024];
+    char* regions= NULL;  
     strcpy(samfile, "None");
     strcpy(bamfile, "None");
     strcpy(variantfile, "None");
@@ -284,6 +295,9 @@ int main(int argc, char** argv) {
         } else if (strcmp(argv[i], "--sorted") == 0){
             check_input_0_or_1(argv[i + 1]);
             readsorted = atoi(argv[i + 1]);
+        }
+	else if (strcmp(argv[i],"--regions") ==0) { // added 11/30/17
+	    regions = (char*)malloc(strlen(argv[i+1])+1); strcpy(regions,argv[i+1]); 
         }
         else if (strcmp(argv[i], "--mbq") == 0) MINQ = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--mmq") == 0) MIN_MQ = atoi(argv[i + 1]);
@@ -443,7 +457,7 @@ int main(int argc, char** argv) {
     if (readsorted == 0 && bamfiles > 0) {
         for (i = 0; i < bamfiles; i++) {
 			int parse_ok = 0;
-            if (LONG_READS == 0) parse_ok = parse_bamfile_sorted(bamfilelist[i], &ht, chromvars, varlist, reflist);
+            if (LONG_READS == 0) parse_ok = parse_bamfile_sorted(bamfilelist[i], &ht, chromvars, varlist, reflist,regions);
             else parse_ok = parse_bamfile_fosmid(bamfilelist[i], &ht, chromvars, varlist, reflist); // fosmid pool bam file
 			if (parse_ok != 0) return parse_ok;
         }

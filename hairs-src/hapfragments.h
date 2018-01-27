@@ -27,6 +27,7 @@ typedef struct {
     int matepos;
     int absIS;
     char* barcode;
+    char strand; // added 01/26/2018
 } FRAGMENT;
 
 int compare_fragments(const void *a, const void *b);

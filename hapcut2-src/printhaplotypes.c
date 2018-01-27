@@ -127,7 +127,7 @@ int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
                 sprintf(discrete_conf,"%d",snpfrag[t].pruned_discrete_heuristic);
             }
 
-            fprintf(fp, "%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\n", snpfrag[t].chromosome, snpfrag[t].position, snpfrag[t].allele0, snpfrag[t].allele1, snpfrag[t].genotypes, discrete_conf, switch_conf, snp_conf);
+            fprintf(fp, "%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%d\n", snpfrag[t].chromosome, snpfrag[t].position, snpfrag[t].allele0, snpfrag[t].allele1, snpfrag[t].genotypes, discrete_conf, switch_conf, snp_conf,snpfrag[t].frags);
 
         }
         if (i < blocks - 1) fprintf(fp, "******** \n");
