@@ -42,8 +42,6 @@ $(HTSLIB)/libhts.a: $(HTSLIB)/Makefile
 $(B)/extractHAIRS: $(B)/bamread.o $(B)/hashtable.o $(B)/readvariant.o $(B)/readfasta.o $(B)/hapfragments.o $(H)/extracthairs.c $(SAMTOOLS)/libbam.a $(HTSLIB)/libhts.a $(H)/parsebamread.c $(H)/realignbamread.c $(H)/nw.c | $(B)
 	$(CC) -I$(SAMTOOLS) -I$(HTSLIB) -g $(B)/bamread.o $(B)/hapfragments.o $(B)/hashtable.o $(B)/readfasta.o $(B)/readvariant.o -o $(B)/extractHAIRS $(H)/extracthairs.c  -L$(SAMTOOLS) -L$(HTSLIB) -pthread -lhts -lbam -lm -lz
 #temporarily removed -O2 flag after -I$(HTSLIB)
-#$(B)/extractFOSMID: $(B)/bamread.o $(B)/hashtable.o $(B)/readvariant.o $(B)/readfasta.o $(B)/hapfragments.o $(H)/extracthairs.c $(H)/fosmidbam_hairs.c $(H)/print_clusters.c $(SAMTOOLS)/libbam.a $(HTSLIB)/libhts.a | $(B)
-	#$(CC) -I$(SAMTOOLS) -I$(HTSLIB) -g $(B)/bamread.o $(B)/hapfragments.o $(B)/hashtable.o $(B)/readfasta.o $(B)/readvariant.o -o $(B)/extractFOSMID $(H)/extracthairs.c  -L$(SAMTOOLS) -L$(HTSLIB) -pthread -lhts -lbam -lm -lz
 
 $(B)/hapfragments.o: $(H)/hapfragments.c $(H)/hapfragments.h $(H)/readvariant.h | $(B)
 	$(CC) -c $(H)/hapfragments.c -o $(B)/hapfragments.o
@@ -94,8 +92,6 @@ install-hapcut2:
 install-hairs:
 	cp $(B)/extractHAIRS /usr/local/bin
 
-install-fosmid:
-	cp $(B)/extractFOSMID /usr/local/bin
 
 # UNINSTALL
 uninstall: uninstall-hapcut2 uninstall-hairs uninstall-fosmid
@@ -106,8 +102,6 @@ uninstall-hapcut2:
 uninstall-hairs:
 	rm /usr/local/bin/extractHAIRS
 
-uninstall-fosmid:
-	rm /usr/local/bin/extractFOSMID
 
 # CLEANUP
 nuke: clean
