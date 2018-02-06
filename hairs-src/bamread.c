@@ -49,7 +49,7 @@ int fetch_func(const bam1_t *b, void *data, struct alignedread* read) {
         read->cigarlist[i] = cigar[i];
         op = cigar[i]&0xf;
         ol = cigar[i] >> 4;
-        if (op == BAM_CMATCH) {
+        if (op == BAM_CMATCH || op == BAM_CEQUAL || op == BAM_CDIFF) {
             read->alignedbases += ol;
             read->span += ol;
         } else if (op == BAM_CDEL) {

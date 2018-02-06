@@ -259,7 +259,7 @@ int extract_variants_read(struct alignedread* read, HASHTABLE* ht, CHROMVARS* ch
         while (varlist[ss].position < start + l2 && ss <= chromvars[chrom].last) ss++;
         op = read->cigarlist[i]&0xf;
         ol = read->cigarlist[i] >> 4;
-        if (op == BAM_CMATCH) {
+        if (op == BAM_CMATCH || op == BAM_CEQUAL || op == BAM_CDIFF) {
             while (ss <= chromvars[chrom].last && varlist[ss].position >= start + l2 && varlist[ss].position < start + l2 + ol) {
 
                 // function call
