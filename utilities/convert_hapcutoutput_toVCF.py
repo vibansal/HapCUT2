@@ -37,7 +37,24 @@ def get_phased_blocks(hapcutfile):
 
 ########################## read VCF file ###############################
 
-def read_VCF(vcffile,phased_table,outfile):
+def read_VCF(vfile):
+	VCF_file = open(vfile,'r');
+	for line in VCF_file:
+		if line[0]== '#': continue;
+		var = line.split();
+		chrom = var[0]; position = var[1]; rsid = var[2]; allele1 = var[3]; alleles = var[4].split(','); allele2 = alleles[0];
+		genotypes = var[9].split(':');
+
+		if genotypes[0] == '0|1': snptable[(var[0],int(var[1]),'c')] = [0,1,genotypes,1,0]; phased +=1;
+		elif genotypes[0] == '1|0': snptable[(var[0],int(var[1]),'c')] = [1,0,genotypes,1,0]; phased +=1;
+		elif genotypes[0] == '0/1' or genotypes[0] == '1/0': snptable[(var[0],int(var[1]),'c')] = [-1,-1,genotypes,0,0]; unphased +=1; # in this case, genotype is unphased 
+		else: pass;
+	VCF_file.close();
+	return snptable;
+	print >>sys.stderr, 'comparing phase from VCF file to HAPCUT phase','unphased hets',unphased,'phased hets',phased;
+
+
+def output_phased_VCF(vcffile,phased_table,outfile):
 	OUTFILE = open(outfile,'w');
 	VCF_file = open(vcffile,'r');
 	for line in VCF_file: 
@@ -69,6 +86,7 @@ def read_VCF(vcffile,phased_table,outfile):
 	VCF_file.close();
 	OUTFILE.close();
 
+
 def parseargs():
     parser = argparse.ArgumentParser(description='')
     #parser.add_argument('-f', '--fragments', nargs='?', type = str, help='file with unlinked hapcut2 fragments (generate using --10X 1 option in extractHAIRS)')
@@ -88,5 +106,5 @@ def parseargs():
 if __name__ == '__main__':
 	args = parseargs()
 	phased_table = get_phased_blocks(args.hapcut);
-	read_VCF(args.vcf,phased_table,args.outvcf);
+	output_phased_VCF(args.vcf,phased_table,args.outvcf);
 

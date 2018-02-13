@@ -2,6 +2,8 @@ from __future__ import print_function
 # Author : Peter Edge
 # Email  : pedge@eng.ucsd.edu
 
+## edited 02/10/2018 to print 'fraction of SNVs phased and to allow for chr7 to match with '7' in different VCF files
+
 # imports
 from collections import defaultdict
 import argparse
@@ -107,7 +109,7 @@ def parse_hapblock_file(hapblock_file,vcf_file,indels=False):
             if len(el) >= 5:
 
                 chrom = el[3]
-                if chrom != CHROM:
+                if chrom != CHROM and chrom.lstrip('chr') != CHROM.lstrip('chr'):
                     print("ERROR: Chromosome in haplotype block file doesn't match chromosome in VCF")
                     print("Haplotype block file: " + hapblock_file)
                     print("VCF file:             " + vcf_file)
@@ -158,12 +160,12 @@ def parse_vcf_phase(vcf_file, CHROM, indels = False):
                 consider = False
 
             if (not indels) and (('0' in genotype and len(a0) != 1) or
-                ('1' in genotype and len(a1) != 1) or ('2' in genotype and len(a2) != 1)):
+                ('1' in genotype and len(a1) != 1) or ('2' in genotype and ',' in el[4] and len(a2) != 1)): ## added ',' in el[4] to avoid error when genotype is '2'
                 consider = False
 
             chrom = el[0]
 
-            if chrom != CHROM:
+            if chrom != CHROM and chrom.lstrip('chr') != CHROM.lstrip('chr'):
                 print("ERROR: Chromosome in reference haplotype VCF doesn't match chromosome in VCF used for phasing")
                 print("reference haplotype VCF: " + vcf_file)
 
@@ -514,27 +516,30 @@ class error_result():
 
     def get_max_blk_snp_percent(self):
         snps_in_max_blks = sum(self.maxblk_snps.values())
+	phased_snps = self.get_phased_count();
         sum_all_snps     = self.get_num_snps()
 
-        if sum_all_snps > 0:
-            return float(snps_in_max_blks) / sum_all_snps
+        if sum_all_snps > 0: ## changed denominator to phased_snps rather than sum_all_snps
+            return float(snps_in_max_blks) / phased_snps; ##             return float(snps_in_max_blks) / sum_all_snps
         else:
             return 0
 
     def __str__(self):
 
         s = ('''
-switch rate:          {}
-mismatch rate:        {}
-flat rate:            {}
-missing rate:         {}
-phased count:         {}
+switch_rate:          {}
+mismatch_rate:        {}
+HD_rate:            {}
+missing_rate:         {}
+phased_count:         {}
+num_snps_phasing:     {}
+fraction_phased:      {}
 AN50:                 {}
 N50:                  {}
-max block snp frac:   {}
+max_block_fraction_phased:   {}
             '''.format(self.get_switch_rate(), self.get_mismatch_rate(),
                    self.get_flat_error_rate(), self.get_missing_rate(),
-                   self.get_phased_count(),
+                   self.get_phased_count(), self.get_num_snps(),float(self.get_phased_count())/self.get_num_snps(),
                    self.get_AN50(),self.get_N50(),self.get_max_blk_snp_percent()))
 
         return s

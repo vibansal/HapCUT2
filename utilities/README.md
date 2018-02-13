@@ -75,7 +75,7 @@ Here is a brief description of the output:
 switch rate:          switch errors as a fraction of possible positions for switch errors
 mismatch rate:        mismatch errors as a fraction of possible positions for mismatch errors
 flat rate:            flat errors as a fraction of possible positions for flat errors
-missing rate:         fraction of positions that were covered by an informative SNP, but were removed from the final haplotype
+missing rate:         fraction of positions that were covered by informative read(s), but were removed from the final haplotype due to low confidence in phasing accuracy
 phased count:         count of total SNVs phased
 AN50:                 the AN50 metric of haplotype completeness
 N50:                  the N50 metric of haplotype completeness
@@ -87,5 +87,4 @@ the reference haplotype. Two switch errors in a row are instead counted as a mis
 
 We use "flat error" to the minimum hamming distance between the two assembled haplotypes (for a given block)
 and the reference haplotype. This is an alternative metric to observing switch/mismatch errors in tandem.
-In general, this metric is thought to penalize switch errors too harshly.
-It may be of interest for a dataset with extremely low incidence of long switch errors.
+Although, this metric penalizes switch errors too harshly, it is useful for a dataset with extremely low incidence of long switch errors (e.g. HiC). 
