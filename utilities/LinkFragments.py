@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 # -*- coding: utf-8 -*-
 #
 #Created on Jul 6 2017
@@ -14,6 +15,7 @@ import argparse
 import os
 
 barcode_tag = 'BX'
+
 
 ###############################################################################
 ###############################################################################
@@ -480,6 +482,5 @@ def parseargs():
 # main function
 # parse input and run function to call alleles
 if __name__ == '__main__':
-    args = parseargs()
-
+    args = parseargs(); #print (args.VCF)
     link_fragments(args.fragments,args.VCF,args.bam_file, args.outfile, args.distance, args.single_SNP_frags)

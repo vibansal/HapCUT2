@@ -80,7 +80,7 @@ $(B):
 	mkdir -p $(B)
 
 # INSTALL
-install: install-hapcut2 install-hairs install-fosmid
+install: install-hapcut2 install-hairs
 
 install-samtools:
 	make -C $(SAMTOOLS)
