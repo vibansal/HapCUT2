@@ -2,7 +2,6 @@
 
 #include "hapfragments.h"
 
-
 // only for comparing read to SNP (or block substitution with multiple SNPs that don't change length of haplotype)
 
 int compare_read_SNP(struct alignedread* read, VARIANT* varlist, int ss, int start, int l1, int l2, FRAGMENT* fragment) {
@@ -229,7 +228,6 @@ int extract_variants_read(struct alignedread* read, HASHTABLE* ht, CHROMVARS* ch
     int ss = 0, firstvar = 0, j = 0, ov = 0, i = 0;
     j = (int) (start / BSIZE);
     if (j >= chromvars[chrom].blocks) return 0; // another BUG april29 2011 found here
-
     ss = chromvars[chrom].intervalmap[j];
 
     if (ss < 0 || ss >= VARIANTS) return 0;
@@ -246,7 +244,7 @@ int extract_variants_read(struct alignedread* read, HASHTABLE* ht, CHROMVARS* ch
             ss++;
         }
     }
-
+   
     //fprintf(stderr,"chrom %d variants %d ss %d first %d-%d span %d-%d\n",chrom,VARIANTS,ss,chromvars[chrom].first,chromvars[chrom].last,start,end);
     //fprintf(stderr,"ov %d %d\n",ov,firstvar);
     if ((paired == 0 && ov < 2 && SINGLEREADS == 0) || (paired == 0 && ov < 1 && SINGLEREADS == 1) || (paired == 1 && ov < 1)) return 0;
@@ -254,21 +252,41 @@ int extract_variants_read(struct alignedread* read, HASHTABLE* ht, CHROMVARS* ch
 
     int l1 = 0, l2 = 0; // l1 is advance on read, l2 is advance on reference genome
     int op = 0, ol = 0;
+ 
+    // filter for HiC reads with soft/hard clipping near ligation junction, added 03/03/2018
+    int pclip=0; // is read soft or hard clipped at beginning or end
+    i=0; op = read->cigarlist[i]&0xf; if (op == BAM_CSOFT_CLIP || op == BAM_CHARD_CLIP) pclip = 1; // first part is clipped 
+    i=read->cigs-1; op = read->cigarlist[i]&0xf; if (op == BAM_CSOFT_CLIP || op == BAM_CHARD_CLIP) pclip = 2; // last part is clipped 
+    int margin = 1; // 2 bases from clip location
+    int offset=0;	
+
     for (i = 0; i < read->cigs; i++) {
         //fprintf(stdout,"%c %d \t",(char)read->cigarlist[i+1],read->cigarlist[i]);
         while (varlist[ss].position < start + l2 && ss <= chromvars[chrom].last) ss++;
         op = read->cigarlist[i]&0xf;
         ol = read->cigarlist[i] >> 4;
-        if (op == BAM_CMATCH || op == BAM_CEQUAL || op == BAM_CDIFF) {
+        if (op == BAM_CMATCH || op == BAM_CEQUAL || op == BAM_CDIFF) 
+	{
             while (ss <= chromvars[chrom].last && varlist[ss].position >= start + l2 && varlist[ss].position < start + l2 + ol) {
 
-                // function call
-                if (varlist[ss].heterozygous == '1' && varlist[ss].type == 0) compare_read_SNP(read, varlist, ss, start, l1, l2, fragment);
-                else if (varlist[ss].heterozygous == '2' && varlist[ss].type == 0) {
-                    compare_read_SNP(read, varlist, ss, start, l1, l2, fragment);
-                } else if (varlist[ss].heterozygous == '1' && varlist[ss].type != 0 && varlist[ss].position < start + l2 + ol - 1 && reflist->current >= 0 && PARSEINDELS == 1) {
-                    compare_read_INDEL(read, varlist, ss, start, l1, l2, ol, fragment, i, reflist);
-                }
+		offset = margin+1; 
+		if (DATA_TYPE ==1) // for HiC reads, if snp allele is located close to clipped position (4-5 bases) in the read, don't use it
+		{ 
+	              if (i==1 && pclip ==1) offset = varlist[ss].position - start - l2; // how far is variant from boundary of clip
+	              if (i==read->cigs-2 && pclip ==2) offset = start+l2+ol-varlist[ss].position; // how far is variant from boundary of clip
+		}
+    			//fprintf(stderr,"read %s %d %s %d\t",read->readid,read->flag,read->chrom,read->position);
+			//fprintf(stderr,"close-2-boundary, %d %d\n",offset,pclip);
+		if ((DATA_TYPE == 1 && offset > margin) || DATA_TYPE != 1) // filter only for HiC
+		{
+			if (varlist[ss].heterozygous == '1' && varlist[ss].type == 0) compare_read_SNP(read, varlist, ss, start, l1, l2, fragment);
+			else if (varlist[ss].heterozygous == '2' && varlist[ss].type == 0) {
+			    compare_read_SNP(read, varlist, ss, start, l1, l2, fragment);
+			} else if (varlist[ss].heterozygous == '1' && varlist[ss].type != 0 && varlist[ss].position < start + l2 + ol - 1 && reflist->current >= 0 && PARSEINDELS == 1) {
+			    compare_read_INDEL(read, varlist, ss, start, l1, l2, ol, fragment, i, reflist);
+			}
+		}
+
                 ss++;
             }
 

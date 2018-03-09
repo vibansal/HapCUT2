@@ -96,6 +96,12 @@ int fetch_func(const bam1_t *b, void *data, struct alignedread* read) {
     return 0;
 }
 
+void print_read_debug(struct alignedread* read)
+{
+	fprintf(stderr,"%s %d %d IS: %d\t",read->readid,read->tid,read->position,read->IS);
+	int i=0; for (i=0;i<read->cigs;i++) fprintf(stderr,"%d%c",read->cigarlist[i] >> 4, INT_CIGAROP[read->cigarlist[i]&0xf]); 
+	fprintf(stderr,"\n");
+}
 void free_readmemory(struct alignedread* read) {
     free(read->readid);
     free(read->sequence);

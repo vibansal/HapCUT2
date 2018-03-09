@@ -425,7 +425,7 @@ int main(int argc, char** argv) {
             HTRANS_MAX_WINDOW = atoi(argv[i + 1]);
         }
         // HIDDEN OPTIONS
-        else if (strcmp(argv[i], "--htrans_data_outfile") == 0){
+        else if (strcmp(argv[i], "--htrans_data_outfile") == 0 || strcmp(argv[i], "--ohf") == 0){
             strcpy(HTRANS_DATA_OUTFILE, argv[i + 1]);
         }else if (strcmp(argv[i], "--printscores") == 0 || strcmp(argv[i], "--scores") == 0){
             PRINT_FRAGMENT_SCORES = atoi(argv[i + 1]);

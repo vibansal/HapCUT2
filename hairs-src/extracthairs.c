@@ -60,6 +60,7 @@ float DELETION_EXTEND = -1;
 // DATA TYPE
 // 0 : generic reads
 // 1 : HiC
+// 2: 10X ??
 int DATA_TYPE = 0;
 
 // NEW FORMAT FOR HIC

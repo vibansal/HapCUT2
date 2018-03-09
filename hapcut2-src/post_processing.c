@@ -258,7 +258,7 @@ int split_block(char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, s
 }
 
 
-// estimate probabilities of h-trans to feed back into HapCUT algorithm
+// estimate probabilities of h-trans to feed back into HapCUT algorithm, HIC data 
 int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struct SNPfrags* snpfrag){
 
     float* MLE_sum   = calloc(HTRANS_MAXBINS,sizeof(float));
@@ -344,7 +344,7 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
         }
     }
 
-
+	// using neighboring bins to calculate mean htrans for each bin
     for (i = 0; i < HTRANS_MAXBINS; i++){
         adj_MLE_count[i] = MLE_count[i];
         adj_MLE_sum[i] = MLE_sum[i];
@@ -352,7 +352,7 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
         i_plus = i;
         e_window_size = HTRANS_BINSIZE; //track the effective window size
         for (j = 0; j< 100000; j++){
-            if (adj_MLE_count[i] >= HTRANS_READ_LOWBOUND) break;
+            if (adj_MLE_count[i] >= HTRANS_READ_LOWBOUND) break; // 500 observations only ??
             i_minus--;
             i_plus++;
             if (i_minus >= 0){
@@ -367,6 +367,7 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
             }
             if (e_window_size >= HTRANS_MAX_WINDOW) break; // cut off window expansion if it's larger than some amount
         }
+	//fprintf(stdout,"i %d %d-%d count %f %f \n",i,i_minus*HTRANS_BINSIZE,i_plus*HTRANS_BINSIZE,adj_MLE_count[i],adj_MLE_sum[i]);
     }
 
     // compute the MLE for each bin

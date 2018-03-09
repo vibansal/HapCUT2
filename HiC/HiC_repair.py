@@ -394,5 +394,5 @@ def repair_chimeras(bamfile1, bamfile2, outfile, min_mapq):
     print("{} repaired.".format(mod_count))
 
 if __name__ == '__main__':
-    args = parse_args()
-    main(args.bamfile1, args.bamfile2, args.outfile, args.min_mapq)
+	args = parse_args()
+	repair_chimeras(args.bamfile1, args.bamfile2, args.outfile, args.min_mapq)
