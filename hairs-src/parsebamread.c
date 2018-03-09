@@ -272,8 +272,8 @@ int extract_variants_read(struct alignedread* read, HASHTABLE* ht, CHROMVARS* ch
 		offset = margin+1; 
 		if (DATA_TYPE ==1) // for HiC reads, if snp allele is located close to clipped position (4-5 bases) in the read, don't use it
 		{ 
-	              if (i==1 && pclip ==1) offset = varlist[ss].position - start - l2; // how far is variant from boundary of clip
-	              if (i==read->cigs-2 && pclip ==2) offset = start+l2+ol-varlist[ss].position; // how far is variant from boundary of clip
+	              //if (i==1 && pclip ==1) offset = varlist[ss].position - start - l2; // how far is variant from boundary of clip
+	              //if (i==read->cigs-2 && pclip ==2) offset = start+l2+ol-varlist[ss].position; // how far is variant from boundary of clip
 		}
     			//fprintf(stderr,"read %s %d %s %d\t",read->readid,read->flag,read->chrom,read->position);
 			//fprintf(stderr,"close-2-boundary, %d %d\n",offset,pclip);
