@@ -482,5 +482,5 @@ def parseargs():
 # main function
 # parse input and run function to call alleles
 if __name__ == '__main__':
-    args = parseargs(); #print (args.VCF)
+    args = parseargs()
     link_fragments(args.fragments,args.VCF,args.bam_file, args.outfile, args.distance, args.single_SNP_frags)

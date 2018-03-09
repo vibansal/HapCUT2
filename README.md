@@ -108,7 +108,7 @@ Field 11 is useful for controlling mismatch (single SNV) haplotype errors, simil
 ```
 (2) use LinkFragments to link fragments into barcoded molecules:
 ```
-python3 utilities/LinkFragments.py --bam reads.sorted.bam --v variants.VCF --fragments unlinked_fragment_file --out linked_fragment_file
+python3 utilities/LinkFragments.py --bam reads.sorted.bam --VCF variants.VCF --fragments unlinked_fragment_file --out linked_fragment_file
 ```
 (3) use HAPCUT2 to assemble fragment file into haplotype blocks.
 ```
