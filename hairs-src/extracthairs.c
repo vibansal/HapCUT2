@@ -153,7 +153,10 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
         }
         // find the chromosome in reflist that matches read->chrom if the previous chromosome is different from current chromosome
         if (read->tid != prevtid) {
-            chrom = getindex(ht, read->chrom); // doing this for every read, can replace this by string comparison ..april 4 2012
+            chrom = getindex(ht, read->chrom); // this will return -1 if the contig name is not  in the VCF file 
+	    if (chrom < 0) fprintf(stderr,"chrom \"%s\" not in VCF file, skipping all reads for this chrom.... \n",read->chrom);
+	    else fprintf(stderr,"processing reads mapped to chrom \"%s\" \n",read->chrom);
+		// doing this for every read, can replace this by string comparison ..april 4 2012
             i = read->tid;
             if (reflist->ns > 0) {
                 reflist->current = i;
@@ -168,11 +171,7 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
                 }
             }
         } else chrom = prevchrom;
-
-        //if (read->tid == read->mtid) // use mateposition to calculate insert size, march 12 2013, wrong since we need to consider the readlength/cigar
-        //{
-        //    read->IS = read->mateposition - read->position;
-        //}
+        //if (chrom_missing_index ==1) { prevtid = read->tid; free_readmemory(read); continue; } 
 
         fragment.absIS = (read->IS < 0) ? -1 * read->IS : read->IS;
         // add check to see if the mate and its read are on same chromosome, bug for contigs, july 16 2012
@@ -217,15 +216,15 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
         // need to fix this june 4 2012.... even for long mate-pairs this could be a problem...
         if ((fragments - prevfragments >= 100000) || fragments >= MAXFRAG - 10000 || (chrom != prevchrom && prevchrom != -1 && fragments > 0)) // chrom of current read is not the same as previous read's chromosome...
         {
-            if (PFLAG == 1) fprintf(stderr, "cleaning buffer: current chrom %s %d fragments %d\n", read->chrom, read->position, fragments);
-            // BUG HERE when trying to clean empty fragment list (fragments ==0)
+            if (PFLAG == 1 && chrom == prevchrom) fprintf(stderr, "cleaning buffer: current chrom %s position %d fragments %d\n", read->chrom, read->position, fragments);
+            else if (PFLAG == 1 && chrom != prevchrom) fprintf(stderr, "cleaning buffer for prev chrom fragments %d\n", fragments);
             if (fragments > 0) clean_fragmentlist(flist, &fragments, varlist, chrom, read->position, prevchrom);
             prevfragments = fragments;
             //fprintf(stderr,"remaining %d\n",fragments);
         }
 
         reads += 1;
-        if (reads % 2000000 == 0){
+        if (reads % 2000000 == 0 && chrom >=0){
             fprintf(stderr, "processed %d reads", reads);
             if (DATA_TYPE != 2) fprintf(stderr, ", paired end fragments %d", fragments);
             fprintf(stderr, "\n");
@@ -233,10 +232,11 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
         prevchrom = chrom;
         prevtid = read->tid;
         free_readmemory(read);
-    }
-    if (fragments > 0) {
-        fprintf(stderr, "final cleanup of fragment list: %d current chrom %s %d \n", fragments, read->chrom, read->position);
-        clean_fragmentlist(flist, &fragments, varlist, -1, read->position, prevchrom);
+    } // end of main while loop
+    if (fragments > 0)  // still fragments left in buffer 
+    {
+        fprintf(stderr, "final cleanup of fragment list: %d current chrom %s %d prev %d \n", fragments, read->chrom, read->position,prevchrom);
+        if (prevchrom >=0) clean_fragmentlist(flist, &fragments, varlist, -1, read->position, prevchrom); // added extra filter 03/08/18
     }
     bam_destroy1(b);
 
@@ -399,7 +399,7 @@ int main(int argc, char** argv) {
 
     HASHTABLE ht;
     ht.htsize = 7919;
-    init_hashtable(&ht);
+    init_hashtable(&ht); // chromosome names are inserted into hashtable from VCF file, ideally this should be done using BAM file header to avoid missing some contigs/chroms
     VARIANT* varlist;
     int chromosomes = 0;
 
