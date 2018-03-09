@@ -129,7 +129,7 @@ def parseargs():
     parser.add_argument('-i', '--hapcut', nargs='?', type = str, help='hapcut2 output file with phased haplotype blocks')
     parser.add_argument('-o', '--outvcf', nargs='?', type = str, help='output VCF file with phased blocks')
     parser.add_argument('-p', '--keep', nargs='?', default = "0",type = str, help='keep additional genotype information in phased VCF, default 0');
-    parser.add_argument('-b', '--addbarcodes', nargs='?', default = 0,type = int, help='print list of barcodes (10X or LFR) for each variant, default 0');
+    #parser.add_argument('-b', '--addbarcodes', nargs='?', default = 0,type = int, help='print list of barcodes (10X or LFR) for each variant, default 0');
 
     if len(sys.argv) < 4:
         parser.print_help()
