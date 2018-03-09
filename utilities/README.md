@@ -36,9 +36,10 @@ optional arguments:
                         haplotype block file (-h1)
   -pv [PHASED_VCF [PHASED_VCF ...]], --phased_vcf [PHASED_VCF [PHASED_VCF ...]]
                         compute errors with respect to this phased single-
-                        individual VCF file(s). NOTE: Files must be separated
-                        by contig/chromosome! (Use with no arguments to use
-                        same VCF(s) from --vcf.)
+                        individual VCF file(s). NOTE: VCFs must be fully phased
+                        across chromosome -- (Phase Set) PS information is ignored.
+                        Files must be separated by contig/chromosome!
+                        (Use with no arguments to use same VCF(s) from --vcf.)
   -h2 REFERENCE_HAPLOTYPE_BLOCKS [REFERENCE_HAPLOTYPE_BLOCKS ...], --reference_haplotype_blocks REFERENCE_HAPLOTYPE_BLOCKS [REFERENCE_HAPLOTYPE_BLOCKS ...]
                         compute errors with respect to this haplotype block
                         file(s)

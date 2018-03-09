@@ -25,7 +25,7 @@ def parse_args():
     parser.add_argument('-h1', '--haplotype_blocks', nargs='+', type = str, help='haplotype block file(s) to compute statistics on')
     parser.add_argument('-v1', '--vcf', nargs='+', type = str, help='VCF file(s) that was used to generate h1 haplotype fragments and phase h1 haplotype (--vcf in extractHAIRS and HapCUT2)')
     parser.add_argument('-f1', '--fragments', nargs='+', type = str, help='HapCUT2 format fragment file(s) used to generate input haplotype block file (-h1)')
-    parser.add_argument('-pv', '--phased_vcf', nargs='*', type = str, help='compute errors with respect to this phased single-individual VCF file(s). NOTE: Files must be separated by contig/chromosome! (Use with no arguments to use same VCF(s) from --vcf.)')
+    parser.add_argument('-pv', '--phased_vcf', nargs='*', type = str, help='compute errors with respect to this phased single-individual VCF file(s). NOTE: VCFs must be fully phased across chromosome -- (Phase Set) PS information is ignored. Files must be separated by contig/chromosome! (Use with no arguments to use same VCF(s) from --vcf.)')
     parser.add_argument('-h2', '--reference_haplotype_blocks', nargs='+', type = str, help='compute errors with respect to this haplotype block file(s)')
     parser.add_argument('-v2', '--reference_vcf', nargs='*', type = str, help='VCF file(s) that was used to generate h2 haplotype fragments and phase h2 haplotype (--vcf in extractHAIRS and HapCUT2). Use with no arguments to use same VCF(s) from --vcf.')
     parser.add_argument('-i', '--indels', action="store_true", help='Use this flag to consider indel variants. Default: Indels ignored.',default=False)
