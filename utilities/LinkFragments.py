@@ -462,7 +462,7 @@ def parseargs():
 
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('-f', '--fragments', nargs='?', type = str, help='file with unlinked hapcut2 fragments (generate using --10X 1 option in extractHAIRS)')
-    parser.add_argument('-v', '--vcf_file', nargs='?', type = str, help='vcf file for phasing')
+    parser.add_argument('-v', '--VCF', nargs='?', type = str, help='vcf file for phasing')
     parser.add_argument('-b', '--bam_file', nargs='?', type = str, help='bam file with barcoded reads')
     parser.add_argument('-o', '--outfile', nargs='?', type = str, help='output file with linked fragments')
     parser.add_argument('-d', '--distance', nargs='?', type = int, help='distance in base pairs that delineates separate 10X molecules',default=20000)
@@ -482,4 +482,4 @@ def parseargs():
 if __name__ == '__main__':
     args = parseargs()
 
-    link_fragments(args.fragments,args.vcf_file,args.bam_file, args.outfile, args.distance, args.single_SNP_frags)
+    link_fragments(args.fragments,args.VCF,args.bam_file, args.outfile, args.distance, args.single_SNP_frags)
