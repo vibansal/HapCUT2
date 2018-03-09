@@ -108,11 +108,11 @@ Field 11 is useful for controlling mismatch (single SNV) haplotype errors, simil
 ```
 (2) use LinkFragments to link fragments into barcoded molecules:
 ```
-python3 utilities/LinkFragments.py --bam reads.sorted.bam --v variants.VCF --fragments unlinked_fragment_file --out linked_fragment_file
+python3 utilities/LinkFragments.py --bam reads.sorted.bam --VCF variants.VCF --fragments unlinked_fragment_file --out linked_fragment_file
 ```
 (3) use HAPCUT2 to assemble fragment file into haplotype blocks.
 ```
-./build/HAPCUT2 --nf 1 --fragments linked_fragment_file --vcf variantcalls.vcf --output haplotype_output_file
+./build/HAPCUT2 --nf 1 --fragments linked_fragment_file --VCF variantcalls.vcf --output haplotype_output_file
 ```
 
 ## Hi-C (Proximity Ligation) Sequencing Reads
@@ -126,7 +126,7 @@ Use the --pacbio 1 and --ont 1 options in extractHAIRS for greatly improved accu
 Here is an example using Pacific Biosciences data (replace --pacbio with --ont for oxford nanopore):
 ```
 ./build/extractHAIRS --pacbio 1 --bam reads.sorted.bam --VCF variants.VCF --out fragment_file
-./build/HAPCUT2 --ea 1 --fragments fragment_file --vcf variantcalls.vcf --output haplotype_output_file
+./build/HAPCUT2 --ea 1 --fragments fragment_file --VCF variantcalls.vcf --output haplotype_output_file
 python3 utilities/prune_haplotype.py -i haplotype_output_file -o haplotype_output_file.pruned --min_mismatch_qual 30 --min_switch_qual 30
 # the quality-filtered haplotype is in haplotype_output_file.pruned
 ```

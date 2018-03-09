@@ -10,10 +10,10 @@ extern int HIC;
 
 void print_hapcut_options() {
     fprintf(stdout, "\nHapCUT2: robust and accurate haplotype assembly for diverse sequencing technologies\n\n");
-    fprintf(stdout, "USAGE : ./HAPCUT2 --fragments fragment_file --vcf variantcalls.vcf --output haplotype_output_file\n\n");
+    fprintf(stdout, "USAGE : ./HAPCUT2 --fragments fragment_file --VCF variantcalls.vcf --output haplotype_output_file\n\n");
     fprintf(stderr, "Basic Options:\n");
     fprintf(stderr, "--fragments, --f <FILENAME>:        file with haplotype-informative reads generated using the extracthairs program\n");
-    fprintf(stderr, "--vcf <FILENAME>:                   variant file in VCF format (use EXACT SAME file that was used for the extracthairs program)\n");
+    fprintf(stderr, "--VCF <FILENAME>:                   variant file in VCF format (use EXACT SAME file that was used for the extracthairs program)\n");
     fprintf(stderr, "--output, --o <FILENAME> :          file to which phased haplotype segments/blocks will be output\n");
     fprintf(stderr, "--converge, --c <int>:              cut off iterations (global or maxcut) after this many iterations with no improvement. default: 5\n");
     fprintf(stderr, "--verbose, --v <0/1>:               verbose mode: print extra information to stdout and stderr. default: 0\n");
