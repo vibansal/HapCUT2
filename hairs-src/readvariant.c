@@ -14,10 +14,10 @@ int count_variants(char* vcffile, char* sampleid, int* samplecol) {
         return -1;
     }
     int variants = 0;
-    char buffer[100000];
-    int i = 0, j = 0, cols = 0;
+    char buffer[500000];
+    int i = 0, j = 0, cols = 0,n=0;
 
-    while (fgets(buffer, 100000, fp)) {
+    while (fgets(buffer, 500000, fp)) {
         if (buffer[0] != '#') variants++; // this should work for non-VCF files as well.
         else if (buffer[0] == '#' && buffer[1] == '#') continue;
         else if (buffer[0] == '#' && buffer[1] == 'C' && buffer[2] == 'H' && buffer[3] == 'R' && buffer[4] == 'O' && buffer[5] == 'M') {
@@ -218,7 +218,7 @@ int parse_variant(VARIANT* variant, char* buffer, int samplecol) {
 
 int read_variantfile(char* vcffile, VARIANT* varlist, HASHTABLE* ht, int* hetvariants, int samplecol) {
     FILE* fp = fopen(vcffile, "r");
-    char buffer[100000];
+    char buffer[500000];
     int i = 0;
     //	char allele1[256]; char allele2[256]; char genotype[256]; int quality;
     char prevchrom[256];
@@ -227,7 +227,7 @@ int read_variantfile(char* vcffile, VARIANT* varlist, HASHTABLE* ht, int* hetvar
     *hetvariants = 0;
     int het = 0;
 
-    while (fgets(buffer, 100000, fp)) {
+    while (fgets(buffer, 500000, fp)) {
         if (buffer[0] == '#') continue;
         else {
             het = parse_variant(&varlist[i], buffer, samplecol);
