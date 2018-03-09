@@ -58,7 +58,9 @@ The assembled haplotype you wish to assess should be input using the -h1, -v1, a
 from HapCUT2, the VCF  used as input to HapCUT2, and haplotype fragment file used as input to HapCUT2, respectively).
 
 The haplotype you wish to compare against (for computing error rates) can be either a VCF with phase information (-pv),
-or another HapCUT2-type assembly (requires both -h2 and -v2 options).
+or another HapCUT2-type assembly (requires both -h2 and -v2 options). If the haplotype is a VCF (-pv) then it must be
+fully phased across the chromosome -- Phase Set (PS) or haplotype block information is currently ignored for VCFs.
+For example, a valid input would be a trio-phased variant set from the platinum genomes project.
 
 The -c option is required if you wish to compute the N50 statistic. For instance, if Hg19 is your reference, you can use hg19.chrom.sizes (downloaded from UCSC and included here for convenience).
 
