@@ -2,7 +2,7 @@
 import sys, os, glob, string, subprocess,time,math,argparse
 from hap_fragments import read_hairs_file
 
-# last modified 02/06/2018
+# last modified 03/09/2018
 # author Vikas Bansal
 
 ## take the HapCUT2 (or hapCUT) phased output file and the input VCF file 
@@ -12,8 +12,8 @@ UNPHASE=1; ## don't keep the phasing information from original VCF
 PRESERVE_INFO=0;
 HAIR_FILE = 0;
 ADD_BARCODES=0; ## output barcodes associated for each variant (only for 10X or LFR data)
-
-## PS = A phase set is defined as a set of phased genotypes to which this genotype belongs. Phased genotypes for an individual that are on the same chromosome and have the same PS value are in the same phased set. PS = position of first variant in each haplotype block 
+KEEP_IDS = ['GQ','AD','DP'];  # GT info fields to keep from original VCF
+## PS = A phase set is defined as a set of phased genotypes to which this genotype belongs PS = position of first variant in each haplotype block 
 
 ################## read hapcut output file for phased genome ##################
 
@@ -59,12 +59,16 @@ def read_VCF(vfile):
 	return snptable;
 
 def print_vcf_headers(outfile):
-	print >>outfile,"source=HapCUT2 phased haplotype blocks";
-	print >>outfile,"##FORMAT=<ID=BX,Number=.,Type=String,Description=\"Barcodes for this variant\">";
+	#print >>outfile,"##fileformat=VCFv4.0";
+	print >>outfile,"##source=HapCUT2 phased haplotype blocks";
+	#print >>outfile,"##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">";
 	print >>outfile,"##FORMAT=<ID=PS,Number=1,Type=Integer,Description=\"ID of Phase Set for Variant\">";
 	print >>outfile,"##FORMAT=<ID=PQ,Number=1,Type=Integer,Description=\"Phred QV indicating probability at this variant is incorrectly phased relative to the haplotype\">";
-	print >>outfile,"##FORMAT=<ID=JQ,Number=1,Type=Integer,Description=\"Phred QV indicating probability of a phasing switch error in gap prior to this variant\">";
-	print >>outfile,"##commandline=\"....\"";
+	#print >>outfile,"##FORMAT=<ID=JQ,Number=1,Type=Integer,Description=\"Phred QV indicating probability of a phasing switch error in gap prior to this variant\">";
+	print >>outfile,"##FORMAT=<ID=BX,Number=.,Type=String,Description=\"Barcodes for this variant\">";
+	print >>outfile,"##FORMAT=<ID=PD,Number=1,Type=Integer,Description=\" phased Read Depth\">";
+	#print >>outfile,"##commandline=\"....\"";
+
 
 
 def output_phased_VCF(vcffile,phased_table,varindex,outfile):
@@ -103,7 +107,12 @@ def output_phased_VCF(vcffile,phased_table,varindex,outfile):
 			#print >>sys.stderr, "unphased variant",chrom,position;
 			pass; 
 
-		C9 = var[8].split(':'); C10 = var[9].split(':'); newC9 = ['GT']; newC10 = [ugenotype];
+		C9 = var[8].split(':'); C10 = var[9].split(':'); 
+		newC9 = ['GT']; newC10 = [ugenotype];
+		for i in xrange(1,len(C9)):
+			# GT:AD:DP:GQ:PL preserve these values from original VCF 
+			if C9[i] in KEEP_IDS: newC9.append(C9[i]); newC10.append(C10[i]); 
+			elif C9[i] != 'PS' and C9[i] != 'PQ' and PRESERVE_INFO ==1 : newC9.append(C9[i]); newC10.append(C10[i]); 
 		if not_phased ==0: 
 			newC9.append('PS'); newC9.append('PQ'); 
 			newC10.append(phasedvar[1]); newC10.append(`phasedvar[2]`); 
@@ -111,8 +120,6 @@ def output_phased_VCF(vcffile,phased_table,varindex,outfile):
 			if ADD_BARCODES ==1 and HAIR_FILE ==1: 
 				BXlist = ';'.join([fragments[i][1].split(':')[2] for i in xrange(links)]);
 				newC9.append('BX'); newC10.append(BXlist);
-		for i in xrange(1,len(C9)):
-			if C9[i] != 'PS' and C9[i] != 'PQ' and PRESERVE_INFO ==1 : newC9.append(C9[i]); newC10.append(C10[i]); 
 		
 		print >>OUTFILE, "\t".join([var[i] for i in xrange(8)]) + '\t' + ':'.join(newC9) + '\t' + ':'.join(newC10);
 
@@ -123,11 +130,11 @@ def output_phased_VCF(vcffile,phased_table,varindex,outfile):
 #############################################################################################################
 
 def parseargs():
-    parser = argparse.ArgumentParser(description='## Convert hapcut2 phased block to a VCF file, adds Barcodes associated with each variant if fragment file is provided\n')
+    parser = argparse.ArgumentParser(description='## Convert hapcut2 phased block to a VCF file, adds Barcodes associated with each variant if fragment file is provided (TBI)\n')
     parser.add_argument('-f', '--fragments', nargs='?', default="None",type = str, help='file with hapcut2 fragments (generated using extractHAIRS)')
-    parser.add_argument('-v', '--vcf', nargs='?', type = str, help='VCF file used as input to hapcut2')
+    parser.add_argument('-v', '--VCF', nargs='?', type = str, help='VCF file used as input to hapcut2')
     parser.add_argument('-i', '--hapcut', nargs='?', type = str, help='hapcut2 output file with phased haplotype blocks')
-    parser.add_argument('-o', '--outvcf', nargs='?', type = str, help='output VCF file with phased blocks')
+    parser.add_argument('-o', '--pVCF', nargs='?', type = str, help='output VCF file with phased blocks')
     parser.add_argument('-p', '--keep', nargs='?', default = "0",type = str, help='keep additional genotype information in phased VCF, default 0');
     #parser.add_argument('-b', '--addbarcodes', nargs='?', default = 0,type = int, help='print list of barcodes (10X or LFR) for each variant, default 0');
 
@@ -143,9 +150,9 @@ def parseargs():
 if __name__ == '__main__':
 	args = parseargs()
 	if int(args.keep) ==1: PRESERVE_INFO = 1;
-	if int(args.addbarcodes) ==1: ADD_BARCODES= 1; 
+	#if int(args.addbarcodes) ==1: ADD_BARCODES= 1; 
 	[phased_table,varindex] = get_phased_blocks(args.hapcut);
 	if args.fragments != "None": hairlist = read_hairs_file(args.fragments,varindex); HAIR_FILE = 1; 
 
-	output_phased_VCF(args.vcf,phased_table,varindex,args.outvcf);
+	output_phased_VCF(args.VCF,phased_table,varindex,args.pVCF);
 

@@ -238,6 +238,7 @@ int read_variantfile(char* vcffile, VARIANT* varlist, HASHTABLE* ht, int* hetvar
                 //	fprintf(stderr,"chromosomes %d %d\n",chromosomes,i);
                 // insert chromname into hashtable
                 insert_keyvalue(ht, varlist[i].chrom, strlen(varlist[i].chrom), chromosomes);
+		fprintf(stderr,"adding chrom %s to index \n",varlist[i].chrom);
                 strcpy(prevchrom, varlist[i].chrom);
                 chromosomes++;
             }

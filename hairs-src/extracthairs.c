@@ -47,6 +47,7 @@ char* GROUPNAME; // for fragments from different pools, SRRxxx
 FILE* fragment_file;
 int TRI_ALLELIC = 0;
 int VERBOSE = 0;
+int PACBIO = 0; 
 
 int* fcigarlist; // global variable
 
@@ -103,9 +104,9 @@ void print_options() {
     fprintf(stderr, "--indels <0/1> : extract reads spanning INDELS, default is 0, variants need to specified in VCF format to use this option\n");
     fprintf(stderr, "--noquality <INTEGER> : if the bam file does not have quality string, this value will be used as the uniform quality value, default 0 \n");
     //fprintf(stderr,"--triallelic <0/1> : print information about , default 0 \n");
-    fprintf(stderr, "--ref <FILENAME> : reference sequence file (in fasta format), optional but required for indels, should be indexed using samtools\n");
-    fprintf(stderr, "--out <FILENAME> : output filename for haplotype fragments, if not provided, fragments will be output to stdout\n\n");
-    fprintf(stderr, "--regions chr:start-end > : chromosome and region in BAM file, useful to process individual chromosomes \n\n");
+    fprintf(stderr, "--ref <FILENAME> : reference sequence file (in fasta format, gzipped is okay), optional but required for indels, should be indexed\n");
+    fprintf(stderr, "--out <FILENAME> : output filename for haplotype fragments, if not provided, fragments will be output to stdout\n");
+    fprintf(stderr, "--regions chr:start-end > : chromosome and region in BAM file, useful to process individual chromosomes or genomic regions \n\n");
     //fprintf(stderr,"--out : output file for haplotype informative fragments (hairs)\n\n");
 }
 
@@ -160,10 +161,12 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
         iter = bam_iter_query(idx,ref,beg,end); 
     }
 
+
     while (1) {
 	if (ref < 0) ret = samread(fp,b); 
 	else ret = bam_iter_read(fp->x.bam,iter,b); 
-	if (ret < 0) break;  
+	//fprintf(stderr,"here %d %d\n",ret,iter);
+	if (ret < 0) { fprintf(stderr,"reading indexed bam file ret %d \n",ret); break;  } 
         fetch_func(b, fp, read);
         if ((read->flag & (BAM_FUNMAP | BAM_FSECONDARY | BAM_FQCFAIL | BAM_FDUP)) || read->mquality < MIN_MQ) {
             free_readmemory(read);
@@ -238,7 +241,7 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
         }
 
         reads += 1;
-        if (reads % 2000000 == 0 && chrom >=0){
+        if ( (reads % 2000000 == 0 && chrom >=0) || (PACBIO ==1 && reads % 50000==0 && chrom >= 0) ) { 
             fprintf(stderr, "processed %d reads", reads);
             if (DATA_TYPE != 2) fprintf(stderr, ", paired end fragments %d", fragments);
             fprintf(stderr, "\n");
@@ -325,10 +328,10 @@ int main(int argc, char** argv) {
             if (atoi(argv[i + 1])){
                 REALIGN_VARIANTS = 1;
             }
-        }else if (strcmp(argv[i], "--pacbio") == 0){
+        }else if (strcmp(argv[i], "--pacbio") == 0 || strcmp(argv[i], "--SMRT") == 0){
             check_input_0_or_1(argv[i + 1]);
             if (atoi(argv[i + 1])){
-                REALIGN_VARIANTS = 1;
+                REALIGN_VARIANTS = 1; PACBIO =1;
             }
 
             // scores based on https://www.researchgate.net/figure/230618348_fig1_Characterization-of-Pacific-Biosciences-dataa-Base-error-mode-rate-for-deletions
@@ -452,6 +455,8 @@ int main(int argc, char** argv) {
         if (read_fastaheader(fastafile, reflist) > 0) {
             reflist->sequences = calloc(reflist->ns, sizeof (char*)); //(char**)malloc(sizeof(char*)*reflist->ns);
             for (i = 0; i < reflist->ns; i++) {
+		//chrom = getindex(ht, reflist->names[i]);
+		//if (chrom < 0) fprintf(stderr,"couldn't find match for chrom %s in VCF file index \n",reflist->names[i]);  
                 reflist->sequences[i] = calloc(reflist->lengths[i] + 1, sizeof (char));
                 if (i < 5) fprintf(stderr, "contig %s length %d\n", reflist->names[i], reflist->lengths[i]);
             }
