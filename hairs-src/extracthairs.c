@@ -48,6 +48,7 @@ FILE* fragment_file;
 int TRI_ALLELIC = 0;
 int VERBOSE = 0;
 int PACBIO = 0; 
+int USE_SUPP_ALIGNMENTS =0; // use supplementary alignments, flag = 2048
 
 int* fcigarlist; // global variable
 
@@ -107,7 +108,6 @@ void print_options() {
     fprintf(stderr, "--ref <FILENAME> : reference sequence file (in fasta format, gzipped is okay), optional but required for indels, should be indexed\n");
     fprintf(stderr, "--out <FILENAME> : output filename for haplotype fragments, if not provided, fragments will be output to stdout\n");
     fprintf(stderr, "--regions chr:start-end > : chromosome and region in BAM file, useful to process individual chromosomes or genomic regions \n\n");
-    //fprintf(stderr,"--out : output file for haplotype informative fragments (hairs)\n\n");
 }
 
 void check_input_0_or_1(char* x){
@@ -135,7 +135,7 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
     int prevtid = -1;
 
     FRAGMENT* flist = (FRAGMENT*) malloc(sizeof (FRAGMENT) * MAXFRAG);
-    int fragments = 0;
+    int fragments = 0,VOfragments[2]={0,0}; // fragments overlapping variants
     int prevfragments = 0;
     FRAGMENT fragment;
     fragment.variants = 0;
@@ -168,7 +168,7 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
 	//fprintf(stderr,"here %d %d\n",ret,iter);
 	if (ret < 0) { fprintf(stderr,"reading indexed bam file ret %d \n",ret); break;  } 
         fetch_func(b, fp, read);
-        if ((read->flag & (BAM_FUNMAP | BAM_FSECONDARY | BAM_FQCFAIL | BAM_FDUP)) || read->mquality < MIN_MQ) {
+        if ((read->flag & (BAM_FUNMAP | BAM_FSECONDARY | BAM_FQCFAIL | BAM_FDUP)) || read->mquality < MIN_MQ || (USE_SUPP_ALIGNMENTS == 0 && (read->flag & 2048))) {
             free_readmemory(read);
             continue;
         }
@@ -210,6 +210,8 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
                 if (fragment.variants >= 2 || (SINGLEREADS == 1 && fragment.variants >= 1)) {
                     // instead of printing fragment, we could change this to update genotype likelihoods
                     print_fragment(&fragment, varlist, fragment_file);
+		    if (fragment.variants >=2) VOfragments[0]++;
+		    else if (fragment.variants >=1) VOfragments[1]++;
                 }
             }
         } else // paired-end read
@@ -241,9 +243,9 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
         }
 
         reads += 1;
-        if ( (reads % 2000000 == 0 && chrom >=0) || (PACBIO ==1 && reads % 50000==0 && chrom >= 0) ) { 
+        if ( (reads % 2000000 == 0 && chrom >=0) || (PACBIO ==1 && reads % 20000==0 && chrom >= 0) ) { 
             fprintf(stderr, "processed %d reads", reads);
-            if (DATA_TYPE != 2) fprintf(stderr, ", paired end fragments %d", fragments);
+            if (DATA_TYPE != 2) fprintf(stderr, " PE-fragments %d SE-fragments %d %d", fragments,VOfragments[0],VOfragments[1]);
             fprintf(stderr, "\n");
         }
         prevchrom = chrom;
@@ -485,13 +487,9 @@ int main(int argc, char** argv) {
 	//free(reflist->offsets);
 
 	for (i=0;i<variants;i++){
-		free(varlist[i].genotype);
-		free(varlist[i].RA);
-		free(varlist[i].AA);
-		free(varlist[i].chrom);
+		free(varlist[i].genotype); free(varlist[i].RA); 	free(varlist[i].AA);free(varlist[i].chrom);
         if (varlist[i].heterozygous == '1'){
-            free(varlist[i].allele1);
-            free(varlist[i].allele2);
+            free(varlist[i].allele1); free(varlist[i].allele2);
         }
 	}
 

@@ -2,7 +2,7 @@
 #include "readvariant.h"
 #include "readfasta.h"
 #include <assert.h>
-
+#include "htslib/hts.h" // read bgzipped VCF files
 
 
 // count the # of variants in VCF file to allocate space for VCF variant array

@@ -35,6 +35,7 @@ int DISCRETE_PRUNING = 0;
 int ERROR_ANALYSIS_MODE = 0;
 int SKIP_PRUNE = 0;
 int SNVS_BEFORE_INDELS = 0;
+int OUTPUT_RH_ASSIGNMENTS =0; // read-haplotype assignments
 
 int AUTODETECT_LONGREADS = 1;
 int LONG_READS = 0; // if this variable is 1, the data contains long read data
@@ -300,6 +301,8 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
     // PRINT OUTPUT FILE
     fprintf_time(stderr, "OUTPUTTING PRUNED HAPLOTYPE ASSEMBLY TO FILE %s\n", outputfile);
     print_hapfile(clist, components, HAP1, Flist, fragments, snpfrag, variantfile, miscalls, outputfile);
+    char assignfile[4096];  sprintf(assignfile,"%s.haplotags",outputfile);
+    if (OUTPUT_RH_ASSIGNMENTS ==1) fragment_assignments(Flist,fragments,snpfrag,HAP1,assignfile); // added 03/10/2018 to output read-haplotype assignments
 
     // FREE UP MEMORY
     for (i = 0; i < snps; i++) free(snpfrag[i].elist);
@@ -368,6 +371,8 @@ int main(int argc, char** argv) {
             flag++;
         }else if ((strcmp(argv[i], "--converge") == 0) || (strcmp(argv[i], "--c") == 0)) {
             CONVERGE = atoi(argv[i + 1]);
+        }else if ((strcmp(argv[i], "--rh") == 0) || (strcmp(argv[i], "--tags") == 0)) { // read-haplotype assignments
+            OUTPUT_RH_ASSIGNMENTS = atoi(argv[i + 1]);
         }else if (strcmp(argv[i], "--verbose") == 0 || strcmp(argv[i], "--v") == 0){
             check_input_0_or_1(argv[i + 1]);
             VERBOSE = atoi(argv[i + 1]);
