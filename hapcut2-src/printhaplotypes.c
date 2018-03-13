@@ -271,7 +271,7 @@ int output_vcf(char* vcffile, struct SNPfrags* snpfrag, int snps,char* H1,struct
 	fprintf(out,"%s\t%s\t%s\n",temp,newC9,newC10);
 	if (phased ==1) 
 	{
-		fprintf(out,"var %d PGLL %f %f %f %f %f\n",var,snpfrag[var].PGLL[0],snpfrag[var].PGLL[1],snpfrag[var].PGLL[2],snpfrag[var].PGLL[3],snpfrag[var].PGLL[4]);
+		//fprintf(out,"var %d PGLL %f %f %f %f %f\n",var,snpfrag[var].PGLL[0],snpfrag[var].PGLL[1],snpfrag[var].PGLL[2],snpfrag[var].PGLL[3],snpfrag[var].PGLL[4]);
 		//for (i=0;i<snpfrag[var].frags;i++) fprintf(out,"frag %s \n",Flist[snpfrag[var].flist[i]].id);
 	}
 	
