@@ -20,7 +20,8 @@ typedef struct {
 typedef struct {
     int ns; // no of sequences 
     char** names;
-    int* lengths;
+    int* lengths; 
+    int* used; // 0/1 flag for chromosomes that are needed for parsing VCF
     unsigned char** sequences; // changed to unsigned char july 5 2012 to avoid warnings in kmertable.c
     uint64_t* offsets; // from fasta index file for each chromosome
 
