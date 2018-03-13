@@ -50,8 +50,7 @@ void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfr
         P_data_Hf = 0;
         P_data_H00 = 0;
         P_data_H11 = 0;
-	snpfrag[i].PGLL[0] = 0; snpfrag[i].PGLL[3] = 0; 
-	snpfrag[i].PGLL[1] = 0; snpfrag[i].PGLL[2] = 0; 
+	for (j=0;j<5;j++) snpfrag[i].PGLL[j] = 0; 
 
         //looping over fragments overlapping i and sum up read probabilities
         for (j = 0; j < snpfrag[i].frags; j++) {
@@ -61,7 +60,6 @@ void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfr
             flip(HAP1[i]);
             P_data_Hf += fragment_ll(Flist, f, HAP1, -1, -1);
 	    /*
-            // normal haplotypes
 	    calculate_fragscore(Flist,f,HAP1,&ll); P_data_H += ll; 
 	    if (HAP1[i] == '0') HAP1[i] = '1'; else if (HAP1[i] == '1') HAP1[i] = '0'; 
             calculate_fragscore(Flist,f,HAP1,&ll); P_data_Hf += ll;
@@ -76,10 +74,11 @@ void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfr
                 P_data_H11 += fragment_ll(Flist, f, HAP1, i, -1);
             }
             HAP1[i] = '0'; snpfrag[i].PGLL[0] += fragment_ll(Flist, f, HAP1, i, -1); // added 03/12/2018
-            HAP1[i] = '1'; snpfrag[i].PGLL[3] += fragment_ll(Flist, f, HAP1, i, -1);
-
+            HAP1[i] = '1'; snpfrag[i].PGLL[3] += fragment_ll(Flist, f, HAP1, i, -1); // homozygous genotypes 00,11
             //return haplotype to original value
             HAP1[i] = temp1;
+	    ll = fragment_ll(Flist, f, HAP1, i, 10); // variant 'i' ignored for likelihood calculation if last parameter = 10
+	    if (ll < 0) snpfrag[i].PGLL[4] +=ll;
         }
 	snpfrag[i].PGLL[1] = P_data_H; snpfrag[i].PGLL[2] = P_data_Hf;
 
@@ -194,11 +193,9 @@ void discrete_pruning(int snps, int fragments, struct fragment* Flist, struct SN
     }
 
     for (i = 0; i < snps; i++){
-
         snpfrag[i].pruned_discrete_heuristic = (int)(good[i] == bad[i]);
 
     }
-
     free(good); free(bad);
 }
 

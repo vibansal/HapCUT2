@@ -231,6 +231,7 @@ float fragment_ll(struct fragment* Flist, int f, char* h, int homozygous, int sw
 
               //  if (h[Flist[f].list[j].offset + k] == Flist[f].list[j].hap[k]) good += prob1;
                // else bad += prob1;
+		if (homozygous == snp_ix && switch_ix == 10) continue; // for calculating likelihood if variant is ignored, hack added 03/13/2018
 
                 // this is likelihood based calculation
                 switched = (switch_ix != -1 && snp_ix >= switch_ix);

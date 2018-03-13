@@ -69,6 +69,9 @@ In the case of Hi-C reads, it is recommended to use ```--hic 1``` for both extra
 Based on user preference, SNV pruning (filtering of low-quality phased SNVs) may be adjusted with ```--threshold <float>``` (closer to 1 prunes more, closer to 0.5 prunes less) or turned off with ```--no_prune 1```.
 
 ## Output Format:
+
+#### HapCUT2 now outputs the phased variants to a VCF file "output_haplotype_file.phased.vcf" 
+
 Haplotype blocks are printed to the output file. For a given block, column 2 represents
 the allele on one chromosome copy (0 for reference, 1 for variant), while column 3 represents
 the allele on the other copy.
@@ -134,9 +137,6 @@ The --indels option may be used if desired -- the realignment strategy used with
 ## Calculating Haplotype Statistics
 The calculate_haplotype_statistics script in the utilities directory calculates haplotype error rates with respect to a reference haplotype, as well as completeness statistics such as N50 and AN50.
 
-## Converting HapCUT2 output to VCF format
-Nils Homer has developed a tool HapCutToVcf that supports converting HapCUT2-formatted haplotype blocks into VCF format. It will be included with the fgbio tool suite, available [here](https://github.com/fulcrumgenomics/fgbio).
-
 ## Reproducing the HapCUT2 manuscript
 
 The directory **reproduce_hapcut2_paper** contains the source code and pipeline used to obtain the results of the HapCUT2 manuscript (linked above). It is nearly complete except for some early data access and cleaning steps which are not yet integrated into the pipeline, but these will be added soon.
@@ -146,6 +146,11 @@ The directory **reproduce_hapcut2_paper** contains the source code and pipeline 
 The directory **recipes** contains example pipelines to assemble haplotypes from various types of sequencing data.
 
 ## Updates and Announcements:
+
+
+#### March 13, 2018
+
+HapCUT2 now outputs the phased variants to a VCF file ("haplotype_output_file".phased.vcf) in addition to the haplotype blocks. 
 
 #### August 14, 2017
 Extracthairs now has optimizations for error prone long read technologies (Pacific Biosciences and Oxford Nanopore). The strategy performs a sensitive realignment in a window around the potential variant. A read-window is aligned to both the reference sequence, and the variant sequence (reference sequence modified to contain the variant). An allele call is assigned based on the best alignment, and the "base quality" of the allele call is determined by a bayesian posterior calculated using both alignment scores.

@@ -98,7 +98,7 @@ struct SNPfrags {
     float post_hap;
     int pruned_discrete_heuristic; // for error analysis mode
     float homozygous_prior; // prior probability of homozygousity. Based on GQ field of VCF.
-    float PGLL[4]; 
+    float PGLL[5]; // phased genotype likelihoods, 00,01,10,11 and ./. (if variant is ignored) 
 };
 
 int fprintf_time(FILE *stream, const char *format, ...);
