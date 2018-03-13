@@ -33,7 +33,7 @@ void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfr
     int i, j, f;
     char temp1;
     float P_data_H, P_data_Hf, P_data_H00, P_data_H11, total, log_hom_prior, log_het_prior;
-    float post_hap, post_hapf, post_00, post_11;
+    float post_hap, post_hapf, post_00, post_11,ll;
 
     for (i = 0; i < snps; i++) {
 
@@ -50,17 +50,22 @@ void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfr
         P_data_Hf = 0;
         P_data_H00 = 0;
         P_data_H11 = 0;
+	snpfrag[i].PGLL[0] = 0; snpfrag[i].PGLL[3] = 0; 
+	snpfrag[i].PGLL[1] = 0; snpfrag[i].PGLL[2] = 0; 
 
         //looping over fragments overlapping i and sum up read probabilities
         for (j = 0; j < snpfrag[i].frags; j++) {
 
             f = snpfrag[i].flist[j];
-            // normal haplotypes
-
             P_data_H += fragment_ll(Flist, f, HAP1, -1, -1);
-            // haplotypes with i flipped
             flip(HAP1[i]);
             P_data_Hf += fragment_ll(Flist, f, HAP1, -1, -1);
+	    /*
+            // normal haplotypes
+	    calculate_fragscore(Flist,f,HAP1,&ll); P_data_H += ll; 
+	    if (HAP1[i] == '0') HAP1[i] = '1'; else if (HAP1[i] == '1') HAP1[i] = '0'; 
+            calculate_fragscore(Flist,f,HAP1,&ll); P_data_Hf += ll;
+	    */
 
             if (call_homozygous){
                 // haplotypes with i homozygous 00
@@ -70,11 +75,13 @@ void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfr
                 HAP1[i] = '1';
                 P_data_H11 += fragment_ll(Flist, f, HAP1, i, -1);
             }
+            HAP1[i] = '0'; snpfrag[i].PGLL[0] += fragment_ll(Flist, f, HAP1, i, -1); // added 03/12/2018
+            HAP1[i] = '1'; snpfrag[i].PGLL[3] += fragment_ll(Flist, f, HAP1, i, -1);
 
             //return haplotype to original value
             HAP1[i] = temp1;
         }
-
+	snpfrag[i].PGLL[1] = P_data_H; snpfrag[i].PGLL[2] = P_data_Hf;
 
 
         if (call_homozygous){

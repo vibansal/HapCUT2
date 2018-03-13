@@ -6,8 +6,9 @@ extern int HIC;
 // for each fragment, output the block-ID (first SNP in block), haplotype-assignment and probability of assignment  | only for long-reads
 void fragment_assignments(struct fragment* Flist,int fragments, struct SNPfrags* snpfrag,char* h,char* outfile)
 {
-    int f=0,j = 0, k = 0,alleles=0,tag=0,offset=0,component;
+    int f=0,j = 0, k = 0,alleles=0,offset=0,component;
     float p0 = 0, p1 = 0, prob = 0, prob2 = 0;
+    char tag;
     FILE* OUTFILE = fopen(outfile,"w");
 
     for (f=0;f<fragments;f++)
@@ -18,7 +19,7 @@ void fragment_assignments(struct fragment* Flist,int fragments, struct SNPfrags*
 		for (k = 0; k < Flist[f].list[j].len; k++) {
 		    if (h[Flist[f].list[j].offset + k] == '-' || (int) Flist[f].list[j].qv[k] - QVoffset < MINQ) continue;
 		    if (offset < 0) offset = Flist[f].list[j].offset; 
-		    prob = (QVoffset - (int) Flist[f].list[j].qv[k])/10;
+		    prob = (QVoffset - (int) Flist[f].list[j].qv[k]); prob /= 10;
 		    prob2 = Flist[f].list[j].p1[k];
 		    alleles++;
 
@@ -31,18 +32,20 @@ void fragment_assignments(struct fragment* Flist,int fragments, struct SNPfrags*
 		    }
 		}
 	   }
-	   if (p0 > p1) { tag =0; prob = pow(10,p0-addlogs(p0,p1)); }
-	   else { tag = 1; prob = pow(10,p1-addlogs(p0,p1)); } 
+	   if (p0 > p1) { tag ='0'; prob = pow(10,p0-addlogs(p0,p1)); Flist[f].PQ = (int)(10*(addlogs(p0,p1)-p1)); }
+	   else { tag = '1'; prob = pow(10,p1-addlogs(p0,p1)); Flist[f].PQ = (int)(10*(addlogs(p0,p1)-p0)); } 
 	   if (prob >=0.9 && offset >=0) { 
 	   component = snpfrag[offset].component; // unphased SNPs should be ignored
 	   // print PS,hap(0|1),probability followed by original fragment copy
 	   if (component < 0) { continue; fprintf(stderr,"error \n"); } 
-	   fprintf(OUTFILE,"%d %d %0.6f ",snpfrag[component].position,tag,prob);
+	   Flist[f].PS = snpfrag[component].position; Flist[f].HP = tag; 
+	   fprintf(OUTFILE,"%d %c %d %f %f ",Flist[f].PS,Flist[f].HP,Flist[f].PQ,p0,p1);
 	   fprintf(OUTFILE,"%d %s ",Flist[f].blocks,Flist[f].id); 
 	   for (j = 0; j < Flist[f].blocks; j++) {
 		fprintf(OUTFILE,"%d ",Flist[f].list[j].offset); 
 		for (k = 0; k < Flist[f].list[j].len; k++) fprintf(OUTFILE,"%c",Flist[f].list[j].hap[k]); 
-	   } fprintf(OUTFILE," ");
+		fprintf(OUTFILE," ");
+	   } 
 	   for (j = 0; j < Flist[f].blocks; j++) { 
 		for (k = 0; k < Flist[f].list[j].len; k++) fprintf(OUTFILE,"%c",Flist[f].list[j].qv[k]); 
 	   }
@@ -62,7 +65,7 @@ void calculate_fragscore(struct fragment* Flist, int f, char* h, float* ll) {
         for (k = 0; k < Flist[f].list[j].len; k++) {
 
             if (h[Flist[f].list[j].offset + k] == '-' || (int) Flist[f].list[j].qv[k] - QVoffset < MINQ) continue;
-            prob = (QVoffset - (int) Flist[f].list[j].qv[k])/10;
+            prob = (QVoffset - (int) Flist[f].list[j].qv[k]); prob /= 10;
             prob2 = Flist[f].list[j].p1[k];
 
             if (h[Flist[f].list[j].offset + k] == Flist[f].list[j].hap[k]) {
@@ -226,23 +229,19 @@ float fragment_ll(struct fragment* Flist, int f, char* h, int homozygous, int sw
                 prob1 = 1.0 - pow(10, prob);
                 prob2 = Flist[f].list[j].p1[k];
 
-                if (h[Flist[f].list[j].offset + k] == Flist[f].list[j].hap[k]) good += prob1;
-                else bad += prob1;
+              //  if (h[Flist[f].list[j].offset + k] == Flist[f].list[j].hap[k]) good += prob1;
+               // else bad += prob1;
 
                 // this is likelihood based calculation
                 switched = (switch_ix != -1 && snp_ix >= switch_ix);
                 if ((h[snp_ix] == Flist[f].list[j].hap[k]) != switched) { // true if match, or not match but switched
                     p0 += prob2;
-                    if (snp_ix != homozygous)
-                        p1 += prob;
-                    else
-                        p1 += prob2;
+	            if (snp_ix != homozygous) p1 += prob;
+		    else p1 += prob2;
                 } else {
                     p0 += prob;
-                    if (snp_ix != homozygous)
-                        p1 += prob2;
-                    else
-                        p1 += prob;
+                    if (snp_ix != homozygous) p1 += prob2;
+                    else p1 += prob;
                 }
             }
         }
@@ -262,8 +261,8 @@ float fragment_ll(struct fragment* Flist, int f, char* h, int homozygous, int sw
                 prob1 = 1.0 - pow(10, prob);
                 prob2 = Flist[f].list[j].p1[k];
 
-                if (h[Flist[f].list[j].offset + k] == Flist[f].list[j].hap[k]) good += prob1;
-                else bad += prob1;
+                //if (h[Flist[f].list[j].offset + k] == Flist[f].list[j].hap[k]) good += prob1;
+                //else bad += prob1;
 
                 if (h[snp_ix] == Flist[f].list[j].hap[k]) { // true if match, or not match but switched
                     p0 += prob2;

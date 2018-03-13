@@ -9,6 +9,9 @@
 #include<ctype.h>
 #include "common.h"
 #include "fragmatrix.h"
+#include "htslib/hts.h"
+#include "htslib/vcf.h"
+
 
 int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragments);
 

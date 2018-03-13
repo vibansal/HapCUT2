@@ -456,3 +456,4 @@ int read_htrans_file(char* htrans_file, float* htrans_probs, int num_bins) {
 
     return 0;
 }
+

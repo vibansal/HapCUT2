@@ -303,6 +303,9 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
     print_hapfile(clist, components, HAP1, Flist, fragments, snpfrag, variantfile, miscalls, outputfile);
     char assignfile[4096];  sprintf(assignfile,"%s.haplotags",outputfile);
     if (OUTPUT_RH_ASSIGNMENTS ==1) fragment_assignments(Flist,fragments,snpfrag,HAP1,assignfile); // added 03/10/2018 to output read-haplotype assignments
+    char outvcffile[4096];  sprintf(outvcffile,"%s.phased.VCF",outputfile);
+    fprintf_time(stderr, "OUTPUTTING PHASED VCF TO FILE %s\n", outvcffile);
+    output_vcf(variantfile,snpfrag,snps,HAP1,Flist,fragments,outvcffile);
 
     // FREE UP MEMORY
     for (i = 0; i < snps; i++) free(snpfrag[i].elist);
@@ -337,6 +340,7 @@ void check_input_0_or_1(char* x){
 }
 
 int main(int argc, char** argv) {
+
     // input arguments are initial fragment file, variant file with variant information and alleles for each variant
     // number of iterations total, when to output the solution, file to output solution .....
     int i = 0;

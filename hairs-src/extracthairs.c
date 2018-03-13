@@ -97,8 +97,8 @@ void print_options() {
     fprintf(stderr, "--pacbio <0/1> : Pacific Biosciences reads. Similar to --realign_variants, but with alignment parameters tuned for PacBio reads.\n");
     fprintf(stderr, "--ONT, --ont <0/1> : Oxford nanopore technology reads. Similar to --realign_variants, but with alignment parameters tuned for Oxford Nanopore Reads.\n");
     fprintf(stderr, "--new_format, --nf <0/1> : prints matrix in new format. Requires --new_format option when running HapCUT2.\n");
-    fprintf(stderr, "--VCF <FILENAME> : variant file with genotypes for a single individual in VCF format\n");
-    fprintf(stderr, "--variants : variant file in hapCUT format (use this option or --VCF option but not both), this option will be phased out in future releases\n");
+    fprintf(stderr, "--VCF <FILENAME> : variant file with genotypes for a single individual in VCF format (unzipped) \n");
+    //fprintf(stderr, "--variants : variant file in hapCUT format (use this option or --VCF option but not both), this option will be phased out in future releases\n");
     fprintf(stderr, "--maxIS <INT> : maximum insert size for a paired-end read to be considered as a single fragment for phasing, default 1000\n");
     fprintf(stderr, "--minIS <INT> : minimum insert size for a paired-end read to be considered as single fragment for phasing, default 0\n");
     fprintf(stderr, "--PEonly <0/1> : do not use single end reads, default is 0 (use all reads)\n");
@@ -139,7 +139,7 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
     int prevfragments = 0;
     FRAGMENT fragment;
     fragment.variants = 0;
-    fragment.alist = (allele*) malloc(sizeof (allele)*10000);
+    fragment.alist = (allele*) malloc(sizeof (allele)*16184);
 
     samfile_t *fp;
     if ((fp = samopen(bamfile, "rb", 0)) == 0) {
@@ -166,7 +166,7 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
 	if (ref < 0) ret = samread(fp,b); 
 	else ret = bam_iter_read(fp->x.bam,iter,b); 
 	//fprintf(stderr,"here %d %d\n",ret,iter);
-	if (ret < 0) { fprintf(stderr,"reading indexed bam file ret %d \n",ret); break;  } 
+	if (ret < 0) break;  
         fetch_func(b, fp, read);
         if ((read->flag & (BAM_FUNMAP | BAM_FSECONDARY | BAM_FQCFAIL | BAM_FDUP)) || read->mquality < MIN_MQ || (USE_SUPP_ALIGNMENTS == 0 && (read->flag & 2048))) {
             free_readmemory(read);
@@ -207,12 +207,9 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
                 }else{
                     extract_variants_read(read,ht,chromvars,varlist,0,&fragment,chrom,reflist);
                 }
-                if (fragment.variants >= 2 || (SINGLEREADS == 1 && fragment.variants >= 1)) {
-                    // instead of printing fragment, we could change this to update genotype likelihoods
-                    print_fragment(&fragment, varlist, fragment_file);
-		    if (fragment.variants >=2) VOfragments[0]++;
-		    else if (fragment.variants >=1) VOfragments[1]++;
-                }
+		if (fragment.variants >=2) VOfragments[0]++;
+		else if (fragment.variants >=1) VOfragments[1]++;
+                if (fragment.variants >= 2 || (SINGLEREADS == 1 && fragment.variants >= 1)) print_fragment(&fragment, varlist, fragment_file);
             }
         } else // paired-end read
         {
@@ -446,20 +443,17 @@ int main(int argc, char** argv) {
     CHROMVARS* chromvars = (CHROMVARS*) malloc(sizeof (CHROMVARS) * chromosomes);
     build_intervalmap(chromvars, chromosomes, varlist, VARIANTS);
 
-    // read reference fasta file for INDELS, currently reads entire genome in one go, need to modify to read chromosome by chromosome
+    // read reference fasta file for INDELS, reads entire genome in one shot
     REFLIST* reflist = (REFLIST*) malloc(sizeof (REFLIST));
-    reflist->ns = 0;
-    reflist->names = NULL;
-    reflist->lengths = NULL;
-    reflist->sequences = NULL;
-    reflist->current = -1;
+    reflist->ns = 0; reflist->names = NULL; reflist->lengths = NULL; reflist->sequences = NULL; reflist->current = -1;
     if (strcmp(fastafile, "None") != 0) {
         if (read_fastaheader(fastafile, reflist) > 0) {
             reflist->sequences = calloc(reflist->ns, sizeof (char*)); //(char**)malloc(sizeof(char*)*reflist->ns);
             for (i = 0; i < reflist->ns; i++) {
-		//chrom = getindex(ht, reflist->names[i]);
-		//if (chrom < 0) fprintf(stderr,"couldn't find match for chrom %s in VCF file index \n",reflist->names[i]);  
-                reflist->sequences[i] = calloc(reflist->lengths[i] + 1, sizeof (char));
+		reflist->sequences[i] = calloc(reflist->lengths[i] + 1, sizeof (char));
+		int chrom = getindex(&ht, reflist->names[i]); reflist->used[i] = 1;
+		if (chrom >=0) fprintf(stderr,"found match for reference contig %s in VCF file index \n",reflist->names[i]); 
+		else reflist->used[i] = 0; 
                 if (i < 5) fprintf(stderr, "contig %s length %d\n", reflist->names[i], reflist->lengths[i]);
             }
             read_fasta(fastafile, reflist);
@@ -479,13 +473,10 @@ int main(int argc, char** argv) {
 
     for (i=0;i<reflist->ns;i++){
 		free(reflist->names[i]);
-		free(reflist->sequences[i]);
+		if (reflist->used[i] ==1) free(reflist->sequences[i]);
 	}
-	free(reflist->names);
-	free(reflist->sequences);
-	free(reflist->lengths);
+	free(reflist->names); free(reflist->sequences); free(reflist->lengths); free(reflist->used);
 	//free(reflist->offsets);
-
 	for (i=0;i<variants;i++){
 		free(varlist[i].genotype); free(varlist[i].RA); 	free(varlist[i].AA);free(varlist[i].chrom);
         if (varlist[i].heterozygous == '1'){
