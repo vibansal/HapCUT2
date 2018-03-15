@@ -150,7 +150,8 @@ The directory **recipes** contains example pipelines to assemble haplotypes from
 
 #### March 13, 2018
 
-HapCUT2 now outputs the phased variants to a VCF file ("haplotype_output_file".phased.vcf) in addition to the haplotype blocks. 
+HapCUT2 now outputs the phased variants to a VCF file ("haplotype_output_file".phased.vcf) in addition to the haplotype blocks. This VCF file preserves most of the information in the original VCF file but removes phasing information (if any) that is present in the input VCF. Standard VCF tags (PS, PQ, PD: https://samtools.github.io/hts-specs/VCFv4.1.pdf) are used to 
+annotate the phased variants. This is a new feature and additional changes to the output VCF are likely. 
 
 #### August 14, 2017
 Extracthairs now has optimizations for error prone long read technologies (Pacific Biosciences and Oxford Nanopore). The strategy performs a sensitive realignment in a window around the potential variant. A read-window is aligned to both the reference sequence, and the variant sequence (reference sequence modified to contain the variant). An allele call is assigned based on the best alignment, and the "base quality" of the allele call is determined by a bayesian posterior calculated using both alignment scores.

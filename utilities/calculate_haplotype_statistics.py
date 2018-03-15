@@ -13,6 +13,7 @@ desc = '''
 Calculate statistics on haplotypes assembled using HapCUT2 or similar tools.
 Error rates for an assembled haplotype (specified by -h1,-v1,-f1 arguments)
 are computed with respect to a "reference" haplotype (specified by -h2, -v2 arguments or -pv argument).
+This code assumes the reference haplotype when specified as a VCF file is phased as a single block. 
 All files must contain information for one chromosome only (except --contig_size_file)!
 To compute aggregate statistics across multiple chromosomes, provide files for
 each chromosome/contig as an ordered list, using the same chromosome order between flags.

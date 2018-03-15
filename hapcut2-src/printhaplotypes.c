@@ -1,7 +1,4 @@
-
 #include "common.h"
-//#include "vcf.c"
-// THIS FUNCTION PRINTS THE CURRENT HAPLOTYPE ASSEMBLY in a new file block by block
 extern int DISCRETE_PRUNING;
 extern int ERROR_ANALYSIS_MODE;
 extern int SPLIT_BLOCKS;
@@ -15,7 +12,8 @@ void print_hapcut_options() {
     fprintf(stderr, "Basic Options:\n");
     fprintf(stderr, "--fragments, --f <FILENAME>:        file with haplotype-informative reads generated using the extracthairs program\n");
     fprintf(stderr, "--VCF <FILENAME>:                   variant file in VCF format (use EXACT SAME file that was used for the extracthairs program)\n");
-    fprintf(stderr, "--output, --o <FILENAME> :          file to which phased haplotype segments/blocks will be output, phased VCF file will be output to FILENAME.phased.vcf \n");
+    fprintf(stderr, "--output, --o <OUTFILE> :          file to which phased haplotype segments/blocks will be output \n");
+    fprintf(stderr, "--outvcf <0/1> :                    output phased variants to VCF file (<OUTFILE>.phased.vcf), default: 0 \n");
     fprintf(stderr, "--converge, --c <int>:              cut off iterations (global or maxcut) after this many iterations with no improvement. default: 5\n");
     fprintf(stderr, "--verbose, --v <0/1>:               verbose mode: print extra information to stdout and stderr. default: 0\n");
 
@@ -49,6 +47,7 @@ void print_hapcut_options() {
 
 }
 
+// THIS FUNCTION PRINTS THE CURRENT HAPLOTYPE ASSEMBLY in a new file block by block
 int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* fname, int score, char* outfile) {
     // print a new file containing one block phasing and the corresponding fragments
     int i = 0, t = 0, k = 0, span = 0;
@@ -142,9 +141,9 @@ void print_VCF_header(FILE* outfile)
         //fprintf(outfile,"##source=HapCUT2 phased haplotype blocks\n");
         //fprintf(outfile,"##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n");
         fprintf(outfile,"##FORMAT=<ID=PS,Number=1,Type=Integer,Description=\"ID of Phase Set for Variant\">\n");
-        fprintf(outfile,"##FORMAT=<ID=PQ,Number=1,Type=Integer,Description=\"Phred QV indicating probability at this variant is incorrectly phased relative to the haplotype\">\n");
+        fprintf(outfile,"##FORMAT=<ID=PQ,Number=1,Type=Integer,Description=\"Phred QV indicating probability that this variant is incorrectly phased relative to the haplotype\">\n");
         //fprintf(outfile,"##FORMAT=<ID=JQ,Number=1,Type=Integer,Description=\"Phred QV indicating probability of a phasing switch error in gap prior to this variant\">\n");
-        fprintf(outfile,"##FORMAT=<ID=BX,Number=.,Type=String,Description=\"Barcodes for this variant\">\n");
+        //fprintf(outfile,"##FORMAT=<ID=BX,Number=.,Type=String,Description=\"Barcodes for this variant\">\n");
         fprintf(outfile,"##FORMAT=<ID=PD,Number=1,Type=Integer,Description=\" phased Read Depth\">\n");
         //fprintf(outfile,"##commandline=\"....\"";
 
@@ -190,31 +189,39 @@ int splitString(char* input,char sep,char** var_list)
 // print VCF header copied from original VCF file 
 // PS tag for each variant based on position of first SNP in component 
 // 1/2 genotypes or 0/2 genotypes need to be handled properly 
-int output_vcf(char* vcffile, struct SNPfrags* snpfrag, int snps,char* H1,struct fragment* Flist, int fragments,char* outvcf) {
+int output_vcf(char* vcffile, struct SNPfrags* snpfrag, int snps,char* H1,struct fragment* Flist, int fragments,char* outvcf,int BARCODES) {
     char* buffer= malloc(500000);
     FILE* out = fopen(outvcf,"w"); 
     FILE* fp = fopen(vcffile, "r");
     int var=0;
 	
     char h1='0',h2='0';
-    int phased=0,component=0,PS=0,PQ=100,thirdallele=0; 
+    int phased=0,component=0,PS=0,PQ=100,PD=0,thirdallele=0; 
     char PGT[4];
 
     char** var_list = calloc(1024,sizeof(char*)); char** info_list = calloc(1024,sizeof(char*)); char** geno_list = calloc(1024,sizeof(char*));
     char* newC9 = malloc(4096); char* newC10 = malloc(4096); // column 9 and 10 of new VCF file 
-    char* temp = malloc(10024);
-    int i=0,vn=0,in=0,gn=0;
-    float snp_conf_fl;
+    char* barcodes_0 = malloc(1024*64); char* barcodes_1 = malloc(1024*64); char* barcodes_2 = malloc(1024*64);
+    char* temp = malloc(10024); char* seek;
+    int i=0,vn=0,in=0,gn=0,j=0,k=0;
+    float snp_conf_fl;	
+    int b0=0,b1=0,b=0;
  
-    int lines=0,formatline=0;
+    int lines=0,formatline=0,infolines=0;
     while (fgets(buffer, 500000, fp)) {
 	lines +=1; 
         if (buffer[0] == '#') {
 		if (lines ==1 && strncmp(buffer,"##fileformat",12) == 0) formatline =1; 
-		if (lines >= 1 && formatline ==0) 
+		if (lines >= 1 && formatline ==0)  // no header present
 		{
        			fprintf(out,"##fileformat=VCFv4.0\n");	formatline = 1; 
 		}
+		if (strncmp(buffer,"##INFO=<ID",10) ==0) 
+		{
+			if (infolines ==0) fprintf(out,"##INFO=<ID=hapcut2,Number=1,Type=Integer,Description=\"phased by HapCUT2 or not\">\n");
+			infolines++;
+		}
+	
 		if (strncmp(buffer,"#CHROM",6) ==0) print_VCF_header(out);
 		if (strstr(buffer,"FORMAT=<ID=PS") == NULL && strstr(buffer,"FORMAT=<ID=PD") == NULL && strstr(buffer,"FORMAT=<ID=PQ") == NULL) fprintf(out,"%s",buffer);
 		continue;
@@ -228,10 +235,13 @@ int output_vcf(char* vcffile, struct SNPfrags* snpfrag, int snps,char* H1,struct
 	thirdallele =0;
 	if (geno_list[0][0] == '2' || geno_list[0][2] =='2') thirdallele = 1; // need to fix phased genotype, hapcut only uses two alleles labeled 0 & 1
 	if (H1[var] == '0') { h1 = '0'; h2 = '1'; } 	
-	else if (H1[var] == '1') { h1 = '1'; h2 = '0'; } 	
+	else if (H1[var] == '1') { h1 = '1'; h2 = '0'; } 
+	else {h1 = '.'; h2 = '.'; } // unphased by hapcut2	
+            
 
-	component = snpfrag[var].component; PS = snpfrag[var].position;
-	if (H1[var] == '-' || component < 0 || snpfrag[component].csize < 2) phased=0; else phased = 1; 
+	component = snpfrag[var].component; 
+	if (H1[var] == '-' || component < 0 || snpfrag[component].csize < 2) phased=0; 
+	else phased = 1; 
 
 	if (phased ==0) 
 	{
@@ -239,13 +249,24 @@ int output_vcf(char* vcffile, struct SNPfrags* snpfrag, int snps,char* H1,struct
 	}
 	else 
 	{ 
-		PS = snpfrag[component].position; sprintf(PGT,"%c|%c",h1,h2); 
+		PS = snpfrag[component].position;
+		snp_conf_fl = -10.0 * subtractlogs(0,snpfrag[var].post_hap); 
+		if (snp_conf_fl > 100.0)     snp_conf_fl = 100.0; 
+		PQ = (int)(snp_conf_fl+0.5); // round to nearest int
+		PD = snpfrag[var].frags; // should we ignore singleton fragments 
+		sprintf(PGT,"%c|%c",h1,h2); 
+		
+		if ( (!ERROR_ANALYSIS_MODE) && (!SKIP_PRUNE) && (snpfrag[var].post_hap < log10(THRESHOLD) && !DISCRETE_PRUNING )) 
+		{
+			h1='.'; h2 = '.'; sprintf(PGT,"./."); phased =2;
+		}
 	} 
 
 	strcpy(newC9,"GT"); strcpy(newC10,PGT);
 	for (i=0;i<gn;i++)
 	{
-		if ( ((strcmp(info_list[i],"AD") ==0 || strcmp(info_list[i],"DP") ==0 || strcmp(info_list[i],"GQ") ==0) ) && phased ==1  )
+		// preserve original genotype as 'OGT' field 
+		if ( ((strcmp(info_list[i],"AD") ==0 || strcmp(info_list[i],"DP") ==0 || strcmp(info_list[i],"GQ") ==0) ) && phased >=1  )
 		{
 			strcat(newC9,":"); strcat(newC9,info_list[i]); strcat(newC10,":"); strcat(newC10,geno_list[i]); 
 		}
@@ -254,26 +275,55 @@ int output_vcf(char* vcffile, struct SNPfrags* snpfrag, int snps,char* H1,struct
 			strcat(newC9,":"); strcat(newC9,info_list[i]); strcat(newC10,":"); strcat(newC10,geno_list[i]); 
 		}
 	}
-	if (phased ==1)  // add PS and PQ tags
+	if (phased ==1) 
 	{
-		snp_conf_fl = -10.0 * subtractlogs(0,snpfrag[var].post_hap); if (snp_conf_fl > 100.0)     snp_conf_fl = 100.0; PQ = (int)snp_conf_fl;
+		//fprintf(out,"var %d PGLL %f %f %f %f %f\n",var,snpfrag[var].PGLL[0],snpfrag[var].PGLL[1],snpfrag[var].PGLL[2],snpfrag[var].PGLL[3],snpfrag[var].PGLL[4]);
+		b0=0;b1=0;
+		if (BARCODES ==1) { 
+			for (i=0;i<snpfrag[var].frags;i++) 
+			{
+				if (Flist[snpfrag[var].flist[i]].HP == '0') 
+				{
+					if (b0 ==0) strcpy(barcodes_0,""); 
+					else strcat(barcodes_0,";");
+					j=0; k=0; seek = Flist[snpfrag[var].flist[i]].id;
+					while (seek[j] != '\0') 
+					{
+						if (seek[j++] == ':') k +=1; 
+						if (k ==2) break; 
+					}
+					strcat(barcodes_0,Flist[snpfrag[var].flist[i]].id+j);
+					b0 +=1;
+				}
+				if (Flist[snpfrag[var].flist[i]].HP == '1') 
+				{
+					if (b1 ==0) strcpy(barcodes_1,""); 
+					else strcat(barcodes_1,";");
+					j=0; k=0; seek = Flist[snpfrag[var].flist[i]].id;
+					while (seek[j] != '\0') 
+					{
+						if (seek[j++] == ':') k +=1; 
+						if (k ==2) break; 
+					}
+					strcat(barcodes_1,Flist[snpfrag[var].flist[i]].id+j);
+					b1 +=1;
+				}
+			}
+		}
+
+		// print PS,BQ,PQ,PD tags
 		strcat(newC9,":PS"); strcat(newC10,":"); sprintf(temp,"%d",PS); strcat(newC10,temp);
 		strcat(newC9,":PQ"); strcat(newC10,":"); sprintf(temp,"%d",PQ); strcat(newC10,temp);
-		strcat(newC9,":PD"); strcat(newC10,":"); sprintf(temp,"%d",snpfrag[var].frags); strcat(newC10,temp);
+		strcat(newC9,":PD"); strcat(newC10,":"); sprintf(temp,"%d",PD); strcat(newC10,temp);
+		if(BARCODES ==1) {  strcat(newC9,":BX"); strcat(newC10,":"); strcat(newC10,barcodes_0); strcat(newC10,","); strcat(newC10,barcodes_1); } 
+		// MEC score for each variant, phased genotype likelihoods 
 	}
-	// MEC score for each variant, phased genotype likelihoods 
-
-	//fprintf(stdout,"###NEWVCF ");
+	
 	// HAPCUT = 0/1/2 (pruned, not phased, not considered...)
 	for (i=0;i<7;i++) fprintf(out,"%s\t",var_list[i]); 
 	if (strcmp(var_list[7],".") ==0) sprintf(temp,"hapcut2=%d",phased); 
 	else sprintf(temp,"%s;hapcut2=%d",var_list[7],phased); 
 	fprintf(out,"%s\t%s\t%s\n",temp,newC9,newC10);
-	if (phased ==1) 
-	{
-		//fprintf(out,"var %d PGLL %f %f %f %f %f\n",var,snpfrag[var].PGLL[0],snpfrag[var].PGLL[1],snpfrag[var].PGLL[2],snpfrag[var].PGLL[3],snpfrag[var].PGLL[4]);
-		//for (i=0;i<snpfrag[var].frags;i++) fprintf(out,"frag %s \n",Flist[snpfrag[var].flist[i]].id);
-	}
 	
 	//for (i=0;i<in;i++) fprintf(stdout,"%s ",info_list[i]); fprintf(stdout,"\n");
 	//for (i=0;i<gn;i++) fprintf(stdout,"%s(%s) ",geno_list[i],info_list[i]); fprintf(stdout,"\n\n");
@@ -284,19 +334,6 @@ int output_vcf(char* vcffile, struct SNPfrags* snpfrag, int snps,char* H1,struct
 	for (i=0;i<gn;i++) free(geno_list[i]);
 	for (i=0;i<in;i++) free(info_list[i]);
     }
-    fclose(fp); fclose(out); free(buffer);
+    fclose(fp); fclose(out); free(buffer); free(barcodes_0); free(barcodes_1); free(barcodes_2);
     return 1;
 }
-
-
-/*
-struct VCFrecord
-{
-	char* chrom; int position; char* ID;
-	char* ref; char** alt; 
-	char* qual; char* filter; char* INFO;
-	char* FORMAT; // for genotype column
-	char* genotype; 
-};
-*/
-

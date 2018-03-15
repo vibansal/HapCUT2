@@ -39,6 +39,8 @@ void fragment_assignments(struct fragment* Flist,int fragments, struct SNPfrags*
 	   // print PS,hap(0|1),probability followed by original fragment copy
 	   if (component < 0) { continue; fprintf(stderr,"error \n"); } 
 	   Flist[f].PS = snpfrag[component].position; Flist[f].HP = tag; 
+	   fprintf(OUTFILE,"%s %d %c %d\n",Flist[f].id,Flist[f].PS,Flist[f].HP,Flist[f].PQ);
+	   /*
 	   fprintf(OUTFILE,"%d %c %d %f %f ",Flist[f].PS,Flist[f].HP,Flist[f].PQ,p0,p1);
 	   fprintf(OUTFILE,"%d %s ",Flist[f].blocks,Flist[f].id); 
 	   for (j = 0; j < Flist[f].blocks; j++) {
@@ -50,8 +52,8 @@ void fragment_assignments(struct fragment* Flist,int fragments, struct SNPfrags*
 		for (k = 0; k < Flist[f].list[j].len; k++) fprintf(OUTFILE,"%c",Flist[f].list[j].qv[k]); 
 	   }
 	   fprintf(OUTFILE,"\n");
+           */
 	   }
-	   //fprintf(OUTFILE,"%s %d %d:%f:%f haptag: %f %d\n",Flist[f].id,alleles,snpfrag[offset].position,p0,p1,prob,tag);
     }
     fclose(OUTFILE);
 }
