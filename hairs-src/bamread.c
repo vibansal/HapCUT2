@@ -1,10 +1,17 @@
 #include "bamread.h"
 
-char INT_CIGAROP[] = {'M', 'I', 'D', 'N', 'S', 'H', 'P', 'E', 'X'};
+char INT_CIGAROP[] = {'M', 'I', 'D', 'N', 'S', 'H', 'P', '=', 'X'};
 
 extern int DATA_TYPE;
 
 int QVoffset = 33;
+
+void print_read_debug(struct alignedread* read)
+{
+	fprintf(stderr,"%s %d %d IS: %d %d\t",read->readid,read->tid,read->position,read->IS,read->cigs);
+	int i=0; for (i=0;i<read->cigs;i++) fprintf(stderr,"%d%c",read->cigarlist[i] >> 4, INT_CIGAROP[read->cigarlist[i]&0xf]); 
+	fprintf(stderr,"\n");
+}
 
 int fetch_func(const bam1_t *b, void *data, struct alignedread* read) {
     samfile_t *fp = (samfile_t*) data;
@@ -44,12 +51,20 @@ int fetch_func(const bam1_t *b, void *data, struct alignedread* read) {
     if ((read->flag & 16) == 16) read->strand = '-'; // fixed sept 29 2011
 
     read->cigarlist = (int*) malloc(sizeof (int)*c->n_cigar);
-    read->cigs = c->n_cigar;
+    //read->cigs = c->n_cigar; 
+    int j=0,pc=0;
     for (i = 0; i < c->n_cigar; ++i) {
-        read->cigarlist[i] = cigar[i];
         op = cigar[i]&0xf;
         ol = cigar[i] >> 4;
-        if (op == BAM_CMATCH) {
+        if (op == BAM_CEQUAL || op == BAM_CDIFF) // convert to 'M' cigar format 
+	{
+		if (pc ==0) read->cigarlist[j++] = ol<<4;   // new 'M' operation
+		else read->cigarlist[j-1] += ol<<4; // add to previous cigar 'M' operation 
+		pc =1; 
+	} 
+	else { read->cigarlist[j++] = cigar[i]; pc =0; } 
+
+        if (op == BAM_CMATCH || op == BAM_CEQUAL || op == BAM_CDIFF) {
             read->alignedbases += ol;
             read->span += ol;
         } else if (op == BAM_CDEL) {
@@ -63,8 +78,7 @@ int fetch_func(const bam1_t *b, void *data, struct alignedread* read) {
         else if (op == BAM_CHARD_CLIP) {
         } else read->cflag = 1;
     }
-    //      fprintf(stderr," read IS %d \n",c->isize);
-    //uint8_t* barcode = NULL;
+    read->cigs = j;
     char* barcode = NULL;
     read->barcode = NULL;
 	if ( !(read->flag & 4) && DATA_TYPE == 2) // 10X reads
@@ -91,8 +105,7 @@ int fetch_func(const bam1_t *b, void *data, struct alignedread* read) {
     else read->matechrom = NULL;
     read->tid = c->tid;
     read->mtid = c->mtid;
-    //fprintf(stdout,"%s %s %d %d\n",read->chrom,read->matechrom,read->IS,c->mtid);
-    // for MAQ bam files, mtid is not set resulting in lack of paired-end reads, may 1 2012
+    //print_read_debug(read);
     return 0;
 }
 
