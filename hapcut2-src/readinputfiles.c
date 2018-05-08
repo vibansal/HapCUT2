@@ -223,6 +223,8 @@ int read_vcffile(char* vcffile, struct SNPfrags* snpfrag, int snps) {
     int i = 0, j = 0, k=0, s = 0, e = 0, var = 0, GQ_ix, format_ix;
     FILE* fp = fopen(vcffile, "r");
     while (fgets(buffer, 100000, fp)) {
+        fprintf(stderr, "%s", buffer);
+
         if (buffer[0] == '#') continue;
         i = 0;
         while (buffer[i] == ' ' || buffer[i] == '\t') i++;
