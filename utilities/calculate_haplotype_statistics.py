@@ -10,8 +10,8 @@ import sys
 
 desc = '''
 Calculate statistics on haplotypes assembled using HapCUT2 or similar tools.
-Error rates for an assembled haplotype (specified by -h1,-v1 arguments)
-are computed with respect to a "reference" haplotype (specified by -h2, -v2 arguments or -pv argument).
+Error rates for an assembled haplotype (specified by -v1 and optionally -h1 arguments)
+are computed with respect to a "reference" haplotype (specified by -v2 and optionally -h2 arguments).
 All files must contain information for one chromosome only (except --contig_size_file)!
 To compute aggregate statistics across multiple chromosomes, provide files for
 each chromosome/contig as an ordered list, using the same chromosome order between flags.
@@ -583,7 +583,7 @@ def vcf_vcf_error_rate_multiple(assembled_vcf_files, reference_vcf_files, contig
     err = error_result()
     for assembled_vcf_file, reference_vcf_file in zip(assembled_vcf_files, reference_vcf_files):
         err += vcf_vcf_error_rate(assembled_vcf_file, reference_vcf_file, contig_size_file, indels)
-    
+
     return err
 
 # compute haplotype error rates between 2 VCF files
