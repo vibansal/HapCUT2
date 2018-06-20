@@ -59,7 +59,7 @@ rule longread_extract_hairs:
     output: expand('data/longread/{chrom}',chrom=chroms)
     run:
         for chrom,bam,frag in zip(chroms,input,output):
-            shell('{EXTRACTHAIRS} --new_format 1 --bam {bam} --VCF {VCF_DIR}/{chrom}.vcf > {frag}')
+            shell('{EXTRACTHAIRS} --pacbio 1 --new_format 1 --bam {bam} --VCF {VCF_DIR}/{chrom}.vcf > {frag}')
 
 # convert Hi-C bam files to haplotype fragment files
 rule hic_extract_hairs:
