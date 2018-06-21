@@ -263,13 +263,13 @@ def get_ref_name(vcf_file):
 # with an odd number of consecutive switch errors, it should assume
 # that this is a sequence of all mismatches and not a "1-less" sequence of mismatches
 # with a switch error at the end of it.
-def count_consecutive_switches(t_dict, hap, allele):
+def count_consecutive_switches(t1_dict, hap, allele):
     count = 0
     first_SNP = True
     switched = False
 
     for snp_ix, pos, a1, a2, ref_str, alt1_str, alt2_str in hap:
-        x = t_dict[pos]                        # base in true haplotype
+        x = t1_dict[pos]                        # base in true haplotype
         y = a1 if allele == 0 else a2   # base in assembled haplotype
         if x == '-' or y == '-':
             if first_SNP:
@@ -277,7 +277,7 @@ def count_consecutive_switches(t_dict, hap, allele):
             else:
                 break
         elif first_SNP:
-            switched = (t_dict[pos] != y)
+            switched = (t1_dict[pos] != y)
             first_SNP = False
         elif (x != y and not switched) or (x == y and switched):
             count += 1
@@ -659,10 +659,12 @@ def error_rate_calc(t_blocklist, a_blocklist, vcf_file, contig_size_file, indels
         last_base_was_switch = False
 
         # convert t_block to a dict for convenience
-        t_dict = defaultdict(lambda: '-')
+        t1_dict = defaultdict(lambda: '-')
+        t2_dict = defaultdict(lambda: '-')
         a_dict = defaultdict(lambda: ('-','-','-'))
         for snp_ix, pos, a1, a2, ref_str, alt1_str, alt2_str in t_block:
-            t_dict[pos] = a1
+            t1_dict[pos] = a1
+            t2_dict[pos] = a2
             a_dict[pos] = (ref_str,alt1_str,alt2_str)
 
         # iterate over SNPs in the true and assembled haplotypes in parallel
@@ -680,20 +682,20 @@ def error_rate_calc(t_blocklist, a_blocklist, vcf_file, contig_size_file, indels
                 first_SNP = True
                 for blk_ix, (snp_ix, pos, a1, a2,  ref_str, alt1_str, alt2_str) in enumerate(a_block):
                     y = a1 if a == 0 else a2
-                    x = t_dict[pos]
+                    x = t1_dict[pos]
 
                     if x == '-' or y == '-' or (phase_set != None and pos not in phase_set):
                         continue
 
                     #print("({},{}) == ({},{})".format(ref_str,alt_str,*a_dict[pos]))
-                    if (ref_str,alt1_str,alt2_str) != a_dict[pos]:
+                    if {t1_dict[pos],t2_dict[pos]} != {a1,a2} or (ref_str,alt1_str,alt2_str) != a_dict[pos]:
                         if a == 0:
                             different_alleles += 1
                         continue
 
                     if first_SNP:
                         switched = (x != y)
-                        if count_consecutive_switches(t_dict, a_block[blk_ix:], a) % 2 == 1:
+                        if count_consecutive_switches(t1_dict, a_block[blk_ix:], a) % 2 == 1:
                             last_base_was_switch = True
                         else:
                             last_base_was_switch = False
@@ -760,10 +762,10 @@ def error_rate_calc(t_blocklist, a_blocklist, vcf_file, contig_size_file, indels
             phased_known = 0
             for snp_ix, pos, a1, a2, ref_str, alt1_str, alt2_str in blk:
 
-                if (ref_str,alt1_str,alt2_str) != a_dict[pos]:
+                if {t1_dict[pos],t2_dict[pos]} != {a1,a2} or (ref_str,alt1_str,alt2_str) != a_dict[pos]:
                     continue
 
-                if t_dict[pos] != '-' and a1 != '-' and (phase_set == None or pos in phase_set):
+                if t1_dict[pos] != '-' and a1 != '-' and (phase_set == None or pos in phase_set):
                     phased_known += 1
 
             # a switch error is only possible in blocks len 4 or greater
@@ -786,12 +788,15 @@ def error_rate_calc(t_blocklist, a_blocklist, vcf_file, contig_size_file, indels
             for snp_ix, pos, a1, a2, ref_str, alt1_str, alt2_str in a_block:
 
 
-                if a1 == '-' or a2 == '-' or t_dict[pos] == '-' or (phase_set != None and pos not in phase_set):
+                if {t1_dict[pos],t2_dict[pos]} != {a1,a2} or (ref_str,alt1_str,alt2_str) != a_dict[pos]:
                     continue
 
-                if (a1 != t_dict[pos]):
+                if a1 == '-' or a2 == '-' or t1_dict[pos] == '-' or (phase_set != None and pos not in phase_set):
+                    continue
+
+                if (a1 != t1_dict[pos]):
                     flat_count1 += 1
-                if (a2 != t_dict[pos]):
+                if (a2 != t1_dict[pos]):
                     flat_count2 += 1
 
             if flat_count1 < flat_count2:
