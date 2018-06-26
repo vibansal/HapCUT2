@@ -1,4 +1,5 @@
 from __future__ import print_function
+# test
 # Author : Peter Edge
 # Email  : pedge@eng.ucsd.edu
 
@@ -9,8 +10,8 @@ import sys
 
 desc = '''
 Calculate statistics on haplotypes assembled using HapCUT2 or similar tools.
-Error rates for an assembled haplotype (specified by -h1,-v1,-f1 arguments)
-are computed with respect to a "reference" haplotype (specified by -h2, -v2 arguments or -pv argument).
+Error rates for an assembled haplotype (specified by -v1 and optionally -h1 arguments)
+are computed with respect to a "reference" haplotype (specified by -v2 and optionally -h2 arguments).
 All files must contain information for one chromosome only (except --contig_size_file)!
 To compute aggregate statistics across multiple chromosomes, provide files for
 each chromosome/contig as an ordered list, using the same chromosome order between flags.
@@ -20,12 +21,10 @@ def parse_args():
 
     parser = argparse.ArgumentParser(description=desc)
     # paths to samfiles mapping the same ordered set of RNA reads to different genomes
-    parser.add_argument('-h1', '--haplotype_blocks', nargs='+', type = str, help='haplotype block file(s) to compute statistics on')
-    parser.add_argument('-v1', '--vcf', nargs='+', type = str, help='VCF file(s) that was used to generate h1 haplotype fragments and phase h1 haplotype (--vcf in extractHAIRS and HapCUT2)')
-    parser.add_argument('-f1', '--fragments', nargs='+', type = str, help='HapCUT2 format fragment file(s) used to generate input haplotype block file (-h1)')
-    parser.add_argument('-pv', '--phased_vcf', nargs='*', type = str, help='compute errors with respect to this phased single-individual VCF file(s). NOTE: VCFs must be fully phased across chromosome -- (Phase Set) PS information is ignored. Files must be separated by contig/chromosome! (Use with no arguments to use same VCF(s) from --vcf.)')
-    parser.add_argument('-h2', '--reference_haplotype_blocks', nargs='+', type = str, help='compute errors with respect to this haplotype block file(s)')
-    parser.add_argument('-v2', '--reference_vcf', nargs='*', type = str, help='VCF file(s) that was used to generate h2 haplotype fragments and phase h2 haplotype (--vcf in extractHAIRS and HapCUT2). Use with no arguments to use same VCF(s) from --vcf.')
+    parser.add_argument('-v1', '--vcf1', nargs='+', type = str, help='A phased VCF file to compute haplotype statistics on.')
+    parser.add_argument('-v2', '--vcf2', nargs='+', type = str, help='A phased VCF file to use as the "ground truth" haplotype.')
+    parser.add_argument('-h1', '--haplotype_blocks1', nargs='+', type = str, help='Override the haplotype information in "-v1" with the information in this HapCUT2-format haplotype block file. If this option is used, then the VCF specified with -v1 MUST be the same VCF used with HapCUT2 (--vcf) to produce the haplotype block file!')
+    parser.add_argument('-h2', '--haplotype_blocks2', nargs='+', type = str, help='Override the haplotype information in "-v2" with the information in this HapCUT2-format haplotype block file. If this option is used, then the VCF specified with -v2 MUST be the same VCF used with HapCUT2 (--vcf) to produce the haplotype block file!')
     parser.add_argument('-i', '--indels', action="store_true", help='Use this flag to consider indel variants. Default: Indels ignored.',default=False)
     parser.add_argument('-c', '--contig_size_file', nargs='?', type = str, help='Tab-delimited file with size of contigs (<contig>\\t<size>). If not provided, N50 will not be calculated.')
 
@@ -98,7 +97,7 @@ def parse_hapblock_file(hapblock_file,vcf_file,indels=False):
                 continue
 
             snp_ix = int(el[0])-1
-            
+
             if snp_ix not in vcf_dict:
                 continue
 
@@ -118,14 +117,22 @@ def parse_hapblock_file(hapblock_file,vcf_file,indels=False):
 
             allele1 = el[1]
             allele2 = el[2]
+            ref = el[5]
+            alt1 = el[6]
+            alt2 = None
 
-            blocklist[-1].append((snp_ix, pos, allele1, allele2))
+            if ',' in alt1:
+                alt1,alt2 = alt1.split(',')
+
+            blocklist[-1].append((snp_ix, pos, allele1, allele2, ref, alt1, alt2))
 
     return blocklist
 
 def parse_vcf_phase(vcf_file, CHROM, indels = False):
 
-    block = []
+    #block = []
+    PS_index = None
+    blocks = defaultdict(list)
 
     with open(vcf_file, 'r') as vcf:
 
@@ -144,14 +151,27 @@ def parse_vcf_phase(vcf_file, CHROM, indels = False):
             a0 = el[3]
             a1 = el[4]
             a2 = None
+
             if ',' in a1:
                 a1,a2 = a1.split(',')
 
-            genotype = el[9].split(':')[0]
+            # get the index where the PS information is
+            for i,f in enumerate(el[8].split(':')):
+                if i == 0:
+                    assert(f == 'GT')
+                if f == 'PS':
+                    if snp_ix == 0:
+                        PS_index = i
+                    else:
+                        assert(PS_index == i)
+                    break
+
+            dat = el[9].split(':')
+            genotype = dat[0]
             consider = True
 
             if not (len(genotype) == 3 and genotype[0] in ['0','1','2'] and
-                    genotype[1] in ['/','|'] and genotype[2] in ['0','1','2']):
+                    genotype[1] in ['|'] and genotype[2] in ['0','1','2']):
                 consider = False
 
             if genotype[0] == genotype[2]:
@@ -161,25 +181,37 @@ def parse_vcf_phase(vcf_file, CHROM, indels = False):
                 ('1' in genotype and len(a1) != 1) or ('2' in genotype and len(a2) != 1)):
                 consider = False
 
+            ps = None
+            if consider and PS_index != None and len(dat) > PS_index:
+                ps = dat[PS_index]
+                if ps == '.':
+                    consider = False
+            elif PS_index == None:
+                ps = "1" # just put everytthing in one block
+            else:
+                ps = None
+
             chrom = el[0]
 
             if chrom != CHROM:
                 print("ERROR: Chromosome in reference haplotype VCF doesn't match chromosome in VCF used for phasing")
                 print("reference haplotype VCF: " + vcf_file)
-
+                print("{} != {}".format(CHROM, chrom))
                 exit(1)
+
             pos = int(el[1])-1
-            if consider and phase_data[0:3] == '1|0' or phase_data[0:3] == '0|1':
-                block.append((snp_ix, pos, phase_data[0:1], phase_data[2:3]))
+            if ps != None and consider and phase_data[1] == '|':
+                blocks[ps].append((snp_ix, pos, phase_data[0:1], phase_data[2:3], a0, a1, a2))
 
             snp_ix += 1
 
-    return [block] # we return a list containing the single block so format consistent with hapblock file format
+    return [v for k,v in sorted(list(blocks.items()))] # we return a list containing the single block so format consistent with hapblock file format
 
 # given a VCF file, simply count the number of heterozygous SNPs present.
 def count_SNPs(vcf_file,indels=False):
-    
+
     count = 0
+
     with open(vcf_file,'r') as infile:
         for line in infile:
             if line[:1] == '#':
@@ -195,6 +227,7 @@ def count_SNPs(vcf_file,indels=False):
                 a1,a2 = a1.split(',')
 
             genotype = el[9][:3]
+            #print ("pre: ",line.strip())
 
             if not (len(genotype) == 3 and genotype[0] in ['0','1','2'] and
                     genotype[1] in ['/','|'] and genotype[2] in ['0','1','2']):
@@ -208,7 +241,7 @@ def count_SNPs(vcf_file,indels=False):
                 continue
 
             count += 1
-            
+
     return count
 
 # given a VCF file from a single chromosome return the name of that chromosome
@@ -226,76 +259,19 @@ def get_ref_name(vcf_file):
     print("ERROR")
     exit(1)
 
-def count_covered_positions(frag_file, vcf_file, indels):
-
-    covered = set()
-
-    with open(frag_file, 'r') as infile:
-        for line in infile:
-            el = line.strip().split()
-            num_blks_oldformat = int((len(el)-3)/2)
-            num_blks_newformat = int((len(el)-6)/2)
-
-            if num_blks_oldformat == int(el[0]):
-                # old format
-                for i in range(0,num_blks_oldformat):
-                    pos = int(el[2*i+2])-1 # SNPs are 1-indexed
-                    seq = el[2*i+3]
-                    for j, seq_base in enumerate(seq):
-                        snp_ix = pos + j
-                        covered.add(snp_ix)
-                        # move along on qual string
-            elif num_blks_newformat == int(el[0]):
-                # new format
-
-                for i in range(0,num_blks_newformat):
-                    pos = int(el[2*i+5])-1 # SNPs are 1-indexed
-                    seq = el[2*i+6]
-                    for j, seq_base in enumerate(seq):
-                        snp_ix = pos + j
-                        covered.add(snp_ix)
-                        # move along on qual string
-
-    snv_ix = 0
-    if not indels:
-        with open(vcf_file,'r') as infile:
-            for line in infile:
-                if line[:1] == '#':
-                    continue
-                el = line.strip().split('\t')
-                if len(el) < 5:
-                    continue
-
-                a0 = el[3]
-                a1 = el[4]
-                a2 = None
-                if ',' in a1:
-                    a1,a2 = a1.split(',')
-
-                genotype = el[9][:3]
-
-                if (('0' in genotype and len(a0) != 1) or
-                    ('1' in genotype and len(a1) != 1) or ('2' in genotype and len(a2) != 1)):
-                    if snv_ix in covered:
-                        covered.remove(snv_ix)
-
-                snv_ix += 1 
-                        
-    return len(covered)
-
 # this function is needed for "counting ahead" at beginning of blocks.
 # error_rate() needs to properly combine switch errors into mismatches
 # such that switch errors are minimized (basically, if a block begins
 # with an odd number of consecutive switch errors, it should assume
 # that this is a sequence of all mismatches and not a "1-less" sequence of mismatches
 # with a switch error at the end of it.
-def count_consecutive_switches(t_dict, hap, allele):
+def count_consecutive_switches(t1_dict, hap, allele):
     count = 0
     first_SNP = True
     switched = False
 
-    for snp_ix, pos, a1, a2 in hap:
-        x = t_dict[pos]                        # base in true haplotype
+    for snp_ix, pos, a1, a2, ref_str, alt1_str, alt2_str in hap:
+        x = t1_dict[pos]                        # base in true haplotype
         y = a1 if allele == 0 else a2   # base in assembled haplotype
         if x == '-' or y == '-':
             if first_SNP:
@@ -303,7 +279,7 @@ def count_consecutive_switches(t_dict, hap, allele):
             else:
                 break
         elif first_SNP:
-            switched = (t_dict[pos] != y)
+            switched = (t1_dict[pos] != y)
             first_SNP = False
         elif (x != y and not switched) or (x == y and switched):
             count += 1
@@ -326,8 +302,8 @@ def merge_dicts(d1,d2):
 # into genome wide stats
 class error_result():
     def __init__(self, ref=None,switch_count=None,poss_sw=None,mismatch_count=None,poss_mm=None,flat_count=None,poss_flat=None,
-                 phased_count=None,num_covered=None,num_snps=None,maxblk_snps=None,
-                 AN50_spanlst=None,N50_spanlst=None,switch_loc=None,mismatch_loc=None,missing_loc=None,contig_size_file=None):
+                 phased_count=None,num_snps=None,maxblk_snps=None,
+                 AN50_spanlst=None,N50_spanlst=None,switch_loc=None,mismatch_loc=None,contig_size_file=None):
 
         def create_dict(val,d_type):
             new_dict = defaultdict(d_type)
@@ -357,13 +333,11 @@ class error_result():
         # but we can't just add "num_snps", their chromosomes' total snp counts
         # so we use dictionaries to make sure these properties aren't duplicated
 
-        self.num_covered  = create_dict(num_covered, int)
         self.num_snps     = create_dict(num_snps,    int)
         self.maxblk_snps  = create_dict(maxblk_snps, int)
 
         self.switch_loc   = create_dict(switch_loc,   list)
         self.mismatch_loc = create_dict(mismatch_loc, list)
-        self.missing_loc  = create_dict(missing_loc,  list)
 
         if contig_size_file == None:
             self.contig_sizes = None
@@ -400,17 +374,12 @@ class error_result():
         new_err.phased_count   = merge_dicts(self.phased_count,   other.phased_count)
         new_err.AN50_spanlst   = merge_dicts(self.AN50_spanlst,   other.AN50_spanlst)
         new_err.N50_spanlst    = merge_dicts(self.N50_spanlst,    other.N50_spanlst)
-        new_err.num_covered    = merge_dicts(self.num_covered,    other.num_covered)
         new_err.num_snps       = merge_dicts(self.num_snps,       other.num_snps)
         new_err.maxblk_snps    = merge_dicts(self.maxblk_snps,    other.maxblk_snps)
         new_err.switch_loc     = merge_dicts(self.switch_loc,     other.switch_loc)
         new_err.mismatch_loc   = merge_dicts(self.mismatch_loc,   other.mismatch_loc)
-        new_err.missing_loc    = merge_dicts(self.missing_loc,    other.missing_loc)
 
         return new_err
-
-    def get_num_covered(self):
-        return sum(self.num_covered.values())
 
     def get_switch_count(self):
         return sum(self.switch_count.values())
@@ -445,6 +414,7 @@ class error_result():
         poss_sw = self.get_poss_sw()
 
         if poss_sw > 0:
+            print("poss_sw: ", poss_sw)
             return float(switch_count)/poss_sw
         else:
             return 0
@@ -454,6 +424,7 @@ class error_result():
         poss_mm = self.get_poss_mm()
 
         if poss_mm > 0:
+            print("poss_mm: ", poss_mm)
             return float(mismatch_count)/poss_mm
         else:
             return 0
@@ -472,13 +443,6 @@ class error_result():
         poss_flat = self.get_poss_flat()
         if poss_flat > 0:
             return float(flat_count)/poss_flat
-        else:
-            return 0
-
-    def get_missing_rate(self):
-        num_cov = self.get_num_covered()
-        if num_cov > 0:
-            return 1.0-sum(self.phased_count.values())/float(num_cov)
         else:
             return 0
 
@@ -512,65 +476,64 @@ class error_result():
                 break
         return N50
 
-    def get_max_blk_snp_percent(self):
-        snps_in_max_blks = sum(self.maxblk_snps.values())
-        sum_all_snps     = self.get_num_snps()
 
-        if sum_all_snps > 0:
-            return float(snps_in_max_blks) / sum_all_snps
-        else:
-            return 0
+#    def get_max_blk_snp_percent(self):
+#        snps_in_max_blks = sum(self.maxblk_snps.values())
+#        sum_all_snps     = self.get_num_snps()
+#
+#        if sum_all_snps > 0:
+#            return float(snps_in_max_blks) / sum_all_snps
+#        else:
+#            return 0
 
     def __str__(self):
 
         s = ('''
-switch rate:          {}
-mismatch rate:        {}
-flat rate:            {}
-missing rate:         {}
-phased count:         {}
-AN50:                 {}
-N50:                  {}
-max block snp frac:   {}
+switch rate:       {}
+mismatch rate:     {}
+flat rate:         {}
+phased count:      {}
+AN50:              {}
+N50:               {}
+num snps max blk:  {}
             '''.format(self.get_switch_rate(), self.get_mismatch_rate(),
-                   self.get_flat_error_rate(), self.get_missing_rate(),
-                   self.get_phased_count(),
-                   self.get_AN50(),self.get_N50(),self.get_max_blk_snp_percent()))
+                   self.get_flat_error_rate(), self.get_phased_count(),
+                   self.get_AN50(), self.get_N50(), sum(self.maxblk_snps.values())))
 
         return s
 
 # compute error rates by using another haplotype block file as ground truth
-def hapblock_hapblock_error_rate_multiple(truth_files, truth_vcf_files, assembly_files, frag_files, vcf_files, contig_size_file,indels):
+def hapblock_hapblock_error_rate_multiple(assembly_files, assembly_vcf_files, truth_files, truth_vcf_files, contig_size_file,indels):
 
     err = error_result()
-    for truth_file, truth_vcf_file, assembly_file, frag_file, vcf_file in zip(truth_files, truth_vcf_files, assembly_files, frag_files, vcf_files):
-        err += hapblock_hapblock_error_rate(truth_file, truth_vcf_file, assembly_file, frag_file, vcf_file, contig_size_file, indels)
+    for assembly_file, assembly_vcf_file, truth_file, truth_vcf_file in zip(assembly_files, assembly_vcf_files, truth_files, truth_vcf_files):
+        err += hapblock_hapblock_error_rate(assembly_file, assembly_vcf_file, truth_file, truth_vcf_file, contig_size_file, indels)
 
     return err
 
 # compute error rates by using another haplotype block file as ground truth
-def hapblock_hapblock_error_rate(truth_file, truth_vcf_file, assembly_file, frag_file, vcf_file, contig_size_file,indels):
+def hapblock_hapblock_error_rate(assembly_file, assembly_vcf_file, truth_file, truth_vcf_file, contig_size_file,indels):
 
     # parse and get stuff to compute error rates
     t_blocklist = parse_hapblock_file(truth_file,truth_vcf_file,indels)
-    a_blocklist = parse_hapblock_file(assembly_file,vcf_file,indels)
+    a_blocklist = parse_hapblock_file(assembly_file,assembly_vcf_file,indels)
     # compute error result object
-    err = error_rate_calc(t_blocklist, a_blocklist, vcf_file, frag_file, contig_size_file,indels)
+    err = error_rate_calc(t_blocklist, a_blocklist, assembly_vcf_file, contig_size_file,indels)
     return err
 
 # compute error rates by using phase data in a VCF as ground truth
 # requires VCF to have trio phase information
-def hapblock_vcf_error_rate_multiple(assembly_files, frag_files, vcf_files, phased_vcf_files, contig_size_file, indels, largest_blk_only=False):
+def hapblock_vcf_error_rate_multiple(assembly_files, vcf_files, phased_vcf_files, contig_size_file, indels, largest_blk_only=False):
 
     err = error_result()
-    for assembly_file, frag_file, vcf_file, phased_vcf_file in zip(assembly_files, frag_files, vcf_files, phased_vcf_files):
-        err += hapblock_vcf_error_rate(assembly_file, frag_file, vcf_file, phased_vcf_file, contig_size_file, indels)
+    for assembly_file, vcf_file, phased_vcf_file in zip(assembly_files, vcf_files, phased_vcf_files):
+        err += hapblock_vcf_error_rate(assembly_file, vcf_file, phased_vcf_file, contig_size_file, indels)
 
     return err
 
 # compute error rates by using phase data in a VCF as ground truth
 # requires VCF to have phase information
-def hapblock_vcf_error_rate(assembly_file, frag_file, vcf_file, phased_vcf_file, contig_size_file, indels, largest_blk_only=False):
+def hapblock_vcf_error_rate(assembly_file, vcf_file, phased_vcf_file, contig_size_file, indels, largest_blk_only=False):
 
     # parse and get stuff to compute error rates
     CHROM = get_ref_name(vcf_file)
@@ -585,15 +548,71 @@ def hapblock_vcf_error_rate(assembly_file, frag_file, vcf_file, phased_vcf_file,
 
         a_blocklist = [largest_blk]
 
-    err = error_rate_calc(t_blocklist, a_blocklist, vcf_file, frag_file, contig_size_file, indels)
+    err = error_rate_calc(t_blocklist, a_blocklist, vcf_file, contig_size_file, indels)
     return err
 
-# num_covered should be the number of SNPs with coverage in the fragment matrix file
-def error_rate_calc(t_blocklist, a_blocklist, vcf_file, frag_file, contig_size_file, indels=False, phase_set=None):
+# compute error rates by using phase data in a VCF as ground truth
+# requires VCF to have trio phase information
+def vcf_hapblock_error_rate_multiple(vcf_files, truth_files, truth_vcf_files, contig_size_file, indels, largest_blk_only=False):
+
+    err = error_result()
+    for vcf_file, truth_file, truth_vcf_file in zip(vcf_files, truth_files, truth_vcf_files):
+        err += vcf_hapblock_error_rate(vcf_file, truth_file, truth_vcf_file, contig_size_file, indels)
+
+    return err
+
+# compute error rates by using phase data in a VCF as ground truth
+# requires VCF to have phase information
+def vcf_hapblock_error_rate(vcf_file, truth_file, truth_vcf_file, contig_size_file, indels, largest_blk_only=False):
+
+    # parse and get stuff to compute error rates
+    CHROM = get_ref_name(vcf_file)
+    a_blocklist = parse_vcf_phase(vcf_file, CHROM, indels)
+    t_blocklist = parse_hapblock_file(truth_file,truth_vcf_file,indels)
+    # compute error result object
+    if largest_blk_only:
+        largest_blk = []
+        for blk in a_blocklist:
+            if len(blk) > len(largest_blk):
+                largest_blk = blk
+
+        a_blocklist = [largest_blk]
+
+    err = error_rate_calc(t_blocklist, a_blocklist, vcf_file, contig_size_file, indels)
+    return err
+
+# compute haplotype error rates between 2 VCF files
+def vcf_vcf_error_rate_multiple(assembled_vcf_files, reference_vcf_files, contig_size_file, indels, largest_blk_only=False):
+
+    err = error_result()
+    for assembled_vcf_file, reference_vcf_file in zip(assembled_vcf_files, reference_vcf_files):
+        err += vcf_vcf_error_rate(assembled_vcf_file, reference_vcf_file, contig_size_file, indels)
+
+    return err
+
+# compute haplotype error rates between 2 VCF files
+def vcf_vcf_error_rate(assembled_vcf_file, reference_vcf_file, contig_size_file, indels, largest_blk_only=False):
+
+    # parse and get stuff to compute error rates
+    CHROM = get_ref_name(assembled_vcf_file)
+    t_blocklist = parse_vcf_phase(reference_vcf_file, CHROM, indels)
+    a_blocklist = parse_vcf_phase(assembled_vcf_file, CHROM, indels)
+    # compute error result object
+    if largest_blk_only:
+        largest_blk = []
+        for blk in a_blocklist:
+            if len(blk) > len(largest_blk):
+                largest_blk = blk
+
+        a_blocklist = [largest_blk]
+
+    err = error_rate_calc(t_blocklist, a_blocklist, assembled_vcf_file, contig_size_file, indels)
+    return err
+
+def error_rate_calc(t_blocklist, a_blocklist, vcf_file, contig_size_file, indels=False, phase_set=None):
 
     ref_name    = get_ref_name(vcf_file)
     num_snps = count_SNPs(vcf_file,indels)
-    num_covered = count_covered_positions(frag_file, vcf_file, indels)
 
     switch_count   = 0
     mismatch_count = 0
@@ -603,9 +622,9 @@ def error_rate_calc(t_blocklist, a_blocklist, vcf_file, frag_file, contig_size_f
     flat_count     = 0
     phased_count   = 0
     maxblk_snps    = 0
+    different_alleles = 0
     switch_loc     = []
     mismatch_loc   = []
-    missing_loc    = []
     AN50_spanlst   = []
     N50_spanlst    = []
 
@@ -617,12 +636,11 @@ def error_rate_calc(t_blocklist, a_blocklist, vcf_file, frag_file, contig_size_f
         last_SNP   = -1
         blk_phased = 0
 
-        for snp_ix, pos, a1, a2 in blk:
+        for snp_ix, pos, a1, a2, ref_str, alt1_str, alt2_str in blk:
 
             #print('{}\t{}\t{}\t{}'.format(snp_ix, pos, a1, a2))
-            if a1 == '-' or (phase_set != None and snp_ix not in phase_set):
-                missing_loc.append(pos)
-            else:
+            if not (a1 == '-' or (phase_set != None and snp_ix not in phase_set)):
+
                 phased_count += 1
 
                 blk_phased+=1
@@ -645,9 +663,13 @@ def error_rate_calc(t_blocklist, a_blocklist, vcf_file, frag_file, contig_size_f
         last_base_was_switch = False
 
         # convert t_block to a dict for convenience
-        t_dict = defaultdict(lambda: '-')
-        for snp_ix, pos, a1, a2 in t_block:
-            t_dict[pos] = a1
+        t1_dict = defaultdict(lambda: '-')
+        t2_dict = defaultdict(lambda: '-')
+        a_dict = defaultdict(lambda: ('-','-','-'))
+        for snp_ix, pos, a1, a2, ref_str, alt1_str, alt2_str in t_block:
+            t1_dict[pos] = a1
+            t2_dict[pos] = a2
+            a_dict[pos] = (ref_str,alt1_str,alt2_str)
 
         # iterate over SNPs in the true and assembled haplotypes in parallel
         # i is the index of the current base. x is the current base in the true haplotype. y is the current base in the assembled haplotype.
@@ -662,16 +684,22 @@ def error_rate_calc(t_blocklist, a_blocklist, vcf_file, frag_file, contig_size_f
                 switched       = False
                 last_base_was_switch = False
                 first_SNP = True
-                for blk_ix, (snp_ix, pos, a1, a2) in enumerate(a_block):
+                for blk_ix, (snp_ix, pos, a1, a2,  ref_str, alt1_str, alt2_str) in enumerate(a_block):
                     y = a1 if a == 0 else a2
-                    x = t_dict[pos]
+                    x = t1_dict[pos]
 
                     if x == '-' or y == '-' or (phase_set != None and pos not in phase_set):
                         continue
 
+                    #print("({},{}) == ({},{})".format(ref_str,alt_str,*a_dict[pos]))
+                    if {t1_dict[pos],t2_dict[pos]} != {a1,a2} or (ref_str,alt1_str,alt2_str) != a_dict[pos]:
+                        if a == 0:
+                            different_alleles += 1
+                        continue
+
                     if first_SNP:
                         switched = (x != y)
-                        if count_consecutive_switches(t_dict, a_block[blk_ix:], a) % 2 == 1:
+                        if count_consecutive_switches(t1_dict, a_block[blk_ix:], a) % 2 == 1:
                             last_base_was_switch = True
                         else:
                             last_base_was_switch = False
@@ -736,8 +764,12 @@ def error_rate_calc(t_blocklist, a_blocklist, vcf_file, frag_file, contig_size_f
 
         for blk in a_blocklist:
             phased_known = 0
-            for snp_ix, pos, a1, a2 in blk:
-                if t_dict[pos] != '-' and a1 != '-' and (phase_set == None or pos in phase_set):
+            for snp_ix, pos, a1, a2, ref_str, alt1_str, alt2_str in blk:
+
+                if {t1_dict[pos],t2_dict[pos]} != {a1,a2} or (ref_str,alt1_str,alt2_str) != a_dict[pos]:
+                    continue
+
+                if t1_dict[pos] != '-' and a1 != '-' and (phase_set == None or pos in phase_set):
                     phased_known += 1
 
             # a switch error is only possible in blocks len 4 or greater
@@ -757,15 +789,18 @@ def error_rate_calc(t_blocklist, a_blocklist, vcf_file, frag_file, contig_size_f
             flat_count1 = 0
             flat_count2 = 0
             #print("*******************")
-            for snp_ix, pos, a1, a2 in a_block:
+            for snp_ix, pos, a1, a2, ref_str, alt1_str, alt2_str in a_block:
 
 
-                if a1 == '-' or a2 == '-' or t_dict[pos] == '-' or (phase_set != None and pos not in phase_set):
+                if {t1_dict[pos],t2_dict[pos]} != {a1,a2} or (ref_str,alt1_str,alt2_str) != a_dict[pos]:
                     continue
 
-                if (a1 != t_dict[pos]):
+                if a1 == '-' or a2 == '-' or t1_dict[pos] == '-' or (phase_set != None and pos not in phase_set):
+                    continue
+
+                if (a1 != t1_dict[pos]):
                     flat_count1 += 1
-                if (a2 != t_dict[pos]):
+                if (a2 != t1_dict[pos]):
                     flat_count2 += 1
 
             if flat_count1 < flat_count2:
@@ -773,15 +808,18 @@ def error_rate_calc(t_blocklist, a_blocklist, vcf_file, frag_file, contig_size_f
             else:
                 flat_count += flat_count2
 
+    if different_alleles > 0:
+        print("WARNING: {} positions had different ref,alt pairs and were skipped.".format(different_alleles))
+
     poss_flat  = poss_mm
 
     total_error = error_result(ref=ref_name,
              switch_count=switch_count,poss_sw=poss_sw, mismatch_count=mismatch_count,
              poss_mm=poss_mm,flat_count=flat_count,poss_flat=poss_flat,
-             phased_count=phased_count,num_covered=num_covered,num_snps=num_snps,
+             phased_count=phased_count,num_snps=num_snps,
              maxblk_snps=maxblk_snps,
              AN50_spanlst=AN50_spanlst,N50_spanlst=N50_spanlst,switch_loc=switch_loc,
-             mismatch_loc=mismatch_loc,missing_loc=missing_loc,contig_size_file=contig_size_file)
+             mismatch_loc=mismatch_loc,contig_size_file=contig_size_file)
 
     return total_error
 
@@ -789,29 +827,18 @@ if __name__ == '__main__':
 
     args = parse_args()
 
-    if (args.haplotype_blocks == None or args.vcf == None or args.fragments == None):
-        print("ERROR: Missing required arguments.\n--haplotype_blocks, --vcf, and --fragments options are required", file=sys.stderr)
-        sys.exit(1)
-
-    if (args.phased_vcf == None) and (args.reference_haplotype_blocks == None or args.reference_vcf == None):
-        print("ERROR: Missing reference haplotype to compute error against.\nProvide either --phased_vcf, or both --reference_haplotype_blocks and --reference_vcf", file=sys.stderr)
-        sys.exit(1)
-
-    if (args.phased_vcf != None) and (args.reference_haplotype_blocks != None or args.reference_vcf != None):
-        print("ERROR: Incompatible reference haplotype arguments.\nProvide either --phased_vcf, or both --reference_haplotype_blocks and --reference_vcf", file=sys.stderr)
-        sys.exit(1)
-
-    if (args.reference_haplotype_blocks != None and args.reference_vcf == None) or (args.reference_haplotype_blocks == None and args.reference_vcf != None):
-        print("ERROR: Please provide both --reference_haplotype_blocks and --reference_vcf if reference is in haplotype block format.", file=sys.stderr)
+    if (args.vcf1 == None or args.vcf2 == None):
+        print("ERROR: Missing required arguments.\n--vcf1 and --vcf2 options are required", file=sys.stderr)
         sys.exit(1)
 
     if args.contig_size_file == None:
         print("WARNING: Contig size file (-c) not provided. N50 will not be calculated.", file=sys.stderr)
 
-    reference_vcf = args.vcf if args.reference_vcf == [] else args.reference_vcf
-    phased_vcf = args.vcf if args.phased_vcf == [] else args.phased_vcf
-
-    if args.phased_vcf != None:
-        print(hapblock_vcf_error_rate_multiple(args.haplotype_blocks, args.fragments, args.vcf, phased_vcf, args.contig_size_file, args.indels))
-    elif args.reference_haplotype_blocks != None:
-        print(hapblock_hapblock_error_rate_multiple(args.reference_haplotype_blocks, reference_vcf, args.haplotype_blocks, args.fragments, args.vcf, args.contig_size_file, args.indels))
+    if args.haplotype_blocks1 == None and args.haplotype_blocks2 == None:
+        print(vcf_vcf_error_rate_multiple(args.vcf1, args.vcf2, args.contig_size_file, args.indels))
+    elif args.haplotype_blocks1 != None and args.haplotype_blocks2 == None:
+        print(hapblock_vcf_error_rate_multiple(args.haplotype_blocks1, args.vcf1, args.vcf2, args.contig_size_file, args.indels))
+    elif args.haplotype_blocks1 != None and args.haplotype_blocks2 != None:
+        print(hapblock_hapblock_error_rate_multiple(args.haplotype_blocks1, args.vcf1, args.haplotype_blocks2, args.vcf2, args.contig_size_file, args.indels))
+    elif args.haplotype_blocks1 == None and args.haplotype_blocks2 != None:
+        print(vcf_hapblock_error_rate_multiple(args.vcf1, args.haplotype_blocks2, args.vcf2, args.contig_size_file, args.indels))
