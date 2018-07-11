@@ -15,6 +15,10 @@ are computed with respect to a "reference" haplotype (specified by -v2 and optio
 All files must contain information for one chromosome only (except --contig_size_file)!
 To compute aggregate statistics across multiple chromosomes, provide files for
 each chromosome/contig as an ordered list, using the same chromosome order between flags.
+
+Note: Triallelic variants are supported, but variants with more than 2 alternative alleles
+are currently NOT supported. These variants are ignored. Also, variants where the ref and alt
+alleles differ between the test haplotype and reference haplotype are skipped.
 '''
 
 def parse_args():
@@ -58,14 +62,22 @@ def parse_hapblock_file(hapblock_file,vcf_file,indels=False):
                 print("VCF file:             " + vcf_file)
                 exit(1)
 
+            consider = True
+
             a0 = el[3]
             a1 = el[4]
             a2 = None
+
             if ',' in a1:
-                a1,a2 = a1.split(',')
+                alt_lst = a1.split(',')
+                if len(alt_lst) == 2:
+                    a1,a2 = alt_lst
+                else:
+                    consider = False
+
 
             genotype = el[9].split(':')[0]
-            consider = True
+
             if not (len(genotype) == 3 and genotype[0] in ['0','1','2'] and
                     genotype[1] in ['/','|'] and genotype[2] in ['0','1','2']):
                 consider = False
@@ -73,7 +85,7 @@ def parse_hapblock_file(hapblock_file,vcf_file,indels=False):
             if genotype[0] == genotype[2]:
                 consider = False
 
-            if (not indels) and (('0' in genotype and len(a0) != 1) or
+            if consider and (not indels) and (('0' in genotype and len(a0) != 1) or
                 ('1' in genotype and len(a1) != 1) or ('2' in genotype and len(a2) != 1)):
                 consider = False
 
@@ -122,7 +134,11 @@ def parse_hapblock_file(hapblock_file,vcf_file,indels=False):
             alt2 = None
 
             if ',' in alt1:
-                alt1,alt2 = alt1.split(',')
+                alt_lst = alt1.split(',')
+                if len(alt_lst) == 2:
+                    alt1,alt2 = alt_lst
+                else:
+                    continue
 
             blocklist[-1].append((snp_ix, pos, allele1, allele2, ref, alt1, alt2))
 
@@ -146,6 +162,8 @@ def parse_vcf_phase(vcf_file, CHROM, indels = False):
             if len(el) < 10:
                 continue
 
+            consider = True
+
             phase_data = el[9]
 
             a0 = el[3]
@@ -153,7 +171,11 @@ def parse_vcf_phase(vcf_file, CHROM, indels = False):
             a2 = None
 
             if ',' in a1:
-                a1,a2 = a1.split(',')
+                alt_lst = a1.split(',')
+                if len(alt_lst) == 2:
+                    a1,a2 = alt_lst
+                else:
+                    consider = False
 
             # get the index where the PS information is
             for i,f in enumerate(el[8].split(':')):
@@ -168,7 +190,6 @@ def parse_vcf_phase(vcf_file, CHROM, indels = False):
 
             dat = el[9].split(':')
             genotype = dat[0]
-            consider = True
 
             if not (len(genotype) == 3 and genotype[0] in ['0','1','2'] and
                     genotype[1] in ['|'] and genotype[2] in ['0','1','2']):
@@ -177,7 +198,7 @@ def parse_vcf_phase(vcf_file, CHROM, indels = False):
             if genotype[0] == genotype[2]:
                 consider = False
 
-            if (not indels) and (('0' in genotype and len(a0) != 1) or
+            if consider and (not indels) and (('0' in genotype and len(a0) != 1) or
                 ('1' in genotype and len(a1) != 1) or ('2' in genotype and len(a2) != 1)):
                 consider = False
 
@@ -223,8 +244,13 @@ def count_SNPs(vcf_file,indels=False):
             a0 = el[3]
             a1 = el[4]
             a2 = None
+
             if ',' in a1:
-                a1,a2 = a1.split(',')
+                alt_lst = a1.split(',')
+                if len(alt_lst) == 2:
+                    a1,a2 = alt_lst
+                else:
+                    continue
 
             genotype = el[9][:3]
             #print ("pre: ",line.strip())

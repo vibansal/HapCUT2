@@ -20,6 +20,10 @@ chromosome only (except --contig_size_file)! To compute aggregate statistics
 across multiple chromosomes, provide files for each chromosome/contig as an
 ordered list, using the same chromosome order between flags.
 
+Note: Triallelic variants are supported, but variants with more than 2 alternative alleles
+are currently NOT supported. These variants are ignored. Also, variants where the ref and alt
+alleles differ between the test haplotype and reference haplotype are skipped.
+
 optional arguments:
   -h, --help            show this help message and exit
   -v1 VCF1 [VCF1 ...], --vcf1 VCF1 [VCF1 ...]
