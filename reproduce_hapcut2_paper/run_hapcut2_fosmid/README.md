@@ -15,7 +15,7 @@ Steps in the script:
 More detailed explanation of steps 1-3:
 HapCUT2 requires a VCF file along with the fragment data, such that the variant indices
 in the fragment file match those in the VCF. The original filtered VCF from 1000 Genomes
-used in the study is not provided, so it is necessary to produce one. There is also a
+used to generate the fosmid fragments is not provided, so it is necessary to produce one. There is also a
 need for ground-truth haplotypes to compare against, and the phased 1000g variants
 can also be used for this purpose. So, the bash script
 downloads VCF files for NA12878 from 1000 Genomes project phase 1, and filters
