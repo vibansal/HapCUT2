@@ -37,6 +37,8 @@ chmod +x run_hapcut2_fosmid_data.sh
 ./run_hapcut2_fosmid_data.sh
 ```
 
+The HapCUT2 haplotypes with be in ```data/hapcut2_haplotypes``` and the error rates compared to 1000G trio haplotypes will be printed to console.
+
 References:
 
 [1] Duitama, J., McEwen, G.K., Huebsch, T., Palczewski, S., Schulz, S., Verstrepen, K., Suk, E.K. and Hoehe, M.R., 2011. Fosmid-based whole genome haplotyping of a HapMap trio child: evaluation of Single Individual Haplotyping techniques. Nucleic acids research, 40(5), pp.2041-2053.
