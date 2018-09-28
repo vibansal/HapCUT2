@@ -37,7 +37,7 @@ chmod +x run_hapcut2_fosmid_data.sh
 ./run_hapcut2_fosmid_data.sh
 ```
 
-The HapCUT2 haplotypes with be in ```data/hapcut2_haplotypes``` and the error rates compared to 1000G trio haplotypes will be printed to console.
+The HapCUT2 haplotypes will be in ```data/hapcut2_haplotypes``` and the error rates compared to 1000G trio haplotypes will be printed to console.
 
 References:
 
