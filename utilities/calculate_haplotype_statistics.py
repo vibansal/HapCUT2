@@ -440,7 +440,6 @@ class error_result():
         poss_sw = self.get_poss_sw()
 
         if poss_sw > 0:
-            print("poss_sw: ", poss_sw)
             return float(switch_count)/poss_sw
         else:
             return 0
@@ -450,7 +449,6 @@ class error_result():
         poss_mm = self.get_poss_mm()
 
         if poss_mm > 0:
-            print("poss_mm: ", poss_mm)
             return float(mismatch_count)/poss_mm
         else:
             return 0
