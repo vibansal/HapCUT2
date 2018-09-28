@@ -5,7 +5,7 @@ This directory contains a bash script for running HapCUT2 on the fosmid data fro
 the 2012 Duitama et al study [1]:
 
 Steps in the script:
-1. download 1000 Genomes VCFs (phase 1, hg18) for NA12878 trio
+1. download 1000 Genomes VCFs (phase 1, hg18) for NA12878 trio [2]
 2. filter the VCF for only NA12878 heterozygous sites (and separate by chromosome)
 3. check that variant indices and genomic coordinates match between filtered VCF and Duitama phased haplotype data
 4. download fosmid fragment files and remove first line (matrix dimensions) which is incompatible with HapCUT2
