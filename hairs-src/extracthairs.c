@@ -43,12 +43,12 @@ int REALIGN_VARIANTS = 0;
 FILE* logfile;
 int PFLAG = 1;
 int PRINT_FRAGMENTS = 1;
-char* GROUPNAME; // for fragments from different pools, SRRxxx
 FILE* fragment_file;
 int TRI_ALLELIC = 0;
 int VERBOSE = 0;
 int PACBIO = 0; 
 int USE_SUPP_ALIGNMENTS =0; // use supplementary alignments, flag = 2048
+int SUM_ALL_ALIGN =0; // if set to 1, use sum of all alignments scoring forr local realignment 
 
 int* fcigarlist; // global variable
 
@@ -58,6 +58,7 @@ float INSERTION_OPEN = -1;
 float INSERTION_EXTEND = -1;
 float DELETION_OPEN = -1;
 float DELETION_EXTEND = -1;
+
 
 // DATA TYPE
 // 0 : generic reads
@@ -74,9 +75,12 @@ int NEW_FORMAT = 0;
 
 //int get_chrom_name(struct alignedread* read,HASHTABLE* ht,REFLIST* reflist);
 
+#include "realign_pairHMM.c" // added 11/29/2018
 #include "parsebamread.c"
 #include "realignbamread.c"
 #include "fosmidbam_hairs.c" // code for parsing fosmid pooled sequence data
+
+Align_Params AP; // global alignmnet params
 
 //disabled sam file reading
 //#include "samhairs.c" // has two functions that handle sam file parsing
@@ -107,7 +111,8 @@ void print_options() {
     //fprintf(stderr,"--triallelic <0/1> : print information about , default 0 \n");
     fprintf(stderr, "--ref <FILENAME> : reference sequence file (in fasta format, gzipped is okay), optional but required for indels, should be indexed\n");
     fprintf(stderr, "--out <FILENAME> : output filename for haplotype fragments, if not provided, fragments will be output to stdout\n");
-    fprintf(stderr, "--regions chr:start-end > : chromosome and region in BAM file, useful to process individual chromosomes or genomic regions \n\n");
+    fprintf(stderr, "--regions <chr:start-end> : chromosome and region in BAM file, useful to process individual chromosomes or genomic regions \n\n");
+    fprintf(stderr, "--sumall <0/1> : set to 1 to use sum of all local alignments approach (only with long reads), default = 0 \n\n");
 }
 
 void check_input_0_or_1(char* x){
@@ -273,7 +278,6 @@ int main(int argc, char** argv) {
     strcpy(bamfile, "None");
     strcpy(variantfile, "None");
     strcpy(fastafile, "None");
-    GROUPNAME = NULL;
     int readsorted = 0;
     char* sampleid = (char*) malloc(1024);
     sampleid[0] = '-';
@@ -290,6 +294,17 @@ int main(int argc, char** argv) {
         fprintf(stderr, "\nERROR: Invalid number of arguments specified.\n");
         exit(1);
     }
+
+    AP.states = 3; 
+    AP.TRS = calloc(sizeof(double*),AP.states); // match =0, ins =1, del = 2
+    for (i=0;i<AP.states;i++) AP.TRS[i] = calloc(sizeof(double),AP.states);
+    //  initialize alignment parameters data structure 
+    AP.match = log(0.979); AP.mismatch = log(0.007); AP.deletion = log(1); AP.insertion =log(1);
+    AP.TRS[0][0] = log(0.879); AP.TRS[0][1] = log(0.076); AP.TRS[0][2] = log(0.045);
+    AP.TRS[1][0] = log(0.865); AP.TRS[1][1] = log(0.135);
+    AP.TRS[2][0] = log(0.730); AP.TRS[2][2] = log(0.27);
+	/*
+	*/
 
     for (i = 1; i < argc; i += 2) {
         if (strcmp(argv[i], "--bam") == 0 || strcmp(argv[i], "--bamfile") == 0) bamfiles++;
@@ -342,6 +357,7 @@ int main(int argc, char** argv) {
             INSERTION_EXTEND = log10(0.26);
             DELETION_EXTEND = log10(0.12);
 
+
         }else if (strcmp(argv[i], "--ont") == 0 || strcmp(argv[i], "--ONT") == 0){
             check_input_0_or_1(argv[i + 1]);
             if (atoi(argv[i + 1])){
@@ -392,9 +408,10 @@ int main(int argc, char** argv) {
         }else if (strcmp(argv[i], "--fosmids") == 0 || strcmp(argv[i], "--fosmid") == 0){
             check_input_0_or_1(argv[i + 1]);
             LONG_READS = 1;
-        }else if (strcmp(argv[i], "--groupname") == 0) {
-            GROUPNAME = (char*) malloc(1024);
-            strcpy(GROUPNAME, argv[i + 1]);
+        }else if (strcmp(argv[i], "--sumall") == 0) { 
+           check_input_0_or_1(argv[i + 1]);
+	   SUM_ALL_ALIGN = atoi(argv[i+1]); 
+            if (SUM_ALL_ALIGN ==1) fprintf(stderr, "\nusing sum of all alignments for scoring \n");
         }else{
             fprintf(stderr, "\nERROR: Invalid Option \"%s\" specified.\n",argv[i]);
             exit(1);

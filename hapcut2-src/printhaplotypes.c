@@ -54,6 +54,7 @@ int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
     char c=0, c1=0, c2=0;
     //char fn[200]; sprintf(fn,"%s-%d.phase",fname,score);
     FILE* fp;
+    int edgelist[4096];
     fp = fopen(outfile, "w");
 
     for (i = 0; i < blocks; i++) {
@@ -127,7 +128,21 @@ int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
                 sprintf(discrete_conf,"%d",snpfrag[t].pruned_discrete_heuristic);
             }
 
-            fprintf(fp, "%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%d\n", snpfrag[t].chromosome, snpfrag[t].position, snpfrag[t].allele0, snpfrag[t].allele1, snpfrag[t].genotypes, discrete_conf, switch_conf, snp_conf,snpfrag[t].frags);
+            fprintf(fp, "%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%d", snpfrag[t].chromosome, snpfrag[t].position, snpfrag[t].allele0, snpfrag[t].allele1, snpfrag[t].genotypes, discrete_conf, switch_conf, snp_conf,snpfrag[t].frags);
+
+	   //if (HiC && snpfrag[t].frags > 0 && snpfrag[t].tedges < 20 )
+	 //  {
+	//	int t1=0,f1=0,l1=0,e1=0;
+		/*
+		for (f1=0;f1< snpfrag[t].frags;f1++); 
+		{
+			for (t1=0;t1<Flist[f1].blocks;t1++) 
+			{
+			    for (l1=0;l1<Flist[f1].len[t1];l1++) edgelist[e1++] = Flist[f1].offset + l1; 
+			}
+		}*/
+	  // }
+	   fprintf(fp,"\n");  
 
         }
         if (i < blocks - 1) fprintf(fp, "******** \n");

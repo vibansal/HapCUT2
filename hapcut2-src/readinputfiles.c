@@ -190,7 +190,6 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
 
 
 // counts # of variants in VCF file, allows for arbitrary long lines
-
 int count_variants_vcf(char* vcffile) {
     FILE* fp = fopen(vcffile, "r");
     if (fp == NULL) {

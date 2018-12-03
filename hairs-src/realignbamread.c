@@ -1,5 +1,6 @@
 /* functions for comparing an aligned sequence read to the set of variants to identify alleles and haplotype-informative reads */
 
+//#include "../realign_pairHMM.c"
 #include "nw.c"
 #include <assert.h>
 #include <stdlib.h>
@@ -115,11 +116,11 @@ int test_complexity(char* seq, int k){
     return 1;
 }
 
-// make sure that the code works for indels/complex-vars |  illumina reads |  low-complexity regions | GENERIC CODE
-
+// realign sequence read to haplotype sequences defined by 'k' variants (typically k=1), local realignment for computing quality scores
+// ALLELOTYPING 
 int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VARIANT* varlist, int* snplst, int n_snps, FRAGMENT* fragment)
 {
-	if ( positions[3]-positions[1] < 15 ||  positions[3]-positions[1] > 200) return -1;
+	if ( positions[3]-positions[1] < 15 ||  positions[3]-positions[1] > 200) return -1; // check on length in range (15,200)
 	if ( positions[2]-positions[0] < 15 ||  positions[2]-positions[0] > 200) return -1;
 
 	int i=0,j=0,k=0;
@@ -144,7 +145,7 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
     }
     refhap[j-positions[1]]  ='\0';
 
-	char* althap;
+	char* althap = malloc(positions[3]-positions[1]+1 + 4096); // edit on 11/26/18
 	int h=0, s=0, ss=0, max_hap=0, ref_len=0, alt_len=0, total_ref_len=0, total_alt_len=0, n_max_haps = 0, rand_ix = 0;
 	double total_score = TINYLOG, max_score = -1000000000;
     int align_qual = 0;
@@ -157,6 +158,8 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 		ref_score_single[s] = TINYLOG;
 		alt_score_single[s] = TINYLOG;
 	}
+
+	double altscore=0;
 
     if (VERBOSE) fprintf(stderr,subread);
     if (VERBOSE) fprintf(stderr,"\n");
@@ -180,7 +183,8 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 			}
 		}
 
-		althap = malloc(positions[3]-positions[1]+1+total_alt_len-total_ref_len);
+		if (VERBOSE) fprintf(stderr,"new alt hap len %d %d\n",positions[3]-positions[1]+1+total_alt_len-total_ref_len,total_alt_len);
+		//althap = malloc(positions[3]-positions[1]+1+total_alt_len-total_ref_len);
 
 		j = positions[1];
 		k = 0;
@@ -210,9 +214,10 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 
 		if (VERBOSE) fprintf(stdout,"hap%d %s ",h,althap);
 
-		double altscore = nw(althap,subread,0);
+		if (SUM_ALL_ALIGN ==0) altscore = nw(althap,subread,0);
+		else altscore = sum_all_alignments(althap,subread,&AP,20);  
 
-		if (VERBOSE) fprintf(stdout,"score: %f \n",altscore);
+		if (VERBOSE) fprintf(stdout,"score: %f\n",altscore);
 
 		// for an index s in the short haplotype,
 		// maintain the log sum of scores that have a variant at s
@@ -245,7 +250,7 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 		//total_score = addlogs(total_score, refscore);
 		total_score = addlogs(total_score, altscore);
 
-        free(althap);
+        //free(althap);
 	}
 	if (VERBOSE) fprintf(stdout,"**********************************************\n");
 
@@ -293,6 +298,7 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 	}
 
 	free(subread);free(refhap); free(max_haps);free(ref_score_single); free(alt_score_single);
+	free(althap);
 
     return 0;
 }
@@ -447,10 +453,12 @@ int compare_read_HAPs(struct alignedread* read,VARIANT* varlist,int* snplst, int
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// identify the variants that overlap the read and call the local realignment function (compare_read_HAP) for "clusters of variants" (1 to MAX_SNP) 
+
 int realign_and_extract_variants_read(struct alignedread* read,HASHTABLE* ht,CHROMVARS* chromvars,VARIANT* varlist,int paired,FRAGMENT* fragment,int chrom,REFLIST* reflist){
 	//fprintf(stderr,"%s \n",read->readid);
 
-    int* snplst = malloc(MAX_SNPs_SHORT_HAP*sizeof(int));
+    int* snplst = malloc(MAX_SNPs_SHORT_HAP*2*sizeof(int));
 	int start = read->position; int end = start + read->span; int ss=0,firstvar=0,j=0,ov=0, i=0, k=0, has_a_SNV = 0;
 	j = (int)(start/BSIZE);
 	if (j >= chromvars[chrom].blocks) return 0; // another BUG april29 2011 found here
@@ -582,8 +590,7 @@ int realign_and_extract_variants_read(struct alignedread* read,HASHTABLE* ht,CHR
 					f2 = i;
 
 					// add variant to the list
-					snplst[n_snps] = ss;
-
+					snplst[n_snps] = ss; // no check on length of this list 
 					n_snps++;
 				}
 				ss++;
