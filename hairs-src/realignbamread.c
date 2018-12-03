@@ -470,18 +470,16 @@ int realign_and_extract_variants_read(struct alignedread* read,HASHTABLE* ht,CHR
 
 	if (varlist[ss].position <= end)
 	{
-		while(ss < VARIANTS-1 && ss <= chromvars[chrom].last && varlist[ss].position < start){
-            ss++;
-        }
-        firstvar = ss;
-		while (ss < VARIANTS-1 && ss <= chromvars[chrom].last && varlist[ss].position <= end)
+		while(ss < VARIANTS && ss <= chromvars[chrom].last && varlist[ss].position < start)        ss++;
+        	firstvar = ss;
+		while (ss < VARIANTS && ss <= chromvars[chrom].last && varlist[ss].position <= end) // BUG fixed 12/03/18, VARIANTS-1 => VARIANTS
 		{
+			//fprintf(stderr,"parsing read %s %d %d %d\n",read->readid,start,end,varlist[ss].position);
 			ov++; ss++;
 		}
 	}
 	if ((paired ==0 && ov < 2 && SINGLEREADS ==0) || (paired ==0 && ov < 1 && SINGLEREADS ==1) || (paired ==1 && ov < 1)) return 0;
 	ss = firstvar; // use variable firstvar to store first variant that overlaps this read
-//	fprintf(stderr,"parsing read %s \n",read->readid);
 
 	int fcigs=0;
 	fcigs = parse_cigar(read,reflist,fcigarlist);

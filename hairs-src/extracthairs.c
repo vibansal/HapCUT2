@@ -212,6 +212,7 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
                 }else{
                     extract_variants_read(read,ht,chromvars,varlist,0,&fragment,chrom,reflist);
                 }
+	        if (strcmp(fragment.id,"d0d16261-257c-48fa-beb1-7d0ba45f9aff") ==0) fprintf(stderr,"frag %s %d \n",fragment.id,fragment.variants); //d0d16261-257c-48fa-beb1-7d0ba45f9aff
 		if (fragment.variants >=2) VOfragments[0]++;
 		else if (fragment.variants >=1) VOfragments[1]++;
                 if (fragment.variants >= 2 || (SINGLEREADS == 1 && fragment.variants >= 1)) print_fragment(&fragment, varlist, fragment_file);
