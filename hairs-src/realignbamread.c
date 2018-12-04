@@ -13,7 +13,7 @@ extern int VERBOSE;
 extern int REALIGN_ALL;
 extern int PARSEINDELS;
 float TINYLOG = -10000;
-int MIN_QUAL = 10;
+//int MIN_QUAL = 10;
 int MAX_SNPs_SHORT_HAP = 10; // max number of SNVs in a short haplotype
 // given a=log10(x) and b=log10(y), returns log10(x+y)
 #define addlogs(a, b) (((a) > (b)) ? ((a) + log10(1.0 + pow(10.0, (b) - (a)))) : ((b) + log10(1.0 + pow(10.0, (a) - (b)))))
@@ -275,13 +275,13 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 		if (max_hap & (int)(pow(2,s))){
 			align_qual = (int) (-10.0 * (ref_score_single[s] - total_score));
 
-			if (align_qual < MIN_QUAL) continue;
+			if (align_qual < MINQ) continue;
 
 			fragment->alist[fragment->variants].allele = '1';
 		}else{
 			align_qual = (int) (-10.0 * (alt_score_single[s] - total_score));
 
-			if (align_qual < MIN_QUAL) continue;
+			if (align_qual < MINQ) continue;
 
 			fragment->alist[fragment->variants].allele = '0';
 		}

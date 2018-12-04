@@ -73,12 +73,15 @@ int DATA_TYPE = 0;
 // column 5 is the absolute insert size
 int NEW_FORMAT = 0;
 
+int PRINT_COMPACT = 1; // 1= print each fragment block by block, 0 = print variant by variant
+
 //int get_chrom_name(struct alignedread* read,HASHTABLE* ht,REFLIST* reflist);
 
 #include "realign_pairHMM.c" // added 11/29/2018
 #include "parsebamread.c"
 #include "realignbamread.c"
 #include "fosmidbam_hairs.c" // code for parsing fosmid pooled sequence data
+#include "estimate_hmm_params.c"
 
 Align_Params AP; // global alignmnet params
 
@@ -111,7 +114,7 @@ void print_options() {
     //fprintf(stderr,"--triallelic <0/1> : print information about , default 0 \n");
     fprintf(stderr, "--ref <FILENAME> : reference sequence file (in fasta format, gzipped is okay), optional but required for indels, should be indexed\n");
     fprintf(stderr, "--out <FILENAME> : output filename for haplotype fragments, if not provided, fragments will be output to stdout\n");
-    fprintf(stderr, "--regions <chr:start-end> : chromosome and region in BAM file, useful to process individual chromosomes or genomic regions \n\n");
+    fprintf(stderr, "--region <chr:start-end> : chromosome and region in BAM file, useful to process individual chromosomes or genomic regions \n\n");
     fprintf(stderr, "--sumall <0/1> : set to 1 to use sum of all local alignments approach (only with long reads), default = 0 \n\n");
 }
 
@@ -130,6 +133,8 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
     int reads = 0;
     struct alignedread* read = (struct alignedread*) malloc(sizeof (struct alignedread));
 
+    if (REALIGN_VARIANTS) realignment_params(bamfile,reflist,regions); // estimate alignment parameters from BAM file ONT/pacbio reads only 12/3/18
+
     if (REALIGN_VARIANTS){
         fcigarlist = calloc(sizeof(int),400000);
     }
@@ -147,18 +152,20 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
     fragment.alist = (allele*) malloc(sizeof (allele)*16184);
 
     samfile_t *fp;
+    bam1_t *b;
+    int ref=-1,beg=0,end=0;
+    int ret; // for reading indexed bam files 
+    bam_index_t *idx; // bam file index
+    bam_iter_t iter; 
+    
     if ((fp = samopen(bamfile, "rb", 0)) == 0) {
         fprintf(stderr, "Fail to open BAM file %s\n", bamfile);
         return -1;
     }
-    bam1_t *b;
-    bam_index_t *idx; // bam file index
-    bam_iter_t iter; int ret; // for reading indexed bam files 
-    int ref=-1,beg=0,end=0;
+    if (regions != NULL &&  (idx = bam_index_load(bamfile)) ==0) { fprintf(stderr,"unable to load bam index for file %s\n",bamfile); return -1; }
     if (regions == NULL) b = bam_init1();  // samread(fp,b)
     else 
     {
-        if ( (idx = bam_index_load(bamfile)) ==0) { fprintf(stderr,"unable to load bam index for file %s\n",bamfile); return -1; }
     	bam_parse_region(fp->header,regions,&ref,&beg,&end);   
         if (ref < 0) { fprintf(stderr,"invalid region for bam file %s \n",regions); return -1; } 
 	fprintf(stderr,"parsing region %s of bam file %d %d-%d\n",regions,ref,beg,end); //return -1;
@@ -168,8 +175,8 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
 
 
     while (1) {
-	if (ref < 0) ret = samread(fp,b); 
-	else ret = bam_iter_read(fp->x.bam,iter,b); 
+	if (ref < 0) ret = samread(fp,b);  // read full bam file 
+	else ret = bam_iter_read(fp->x.bam,iter,b);  // specific region 
 	//fprintf(stderr,"here %d %d\n",ret,iter);
 	if (ret < 0) break;  
         fetch_func(b, fp, read);
@@ -203,6 +210,7 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
         if ((read->flag & 8) || fragment.absIS > MAX_IS || fragment.absIS < MIN_IS || read->IS == 0 || !(read->flag & 1) || read->tid != read->mtid) // single read
         {
             fragment.variants = 0; // v1 =0; v2=0;
+	    if ( (read->flag & 16) ==16) fragment.strand = '-'; else fragment.strand = '+';
             if (chrom >= 0 && PEONLY == 0) {
 
                 fragment.id = read->readid;
@@ -212,7 +220,6 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
                 }else{
                     extract_variants_read(read,ht,chromvars,varlist,0,&fragment,chrom,reflist);
                 }
-	        if (strcmp(fragment.id,"d0d16261-257c-48fa-beb1-7d0ba45f9aff") ==0) fprintf(stderr,"frag %s %d \n",fragment.id,fragment.variants); //d0d16261-257c-48fa-beb1-7d0ba45f9aff
 		if (fragment.variants >=2) VOfragments[0]++;
 		else if (fragment.variants >=1) VOfragments[1]++;
                 if (fragment.variants >= 2 || (SINGLEREADS == 1 && fragment.variants >= 1)) print_fragment(&fragment, varlist, fragment_file);
@@ -255,6 +262,7 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
         prevtid = read->tid;
         free_readmemory(read);
     } // end of main while loop
+
     if (fragments > 0)  // still fragments left in buffer 
     {
         fprintf(stderr, "final cleanup of fragment list: %d current chrom %s %d prev %d \n", fragments, read->chrom, read->position,prevchrom);
@@ -318,10 +326,9 @@ int main(int argc, char** argv) {
             check_input_0_or_1(argv[i + 1]);
             readsorted = atoi(argv[i + 1]);
         }
-	else if (strcmp(argv[i],"--regions") ==0) { // added 11/30/17
+	else if (strcmp(argv[i],"--region") ==0 || strcmp(argv[i],"--regions") ==0) { // added 11/30/17
 	    regions = (char*)malloc(strlen(argv[i+1])+1); strcpy(regions,argv[i+1]); 
         }
-        else if (strcmp(argv[i], "--mbq") == 0) MINQ = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--mmq") == 0) MIN_MQ = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--HiC") == 0 || strcmp(argv[i], "--hic") == 0){
             check_input_0_or_1(argv[i + 1]);
@@ -343,10 +350,10 @@ int main(int argc, char** argv) {
             if (atoi(argv[i + 1])){
                 REALIGN_VARIANTS = 1;
             }
-        }else if (strcmp(argv[i], "--pacbio") == 0 || strcmp(argv[i], "--SMRT") == 0){
+        }else if (strcmp(argv[i], "--pacbio") == 0 || strcmp(argv[i], "--SMRT") == 0 || strcmp(argv[i],"--pb") ==0){
             check_input_0_or_1(argv[i + 1]);
             if (atoi(argv[i + 1])){
-                REALIGN_VARIANTS = 1; PACBIO =1;
+                REALIGN_VARIANTS = 1; PACBIO =1; MINQ = 10;
             }
 
             // scores based on https://www.researchgate.net/figure/230618348_fig1_Characterization-of-Pacific-Biosciences-dataa-Base-error-mode-rate-for-deletions
@@ -362,7 +369,7 @@ int main(int argc, char** argv) {
         }else if (strcmp(argv[i], "--ont") == 0 || strcmp(argv[i], "--ONT") == 0){
             check_input_0_or_1(argv[i + 1]);
             if (atoi(argv[i + 1])){
-                REALIGN_VARIANTS = 1;
+                REALIGN_VARIANTS = 1;  MINQ = 10;
             }
             // scores based on http://www.nature.com/nmeth/journal/v12/n4/abs/nmeth.3290.html
             MATCH = log10(1.0 - (0.051 + 0.049 + 0.078));
@@ -382,6 +389,8 @@ int main(int argc, char** argv) {
             MAX_IS = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--minIS") == 0)
             MIN_IS = atoi(argv[i + 1]);
+        else if (strcmp(argv[i], "--fullprint") == 0)
+            PRINT_COMPACT = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--PEonly") == 0){
             check_input_0_or_1(argv[i + 1]);
             PEONLY = atoi(argv[i + 1]); // discard single end mapped reads
@@ -400,6 +409,7 @@ int main(int argc, char** argv) {
             check_input_0_or_1(argv[i + 1]);
             SINGLEREADS = atoi(argv[i + 1]);
         }else if (strcmp(argv[i], "--maxfragments") == 0) MAXFRAG = atoi(argv[i + 1]);
+        else if (strcmp(argv[i], "--mbq") == 0) MINQ = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--noquality") == 0){
             check_input_0_or_1(argv[i + 1]);
             MISSING_QV = atoi(argv[i + 1]);
@@ -461,7 +471,7 @@ int main(int argc, char** argv) {
     CHROMVARS* chromvars = (CHROMVARS*) malloc(sizeof (CHROMVARS) * chromosomes);
     build_intervalmap(chromvars, chromosomes, varlist, VARIANTS);
 
-    // read reference fasta file for INDELS, reads entire genome in one shot
+    // read reference fasta file for INDELS, reads entire genome in one shot but saves memory by only keep contigs that are relevant for VCF parsing
     REFLIST* reflist = (REFLIST*) malloc(sizeof (REFLIST));
     reflist->ns = 0; reflist->names = NULL; reflist->lengths = NULL; reflist->sequences = NULL; reflist->current = -1;
     if (strcmp(fastafile, "None") != 0) {
@@ -471,7 +481,7 @@ int main(int argc, char** argv) {
 		reflist->sequences[i] = calloc(reflist->lengths[i] + 1, sizeof (char));
 		int chrom = getindex(&ht, reflist->names[i]); reflist->used[i] = 1;
 		if (chrom >=0) fprintf(stderr,"found match for reference contig %s in VCF file index \n",reflist->names[i]); 
-		else reflist->used[i] = 0; 
+		else reflist->used[i] = 0; // memory for this chromosome will be freed 
                 if (i < 5) fprintf(stderr, "contig %s length %d\n", reflist->names[i], reflist->lengths[i]);
             }
             read_fasta(fastafile, reflist);
