@@ -1,10 +1,5 @@
-// author: Vikas Bansal, vbansal@scripps, 2011-2012
+// author: Vikas Bansal
 //  program to extract haplotype informative reads from sorted BAM file, input requirements: bamfile and variantfile
-//  Jan 13 2012, changed to read directly from BAM file
-//  paired-end overlapping reads need to be handled properly
-//  add module for RNA-seq data as well
-//  add flag for secondary alignments and PCR duplicates (picard mark duplicates)
-//  input format for variants should be VCF from now
 //#include "extracthairs.h"
 #include<stdio.h>
 #include<stdlib.h>
@@ -77,13 +72,13 @@ int PRINT_COMPACT = 1; // 1= print each fragment block by block, 0 = print varia
 
 //int get_chrom_name(struct alignedread* read,HASHTABLE* ht,REFLIST* reflist);
 
+#include "estimate_hmm_params.c"
 #include "realign_pairHMM.c" // added 11/29/2018
 #include "parsebamread.c"
 #include "realignbamread.c"
 #include "fosmidbam_hairs.c" // code for parsing fosmid pooled sequence data
-#include "estimate_hmm_params.c"
 
-Align_Params AP; // global alignmnet params
+Align_Params* AP; // global alignmnet params
 
 //disabled sam file reading
 //#include "samhairs.c" // has two functions that handle sam file parsing
@@ -133,11 +128,9 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
     int reads = 0;
     struct alignedread* read = (struct alignedread*) malloc(sizeof (struct alignedread));
 
-    if (REALIGN_VARIANTS) realignment_params(bamfile,reflist,regions); // estimate alignment parameters from BAM file ONT/pacbio reads only 12/3/18
+    if (REALIGN_VARIANTS) realignment_params(bamfile,reflist,regions,AP); // estimate alignment parameters from BAM file ONT/pacbio reads only 12/3/18
 
-    if (REALIGN_VARIANTS){
-        fcigarlist = calloc(sizeof(int),400000);
-    }
+    if (REALIGN_VARIANTS) fcigarlist = calloc(sizeof(int),400000);
     int i = 0;
     int chrom = 0; //int sl=0;
     // int v1,v2;
@@ -271,13 +264,12 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
     bam_destroy1(b);
 
     free(flist); free(read); free(fragment.alist);
-    if (REALIGN_VARIANTS){
-        free(fcigarlist);
-    }
+    if (REALIGN_VARIANTS) free(fcigarlist);
     return 0;
 }
 
 int main(int argc, char** argv) {
+
     char samfile[1024];
     char bamfile[1024];
     char variantfile[1024];
@@ -292,7 +284,7 @@ int main(int argc, char** argv) {
     sampleid[0] = '-';
     sampleid[1] = '\0';
     int samplecol = 10; // default if there is a single sample in the VCF file
-    int i = 0, variants = 0, hetvariants = 0;
+    int i = 0, variants = 0, hetvariants = 0,j=0;
     char** bamfilelist = NULL;
     int bamfiles = 0;
 
@@ -304,16 +296,7 @@ int main(int argc, char** argv) {
         exit(1);
     }
 
-    AP.states = 3; 
-    AP.TRS = calloc(sizeof(double*),AP.states); // match =0, ins =1, del = 2
-    for (i=0;i<AP.states;i++) AP.TRS[i] = calloc(sizeof(double),AP.states);
-    //  initialize alignment parameters data structure 
-    AP.match = log(0.979); AP.mismatch = log(0.007); AP.deletion = log(1); AP.insertion =log(1);
-    AP.TRS[0][0] = log(0.879); AP.TRS[0][1] = log(0.076); AP.TRS[0][2] = log(0.045);
-    AP.TRS[1][0] = log(0.865); AP.TRS[1][1] = log(0.135);
-    AP.TRS[2][0] = log(0.730); AP.TRS[2][2] = log(0.27);
-	/*
-	*/
+    AP = init_params();
 
     for (i = 1; i < argc; i += 2) {
         if (strcmp(argv[i], "--bam") == 0 || strcmp(argv[i], "--bamfile") == 0) bamfiles++;
@@ -516,19 +499,6 @@ int main(int argc, char** argv) {
 		free(chromvars[i].intervalmap);
 	}
 	free(chromvars);
-    /*
-    for (i=0;i<ht.htsize;i++){
-        if (ht.blist[i] != NULL){
-            for(j=0;j<ht.bucketlengths[i];j++){
-                free(ht.blist[i]->key);
-            }
-            free(ht.blist[i]);
-        }
-    }
-
-    free(ht.blist);
-    free(ht.bucketlengths);
-    */
 	free(sampleid); free(varlist); free(reflist);
 	if (bamfiles > 0 && strcmp(variantfile,"None") !=0){
 		for (i=0;i<bamfiles;i++)

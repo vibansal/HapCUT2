@@ -215,7 +215,7 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 		if (VERBOSE) fprintf(stdout,"hap%d %s ",h,althap);
 
 		if (SUM_ALL_ALIGN ==0) altscore = nw(althap,subread,0);
-		else altscore = sum_all_alignments(althap,subread,&AP,20);  
+		else altscore = sum_all_alignments(althap,subread,AP,20);  
 
 		if (VERBOSE) fprintf(stdout,"score: %f\n",altscore);
 
@@ -274,6 +274,7 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 
 		if (max_hap & (int)(pow(2,s))){
 			align_qual = (int) (-10.0 * (ref_score_single[s] - total_score));
+			//fprintf(stdout,"qv %f %f %d \n",ref_score_single[s],total_score,align_qual);
 
 			if (align_qual < MINQ) continue;
 
