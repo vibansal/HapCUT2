@@ -1,5 +1,4 @@
 
-//#include "bamread.h"
 //char INT_CIGAROP[] = {'M', 'I', 'D', 'N', 'S', 'H', 'P', '=', 'X'};
 
 int BTI[] = {
@@ -50,7 +49,7 @@ Align_Params* init_params()
 
 // for every HP of length 'k', tabulate # of times read-correctly and indel error 
 
-void estimate_counts_read(struct alignedread* read,REFLIST* reflist,int* emission_counts,int* trans_counts,int* indel_lengths)
+int estimate_counts_read(struct alignedread* read,REFLIST* reflist,int* emission_counts,int* trans_counts,int* indel_lengths)
 {
 	//static int emission_counts[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; // AA AC AG AT | CA,CC,CG,CT |... 16 pairs im match state 
 	//static int trans_counts[9] = {0,0,0,0,0,0,0,0,0}; // M->M, M->I,M-D | I->M, I->D, I->I 
@@ -115,6 +114,7 @@ void estimate_counts_read(struct alignedread* read,REFLIST* reflist,int* emissio
                 else if (op == BAM_CINS || op == BAM_CSOFT_CLIP)  l1 += l;
 		prevop = op;
         }
+	return 1;
 }
 
 void print_error_params(int* emission_counts,int* trans_counts,int* indel_lengths,Align_Params* AP)
@@ -147,7 +147,7 @@ void print_error_params(int* emission_counts,int* trans_counts,int* indel_length
 	//for (pr=0;pr<16;pr++) fprintf(stdout,"%c:%c %d \n",ITB[pr/4],ITB[pr%4],emission_counts[pr]);
 	fprintf(stderr,"emission for match state \nreads transition counts \n");
 	//for (pr=0;pr<9;pr++) fprintf(stdout,"%c:%c %d \n",state[pr/3],state[pr%3],trans_counts[pr]);
-	for (pr=0;pr<10;pr++) fprintf(stderr,"%d del: %d ins: %d \n",pr,indel_lengths[pr],indel_lengths[pr+20]);
+	//for (pr=0;pr<10;pr++) fprintf(stderr,"%d del: %d ins: %d \n",pr,indel_lengths[pr],indel_lengths[pr+20]);
 
 }
 
@@ -194,7 +194,7 @@ int realignment_params(char* bamfile,REFLIST* reflist,char* regions,Align_Params
 	b = bam_init1();  // samread(fp,b)
 
 	int prevtid =-1;
-	int reads=0;
+	int reads=0,ureads=0,useful=0;
 
 	reflist->current = -1;
 
@@ -224,11 +224,12 @@ int realignment_params(char* bamfile,REFLIST* reflist,char* regions,Align_Params
 		//if (reflist->current < 0) continue;
 		reads +=1;
 		//print_read_debug(read);		
-	        estimate_counts_read(read,reflist,emission_counts,trans_counts,indel_lengths);
+	        useful = estimate_counts_read(read,reflist,emission_counts,trans_counts,indel_lengths);
+		if (useful > 0) ureads +=1;
 		prevtid = read->tid;
 	}
 	fprintf(stderr,"using %d reads to estimate realignment parameters for HMM \n",reads);
-	if (reads > 1000) print_error_params(emission_counts,trans_counts,indel_lengths,AP);
+	if (ureads > 1000) print_error_params(emission_counts,trans_counts,indel_lengths,AP);
 	
 	bam_destroy1(b); samclose(fp); free(newregion);
 

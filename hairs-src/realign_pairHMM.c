@@ -6,14 +6,11 @@
 
 
 // 11/28/2018 
-// should include indels for realignment even if we don't phase them... 
 // translated from https://github.com/pjedge/longshot/blob/master/src/realignment.rs
-// this will replace nw.c code, current nw.c code works in probability space using best alignment... 
 
 //define states of HMM, emission probability vector and transition probability matrix 
 // states = match, insertion, deletion 
 // simple dynamic programming over 2-D matrix between v and w (read and haplotype) 
-
 
 int ALLOW_END_GAPS = 0; // for anchored alignment...
 int BAND_WIDTH = 20; // default 

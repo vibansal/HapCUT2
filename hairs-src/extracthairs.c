@@ -34,6 +34,7 @@ int PARSEINDELS = 0;
 int SINGLEREADS = 0;
 int LONG_READS = 0;
 int REALIGN_VARIANTS = 0;
+int ESTIMATE_PARAMS = 0; // estimate realignment parameters from BAM 
 //int QVoffset = 33; declared in samread.h
 FILE* logfile;
 int PFLAG = 1;
@@ -111,6 +112,7 @@ void print_options() {
     fprintf(stderr, "--out <FILENAME> : output filename for haplotype fragments, if not provided, fragments will be output to stdout\n");
     fprintf(stderr, "--region <chr:start-end> : chromosome and region in BAM file, useful to process individual chromosomes or genomic regions \n\n");
     fprintf(stderr, "--sumall <0/1> : set to 1 to use sum of all local alignments approach (only with long reads), default = 0 \n\n");
+    fprintf(stderr, "--ep <0/1> : set to 1 to estimate HMM parameters from aligned reads (only with long reads), default = 0 \n\n");
 }
 
 void check_input_0_or_1(char* x){
@@ -128,7 +130,7 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
     int reads = 0;
     struct alignedread* read = (struct alignedread*) malloc(sizeof (struct alignedread));
 
-    if (REALIGN_VARIANTS) realignment_params(bamfile,reflist,regions,AP); // estimate alignment parameters from BAM file ONT/pacbio reads only 12/3/18
+    if (REALIGN_VARIANTS && ESTIMATE_PARAMS) realignment_params(bamfile,reflist,regions,AP); // estimate alignment parameters from BAM file ONT/pacbio reads only 12/3/18
 
     if (REALIGN_VARIANTS) fcigarlist = calloc(sizeof(int),400000);
     int i = 0;
@@ -406,6 +408,8 @@ int main(int argc, char** argv) {
            check_input_0_or_1(argv[i + 1]);
 	   SUM_ALL_ALIGN = atoi(argv[i+1]); 
             if (SUM_ALL_ALIGN ==1) fprintf(stderr, "\nusing sum of all alignments for scoring \n");
+        }else if (strcmp(argv[i], "--ep") == 0) { 
+	   ESTIMATE_PARAMS = atoi(argv[i+1]); 
         }else{
             fprintf(stderr, "\nERROR: Invalid Option \"%s\" specified.\n",argv[i]);
             exit(1);
