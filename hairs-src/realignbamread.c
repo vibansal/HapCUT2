@@ -20,7 +20,6 @@ int MAX_SNPs_SHORT_HAP = 10; // max number of SNVs in a short haplotype
 // given a=log10(x) and b=log10(y), returns log10(x-y)
 #define subtractlogs(a, b) (((a) > (b)) ? ((a) + log10(1.0 - pow(10, (b) - (a)))) : ((b) + log10(1.0 - pow(10.0, (a) - (b)))))
 
-// credit to Jeff Mercado at stack overflow for the original version of this function found here: https://stackoverflow.com/questions/5370753/using-stdlibs-qsort-to-sort-an-array-of-strings
 int compare_strings(const void* a, const void* b)
 {
     const char *ia = *(const char **)a;        //const char *ia = (const char *)a;
@@ -29,7 +28,6 @@ int compare_strings(const void* a, const void* b)
     return strcmp(ia, ib);
 }
 
-// full credit for this function goes to theJPster at stackoverflow
 // https://stackoverflow.com/questions/2509679/how-to-generate-a-random-number-from-within-a-range
 unsigned int rand_interval(unsigned int min, unsigned int max){
     int r;
@@ -217,7 +215,7 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 		if (SUM_ALL_ALIGN ==0) altscore = nw(althap,subread,0);
 		else altscore = sum_all_alignments(althap,subread,AP,20);  
 
-		if (VERBOSE) fprintf(stdout,"score: %f\n",altscore);
+		//if (VERBOSE==0) fprintf(stdout,"h %d score: %f \n%s\n%s\n",h,altscore,althap,subread);
 
 		// for an index s in the short haplotype,
 		// maintain the log sum of scores that have a variant at s
@@ -246,8 +244,7 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 			n_max_haps++;
 		}
 
-		// add the reference score and alternate score to the total
-		//total_score = addlogs(total_score, refscore);
+		// add the alternate score to the total
 		total_score = addlogs(total_score, altscore);
 
         //free(althap);
@@ -269,7 +266,6 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
         if (varlist[ss].type != 0 && !PARSEINDELS){
             continue;
         }
-
 		fragment->alist[fragment->variants].varid = ss;
 
 		if (max_hap & (int)(pow(2,s))){

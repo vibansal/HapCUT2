@@ -15,12 +15,13 @@
 int ALLOW_END_GAPS = 0; // for anchored alignment...
 int BAND_WIDTH = 20; // default 
 
-#define logsum(a, b) (((a) > (b)) ? ((a) + log(1.0 + exp(b-a))) : ((b) + log(1.0 + exp( (a) - (b)))))
+//#define logsum(a, b) (((a) > (b)) ? ((a) + log(1.0 + exp(b-a))) : ((b) + log(1.0 + exp( (a) - (b)))))
+#define logsum(a, b) (((a) > (b)) ? ((a) + log10(1.0 + pow(10.0, (b) - (a)))) : ((b) + log10(1.0 + pow(10.0, (a) - (b)))))
 
 double logsum1(double a, double b)
 {
-	if (a > b) return a + log(1 + exp(b-a));
-	else return b + log(1+exp(a-b));
+	if (a > b) return a + log10(1.0 + pow(10,b-a));
+	else return b + log(1.0+pow(10,a-b));
 }
 
 // do we need anchors, just require the read-seq to be aligned end-2-end while allowing end-gaps for reference haplotype 
@@ -74,17 +75,18 @@ double sum_all_alignments(char* v, char* w,Align_Params* params, int min_band_wi
 
 		for (j=band_start;j<band_end+1;j++)
 		{
-			int lower_continue = lower_prev[j] + params->TRS[1][1]; // insertion to insertion 
-			int lower_from_middle = middle_prev[j] + params->TRS[0][1]; // match to insertion 
+			double lower_continue = lower_prev[j] + params->TRS[1][1]; // insertion to insertion 
+			double lower_from_middle = middle_prev[j] + params->TRS[0][1]; // match to insertion 
 			lower_curr[j] = params->insertion + logsum(lower_continue,lower_from_middle);
 
-			int upper_continue = upper_curr[j-1] + params->TRS[2][2];
-			int upper_from_middle = middle_curr[j-1] + params->TRS[0][2];
+			double upper_continue = upper_curr[j-1] + params->TRS[2][2];
+			double upper_from_middle = middle_curr[j-1] + params->TRS[0][2];
 			upper_curr[j] = params->deletion + logsum(upper_continue,upper_from_middle);
 
-			int middle_from_lower = lower_prev[j-1] + params->TRS[1][0];
-			int middle_continue = middle_prev[j-1] + params->TRS[0][0];
-			int middle_from_upper = upper_prev[j-1] + params->TRS[2][0];
+			double middle_from_lower = lower_prev[j-1] + params->TRS[1][0];
+			double middle_continue = middle_prev[j-1] + params->TRS[0][0];
+			double middle_from_upper = upper_prev[j-1] + params->TRS[2][0];
+
 			double s = logsum(middle_from_lower,middle_continue);
 			double match_emission = params->match;
 			if (v[i-1] != w[j-1]) match_emission = params->mismatch;
@@ -106,7 +108,8 @@ double sum_all_alignments(char* v, char* w,Align_Params* params, int min_band_wi
 	double ll = middle_prev[lw];
 	free(lower_prev); 	free(middle_prev);  	free(upper_prev);
 	free(lower_curr);  	free(middle_curr);  	free(upper_curr);
-	return ll/log(10);
+	//fprintf(stderr,"v %s w %s %f \n",v,w,ll/log(10));
+	return ll;
 }
 
 
@@ -115,12 +118,21 @@ void test_realignment()
 	Align_Params AP; 
 	AP.states = 3; 
 	AP.TRS = calloc(sizeof(double*),AP.states); // match =0, ins =1, del = 2
-	int i=0;
+	int i=0,j=0;
 	for (i=0;i<AP.states;i++) AP.TRS[i] = calloc(sizeof(double),AP.states);
-	AP.match = log(0.979); AP.mismatch = log(0.007); AP.deletion = log(1); AP.insertion =log(1); 
-	AP.TRS[0][0] = log(0.879); AP.TRS[0][1] = log(0.076); AP.TRS[0][2] = log(0.045); 
-	AP.TRS[1][0] = log(0.865); AP.TRS[1][1] = log(0.135); 
-	AP.TRS[2][0] = log(0.730); AP.TRS[2][2] = log(0.27); 
+	AP.match = log10(0.979); AP.mismatch = log10(0.007); AP.deletion = log10(1); AP.insertion =log10(1); 
+	AP.TRS[0][0] = log10(0.879); AP.TRS[0][1] = log10(0.076); AP.TRS[0][2] = log10(0.045); 
+	AP.TRS[1][0] = log10(0.865); AP.TRS[1][1] = log10(0.135); 
+	AP.TRS[2][0] = log10(0.730); AP.TRS[2][2] = log10(0.27); 
+	AP.MEM = calloc(4,sizeof(double*)); for (i=0;i<4;i++) AP.MEM[i] = calloc(4,sizeof(double));
+        for (i=0;i<4;i++)
+        {
+                for (j=0;j<4;j++)
+                {
+                        if (i==j) AP.MEM[i][j] = AP.match; else AP.MEM[i][j] = AP.mismatch;
+                }
+        }
+
 
 	char* ref = malloc(1024); char* alt = malloc(1024); char* read = malloc(1024);
 	strcpy(ref,"GCTGGTGTAATGCAATG"); 	strcpy(alt,"GCTGGTGCAATGCAATG");  	strcpy(read,"GCTGGTTAATGCAATG");
@@ -132,13 +144,12 @@ void test_realignment()
 	double score1 =  sum_all_alignments(alt,read,&AP,BAND_WIDTH);
 	double scoreS = logsum(score0,score1);
 	double phred;
-	if (score0 > score1)  phred = -10.0*(score1-scoreS)/log(10); 
-	else phred = -10.0*(score0-scoreS)/log(10);
+	if (score0 > score1)  phred = -10.0*(score1-scoreS); 
+	else phred = -10.0*(score0-scoreS);
 	fprintf(stdout,"match %f %f %f \n",AP.TRS[0][0],AP.TRS[0][1],AP.TRS[0][2]);
 	fprintf(stdout,"ins %f %f del %f %f\n",AP.TRS[1][0],AP.TRS[1][1],AP.TRS[2][0],AP.TRS[2][2]);
-	fprintf(stdout,"code for pair HMM realignment of two sequences %f %f %f\n",log10(exp(score0)),log10(exp(score1)),phred);
+	fprintf(stdout,"code for pair HMM realignment of two sequences %f %f %f\n",score0,score1,phred);
 }
-
 
 
 /*
@@ -147,5 +158,4 @@ void test_realignment()
    test_realignment();
    return 0;
    }
- */
-
+*/

@@ -12,7 +12,7 @@ int BTI[] = {
         0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0
 };
 
-typedef struct // probabilities are in logspace 
+typedef struct // probabilities are in log10space 
 {
         int states; // match, insertion,deletion 
         double** TRS; // transition probabilities between states 
@@ -31,11 +31,11 @@ Align_Params* init_params()
         (*AP).TRS = calloc((*AP).states,sizeof(double*)); // match =0, ins =1, del = 2
         for (i=0;i<AP->states;i++) AP->TRS[i] = calloc(sizeof(double),AP->states);
         //  initialize alignment parameters data structure 
-        AP->match = log(0.979); AP->mismatch = log(0.007);
-        AP->deletion = log(1); AP->insertion =log(1);
-        AP->TRS[0][0] = log(0.879); AP->TRS[0][1] = log(0.076); AP->TRS[0][2] = log(0.045);
-        AP->TRS[1][0] = log(0.865); AP->TRS[1][1] = log(0.135);
-        AP->TRS[2][0] = log(0.730); AP->TRS[2][2] = log(0.27);
+        AP->match = log10(0.97); AP->mismatch = log10(0.01);
+        AP->deletion = log10(1); AP->insertion =log10(1);
+        AP->TRS[0][0] = log10(0.892); AP->TRS[0][1] = log10(0.071); AP->TRS[0][2] = log10(0.037); // match to match, ins, del
+        AP->TRS[1][0] = log10(0.740); AP->TRS[1][1] = log10(0.26); // insertion
+        AP->TRS[2][0] = log10(0.88); AP->TRS[2][2] = log10(0.12); // deletion 
         AP->MEM = calloc(4,sizeof(double*)); for (i=0;i<4;i++) AP->MEM[i] = calloc(4,sizeof(double));
         for (i=0;i<4;i++)
         {
@@ -128,8 +128,8 @@ void print_error_params(int* emission_counts,int* trans_counts,int* indel_length
 		for (b2=0;b2<4;b2++) total += emission_counts[b1*4+b2]; 
 		for (b2=0;b2<4;b2++) 
 		{
-			fprintf(stderr,"%c -> %c %0.4f | ",ITB[b1],ITB[b2],(float)emission_counts[b1*4+b2]/total);
-			AP->MEM[b1][b2] = log((float)emission_counts[b1*4+b2]/total);
+			AP->MEM[b1][b2] = log10((float)(emission_counts[b1*4+b2]+1)/total);
+			fprintf(stderr,"%c -> %c %0.4f %f | ",ITB[b1],ITB[b2],(float)emission_counts[b1*4+b2]/total,AP->MEM[b1][b2]);
 		}
 		fprintf(stderr,"\n");
 	}
@@ -139,8 +139,8 @@ void print_error_params(int* emission_counts,int* trans_counts,int* indel_length
 		for (b2=0;b2<3;b2++) total += trans_counts[b1*3+b2]; 
 		for (b2=0;b2<3;b2++) 
 		{
-			fprintf(stderr,"%c -> %c %0.4f | ",state[b1],state[b2],(float)trans_counts[b1*3+b2]/total);
-			AP->TRS[b1][b2] = log((float)trans_counts[b1*3+b2]/total);
+			AP->TRS[b1][b2] = log10((float)(trans_counts[b1*3+b2]+1)/total);
+			fprintf(stderr,"%c -> %c %0.4f %f | ",state[b1],state[b2],(float)trans_counts[b1*3+b2]/total,AP->TRS[b1][b2]);
 		}
 		fprintf(stderr,"\n");
 	}
