@@ -58,7 +58,7 @@ int print_fragment(FRAGMENT* fragment, VARIANT* varlist, FILE* outfile) {
     else // individual variant format, for debugging
 	{
     	    fprintf(outfile,":%c",fragment->strand);
-	    for (i = 0; i < fragment->variants; i++) fprintf(outfile, "\t%d:%c:%d",fragment->alist[i].varid+1,fragment->alist[i].allele,(char)fragment->alist[i].qv-33);
+	    for (i = 0; i < fragment->variants; i++) fprintf(outfile, " %d:%c:%d",fragment->alist[i].varid+1,fragment->alist[i].allele,(char)fragment->alist[i].qv-33);
 	}
 	    fprintf(outfile, "\n");
 

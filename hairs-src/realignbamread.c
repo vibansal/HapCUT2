@@ -213,9 +213,10 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 		if (VERBOSE) fprintf(stdout,"hap%d %s ",h,althap);
 
 		if (SUM_ALL_ALIGN ==0) altscore = nw(althap,subread,0);
-		else altscore = sum_all_alignments(althap,subread,AP,20);  
+		else if (SUM_ALL_ALIGN ==1) altscore = sum_all_alignments_fast(althap,subread,AP,20);
+		else if (SUM_ALL_ALIGN ==2) altscore = sum_all_alignments_logspace(althap,subread,AP,20);  
 
-		//if (VERBOSE==0) fprintf(stdout,"h %d score: %f \n%s\n%s\n",h,altscore,althap,subread);
+		if (VERBOSE) fprintf(stdout,"h %d score: %f \n%s\n%s\n",h,altscore,althap,subread);
 
 		// for an index s in the short haplotype,
 		// maintain the log sum of scores that have a variant at s

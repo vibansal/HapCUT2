@@ -15,9 +15,13 @@ int BTI[] = {
 typedef struct // probabilities are in log10space 
 {
         int states; // match, insertion,deletion 
-        double** TRS; // transition probabilities between states 
-        double** MEM; // probability of A->C, A->G (match state)
-        double match; double mismatch; double insertion; double deletion; // emission probs
+        float** TRS; // transition probabilities between states 
+        float** MEM; // probability of A->C, A->G (match state)
+        float match; float mismatch; float insertion; float deletion; // emission probs
+	// ***probabilities in log10 space ***
+        float** lTRS; // transition probabilities between states 
+        float** lMEM; // probability of A->C, A->G (match state)
+        float lmatch; float lmismatch; float linsertion; float ldeletion; // emission probs
 } Align_Params;
 
 extern Align_Params *AP;
@@ -28,22 +32,35 @@ Align_Params* init_params()
         int i=0,j=0;
         Align_Params *AP = malloc(sizeof(Align_Params));
         (*AP).states = 3;
-        (*AP).TRS = calloc((*AP).states,sizeof(double*)); // match =0, ins =1, del = 2
-        for (i=0;i<AP->states;i++) AP->TRS[i] = calloc(sizeof(double),AP->states);
+        (*AP).lTRS = calloc((*AP).states,sizeof(float*)); // match =0, ins =1, del = 2
+        for (i=0;i<AP->states;i++) AP->lTRS[i] = calloc(sizeof(float),AP->states);
         //  initialize alignment parameters data structure 
-        AP->match = log10(0.97); AP->mismatch = log10(0.01);
-        AP->deletion = log10(1); AP->insertion =log10(1);
-        AP->TRS[0][0] = log10(0.892); AP->TRS[0][1] = log10(0.071); AP->TRS[0][2] = log10(0.037); // match to match, ins, del
-        AP->TRS[1][0] = log10(0.740); AP->TRS[1][1] = log10(0.26); // insertion
-        AP->TRS[2][0] = log10(0.88); AP->TRS[2][2] = log10(0.12); // deletion 
-        AP->MEM = calloc(4,sizeof(double*)); for (i=0;i<4;i++) AP->MEM[i] = calloc(4,sizeof(double));
+        AP->lmatch = log10(0.97); AP->lmismatch = log10(0.01);
+        AP->ldeletion = log10(1); AP->linsertion =log10(1);
+        AP->lTRS[0][0] = log10(0.892); AP->lTRS[0][1] = log10(0.071); AP->lTRS[0][2] = log10(0.037); // match to match, ins, del
+        AP->lTRS[1][0] = log10(0.740); AP->lTRS[1][1] = log10(0.26); // insertion
+        AP->lTRS[2][0] = log10(0.88); AP->lTRS[2][2] = log10(0.12); // deletion 
+        AP->lMEM = calloc(4,sizeof(float*)); for (i=0;i<4;i++) AP->lMEM[i] = calloc(4,sizeof(float));
         for (i=0;i<4;i++)
         {
                 for (j=0;j<4;j++)
                 {
-                        if (i==j) AP->MEM[i][j] = AP->match; else AP->MEM[i][j] = AP->mismatch;
+                        if (i==j) AP->lMEM[i][j] = AP->lmatch; else AP->lMEM[i][j] = AP->lmismatch;
                 }
         }
+        (*AP).TRS = calloc((*AP).states,sizeof(float*)); // match =0, ins =1, del = 2
+        for (i=0;i<AP->states;i++) AP->TRS[i] = calloc(sizeof(float),AP->states);
+        AP->MEM = calloc(4,sizeof(float*)); for (i=0;i<4;i++) AP->MEM[i] = calloc(4,sizeof(float));
+	AP->match = pow(10,AP->lmatch); AP->mismatch = pow(10,AP->lmismatch);
+	AP->deletion = pow(10,AP->ldeletion); AP->insertion = pow(10,AP->linsertion);
+        for (i=0;i<4;i++)
+        {
+                for (j=0;j<4;j++)
+                {
+			AP->MEM[i][j] = pow(10,AP->lMEM[i][j]); 
+			if (i < 3 && j < 3) AP->TRS[i][j] = pow(10,AP->lTRS[i][j]); 
+		}
+	}
         return AP;
 }
 
@@ -128,7 +145,8 @@ void print_error_params(int* emission_counts,int* trans_counts,int* indel_length
 		for (b2=0;b2<4;b2++) total += emission_counts[b1*4+b2]; 
 		for (b2=0;b2<4;b2++) 
 		{
-			AP->MEM[b1][b2] = log10((float)(emission_counts[b1*4+b2]+1)/total);
+			AP->lMEM[b1][b2] = log10((float)(emission_counts[b1*4+b2]+1)/total);
+			AP->MEM[b1][b2] = (float)(emission_counts[b1*4+b2]+1)/total;
 			fprintf(stderr,"%c -> %c %0.4f %f | ",ITB[b1],ITB[b2],(float)emission_counts[b1*4+b2]/total,AP->MEM[b1][b2]);
 		}
 		fprintf(stderr,"\n");
@@ -139,7 +157,8 @@ void print_error_params(int* emission_counts,int* trans_counts,int* indel_length
 		for (b2=0;b2<3;b2++) total += trans_counts[b1*3+b2]; 
 		for (b2=0;b2<3;b2++) 
 		{
-			AP->TRS[b1][b2] = log10((float)(trans_counts[b1*3+b2]+1)/total);
+			AP->lTRS[b1][b2] = log10((float)(trans_counts[b1*3+b2]+1)/total);
+			AP->TRS[b1][b2] = (float)(trans_counts[b1*3+b2]+1)/total;
 			fprintf(stderr,"%c -> %c %0.4f %f | ",state[b1],state[b2],(float)trans_counts[b1*3+b2]/total,AP->TRS[b1][b2]);
 		}
 		fprintf(stderr,"\n");

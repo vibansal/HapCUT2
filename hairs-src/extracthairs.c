@@ -131,7 +131,6 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
     struct alignedread* read = (struct alignedread*) malloc(sizeof (struct alignedread));
 
     if (REALIGN_VARIANTS && ESTIMATE_PARAMS) realignment_params(bamfile,reflist,regions,AP); // estimate alignment parameters from BAM file ONT/pacbio reads only 12/3/18
-
     if (REALIGN_VARIANTS) fcigarlist = calloc(sizeof(int),400000);
     int i = 0;
     int chrom = 0; //int sl=0;
@@ -405,9 +404,8 @@ int main(int argc, char** argv) {
             check_input_0_or_1(argv[i + 1]);
             LONG_READS = 1;
         }else if (strcmp(argv[i], "--sumall") == 0) { 
-           check_input_0_or_1(argv[i + 1]);
 	   SUM_ALL_ALIGN = atoi(argv[i+1]); 
-            if (SUM_ALL_ALIGN ==1) fprintf(stderr, "\nusing sum of all alignments for scoring \n");
+            if (SUM_ALL_ALIGN >=1) fprintf(stderr, "\nusing sum of all alignments for scoring \n");
         }else if (strcmp(argv[i], "--ep") == 0) { 
 	   ESTIMATE_PARAMS = atoi(argv[i+1]); 
         }else{
