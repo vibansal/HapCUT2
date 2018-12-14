@@ -1,6 +1,3 @@
-// CODE STARTED SEPT 10 2007 4pm //  april 8 2008 this code used for producing results in ECCB 2008 paper //
-// author: VIKAS BANSAL (vbansal@scripps.edu) last modified December 23, 2010
-
 #include<stdio.h>
 #include<stdlib.h>
 #include<time.h>
@@ -55,76 +52,28 @@ int MAX_IS = -1;
 
 #include "find_maxcut.c"   // function compute_good_cut
 #include "post_processing.c"  // post-processing functions
+     
 
-int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) {
-    // IMP NOTE: all SNPs start from 1 instead of 0 and all offsets are 1+
-
-    fprintf_time(stderr, "Calling Max-Likelihood-Cut based haplotype assembly algorithm\n");
-
-    int snps = 0;
-    int fragments = 0, iter = 0, components = 0;
-    int i = 0, k = 0;
-    int* slist;
-    int flag = 0;
-    float bestscore = 0, miscalls = 0;
+int get_num_fragments(char* fragmentfile)
+{
     char buffer[MAXBUF];
-    int hic_iter=0;
-    struct SNPfrags* snpfrag = NULL;
-    struct BLOCK* clist;
-    char* HAP1;
-    float HIC_LL_SCORE = -80;
-    float OLD_HIC_LL_SCORE = -80;
-    int converged_count=0, split_count, new_components, component;
-
-    int new_fragments = 0;
-    struct fragment* new_Flist;
-
-    // READ FRAGMENT MATRIX
-    struct fragment* Flist;
-    FILE* ff = fopen(fragmentfile, "r");
+     FILE* ff = fopen(fragmentfile, "r");
     if (ff == NULL) {
         fprintf_time(stderr, "couldn't open fragment file %s\n", fragmentfile);
         exit(0);
     }
-    fragments = 0;
+    int fragments = 0;
     while (fgets(buffer, MAXBUF, ff) != NULL){
         if (!((buffer[0] == '0')&&(buffer[1] == ' ')))
             fragments++;
     }
     fclose(ff);
-    Flist     = (struct fragment*) malloc(sizeof (struct fragment)* fragments);
+    return fragments;
+}
 
-    flag = read_fragment_matrix(fragmentfile, Flist, fragments);
-
-    if (MAX_IS != -1){
-        // we are going to filter out some insert sizes
-        new_fragments = 0;
-        new_Flist = (struct fragment*) malloc(sizeof (struct fragment)* fragments);
-        for(i = 0; i < fragments; i++){
-
-            if (Flist[i].isize < MAX_IS){
-                new_Flist[new_fragments] = Flist[i];
-                new_fragments++;
-            }
-        }
-
-        Flist = new_Flist;
-        fragments = new_fragments;
-    }
-
-    if (flag < 0) {
-        fprintf_time(stderr, "unable to read fragment matrix file %s \n", fragmentfile);
-        return -1;
-    }
-
-    //ADD EDGES BETWEEN SNPS
-    snps = count_variants_vcf(variantfile);
-
-    if (snps < 0) {
-        fprintf_time(stderr, "unable to read variant file %s \n", variantfile);
-        return -1;
-    }
-
+void detect_long_reads(struct fragment* Flist,int fragments)
+{
+    int i=0;
     float mean_snps_per_read = 0;
     if (AUTODETECT_LONGREADS){
         for (i = 0; i < fragments; i++){
@@ -137,9 +86,62 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
             LONG_READS = 0;
         }
     }
+}
+
+int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) {
+    // IMP NOTE: all SNPs start from 1 instead of 0 and all offsets are 1+
+    fprintf_time(stderr, "Calling Max-Likelihood-Cut based haplotype assembly algorithm\n");
+
+    int snps = 0;
+    int fragments = 0, iter = 0, components = 0;
+    int i = 0, k = 0;
+    int* slist;
+    int flag = 0;
+    float bestscore = 0, miscalls = 0;
+    int hic_iter=0;
+    struct SNPfrags* snpfrag = NULL;
+    struct BLOCK* clist;
+    char* HAP1;
+    float HIC_LL_SCORE = -80;
+    float OLD_HIC_LL_SCORE = -80;
+    int converged_count=0, split_count, new_components, component;
+
+    int new_fragments = 0;
+    struct fragment* new_Flist;
+
+    // READ FRAGMENT MATRIX
+    fragments = get_num_fragments(fragmentfile); 
+    struct fragment* Flist;
+    Flist     = (struct fragment*) malloc(sizeof (struct fragment)* fragments);
+    flag = read_fragment_matrix(fragmentfile, Flist, fragments);
+
+    if (MAX_IS != -1){
+        // we are going to filter out some insert sizes
+        new_fragments = 0;
+        new_Flist = (struct fragment*) malloc(sizeof (struct fragment)* fragments);
+        for(i = 0; i < fragments; i++){
+            if (Flist[i].isize < MAX_IS) new_Flist[new_fragments++] = Flist[i];
+        }
+        Flist = new_Flist;
+        fragments = new_fragments;
+    }
+
+    if (flag < 0) {
+        fprintf_time(stderr, "unable to read fragment matrix file %s \n", fragmentfile);
+        return -1;
+    }
+
+    //ADD EDGES BETWEEN SNPS
+    snps = count_variants_vcf(variantfile);
+    if (snps < 0) {
+        fprintf_time(stderr, "unable to read variant file %s \n", variantfile);
+        return -1;
+    }
 
     snpfrag = (struct SNPfrags*) malloc(sizeof (struct SNPfrags)*snps);
     update_snpfrags(Flist, fragments, snpfrag, snps, &components);
+    
+    detect_long_reads(Flist,fragments);
 
     // 10/25/2014, edges are only added between adjacent nodes in each fragment and used for determining connected components...
     for (i = 0; i < snps; i++) snpfrag[i].elist = (struct edge*) malloc(sizeof (struct edge)*(snpfrag[i].edges+1));
@@ -234,7 +236,6 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
             snpfrag[i].post_hap = 0;
         }
         // RUN THE MAX_CUT ALGORITHM ITERATIVELY TO IMPROVE LIKELIHOOD
-
         for (iter = 0; iter < MAXITER; iter++) {
             if (VERBOSE)
                 fprintf_time(stdout, "PHASING ITER %d\n", iter);
