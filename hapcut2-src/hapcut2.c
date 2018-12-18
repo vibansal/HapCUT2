@@ -170,14 +170,17 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
 		else snpfrag[i].ignore = '0'; 
 	   }
     }
-    
     detect_long_reads(Flist,fragments);
+ 
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
     update_snpfrags(Flist, fragments, snpfrag, snps,&components);
 
     // INITIALIZE RANDOM HAPLOTYPES
     HAP1 = (char*) malloc(snps + 1);
     for (i = 0; i < snps; i++) 
     {
+	// this should be checked only after fragments per SNV have been counted
         if (snpfrag[i].frags == 0 || (SNVS_BEFORE_INDELS && (strlen(snpfrag[i].allele0) != 1 || strlen(snpfrag[i].allele1) != 1)) || snpfrag[i].ignore == '1') 
         {
             HAP1[i] = '-';  
@@ -185,7 +188,6 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
         else if (drand48() < 0.5) HAP1[i] = '0';
         else HAP1[i] = '1';
     }
-    
 
     // 10/25/2014, edges are only added between adjacent nodes in each fragment and used for determining connected components...
     for (i = 0; i < snps; i++) snpfrag[i].elist = (struct edge*) malloc(sizeof (struct edge)*(snpfrag[i].edges+1)); // # of edges calculated in update_snpfrags function 
@@ -200,7 +202,6 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
     // BUILD COMPONENT LIST
     clist = (struct BLOCK*) malloc(sizeof (struct BLOCK)*components);
     generate_clist_structure(Flist, fragments, snpfrag, snps, components, clist);
-
     // for each block, we maintain best haplotype solution under MFR criterion
     // compute the component-wise score for 'initHAP' haplotype
     miscalls = 0;
@@ -216,6 +217,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
         bestscore += clist[k].bestSCORE;
         miscalls += clist[k].SCORE;
     }
+    ////////////////////////////////////////////////////  initialization of connected components and data structures for hapcut  /////////////////////////////////////////////////
 
     fprintf_time(stderr, "processed fragment file and variant file: fragments %d variants %d\n", fragments, snps);
 
