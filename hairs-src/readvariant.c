@@ -186,7 +186,7 @@ int parse_variant(VARIANT* variant, char* buffer, int samplecol) {
 
         if (variant->type != 0) variant->position++; // add one to position for indels
 
-        if (strlen(variant->genotype))
+        //if (strlen(variant->genotype))
         if ((variant->genotype[0] == '0' && variant->genotype[2] == '1') || (variant->genotype[0] == '1' && variant->genotype[2] == '0')) {
             //if (flag >0) fprintf(stderr,"%s %d %s %s \n",variant->chrom,variant->position,variant->allele1,variant->allele2);
             variant->heterozygous = '1'; // variant will be used for outputting hairs
@@ -205,6 +205,7 @@ int parse_variant(VARIANT* variant, char* buffer, int samplecol) {
             return 0;
         } else {
             variant->heterozygous = '0';
+	    //if (variant->genotype[0] == variant->genotype[2] && variant->genotype[0] =='1') variant->heterozygous = '1';
             return 0;
         }
     } else {

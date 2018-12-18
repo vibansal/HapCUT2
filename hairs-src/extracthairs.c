@@ -45,6 +45,7 @@ int VERBOSE = 0;
 int PACBIO = 0; 
 int USE_SUPP_ALIGNMENTS =0; // use supplementary alignments, flag = 2048
 int SUM_ALL_ALIGN =0; // if set to 1, use sum of all alignments scoring forr local realignment 
+int HOMOZYGOUS = 0; // also output alleles for homozygous variants, by default such variants are ignored
 
 int* fcigarlist; // global variable
 
@@ -393,6 +394,12 @@ int main(int argc, char** argv) {
             check_input_0_or_1(argv[i + 1]);
             SINGLEREADS = atoi(argv[i + 1]);
         }else if (strcmp(argv[i], "--maxfragments") == 0) MAXFRAG = atoi(argv[i + 1]);
+        else if (strcmp(argv[i], "--hom") == 0) 
+	{
+                check_input_0_or_1(argv[i + 1]);
+		HOMOZYGOUS = atoi(argv[i + 1]);
+		if (HOMOZYGOUS ==1) SINGLEREADS = 1; 
+	}
         else if (strcmp(argv[i], "--mbq") == 0) MINQ = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--noquality") == 0){
             check_input_0_or_1(argv[i + 1]);

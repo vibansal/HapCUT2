@@ -88,6 +88,30 @@ void detect_long_reads(struct fragment* Flist,int fragments)
     }
 }
 
+void init_HiC(struct fragment* Flist,int fragments)
+{
+        int MAXIS = -1;
+        int i =0;
+        // determine the probability of an h-trans interaction for read
+        for (i=0; i<fragments;i++){
+
+            Flist[i].htrans_prob = -80;
+
+            if (Flist[i].isize > MAXIS)
+                MAXIS = Flist[i].isize;
+        }
+        HTRANS_MAXBINS = MAXIS/HTRANS_BINSIZE + 1;
+
+    // read in file with estimated probabilities of Hi-C h-trans interactions with distance
+    if (strcmp(HTRANS_DATA_INFILE, "None") != 0){
+        int num_bins        = count_htrans_bins(HTRANS_DATA_INFILE);
+        float* htrans_probs = (float*) malloc(sizeof(float) * num_bins);
+        read_htrans_file(HTRANS_DATA_INFILE, htrans_probs, num_bins);
+        for (i=0; i<fragments;i++)      Flist[i].htrans_prob = log10(htrans_probs[Flist[i].isize / HTRANS_BINSIZE]);
+        free(htrans_probs);
+        }
+}
+
 int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) {
     // IMP NOTE: all SNPs start from 1 instead of 0 and all offsets are 1+
     fprintf_time(stderr, "Calling Max-Likelihood-Cut based haplotype assembly algorithm\n");
@@ -131,25 +155,42 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
         return -1;
     }
 
-    //ADD EDGES BETWEEN SNPS
     snps = count_variants_vcf(variantfile);
     if (snps < 0) {
         fprintf_time(stderr, "unable to read variant file %s \n", variantfile);
         return -1;
     }
-
-    snpfrag = (struct SNPfrags*) malloc(sizeof (struct SNPfrags)*snps);
-    update_snpfrags(Flist, fragments, snpfrag, snps, &components);
+    else // read VCF file
+    {
+	   snpfrag = (struct SNPfrags*) malloc(sizeof (struct SNPfrags)*snps);
+    	   read_vcffile(variantfile, snpfrag, snps);
+	   for (i=0;i<snps;i++)
+	   {
+		if (snpfrag[i].genotypes[0] == snpfrag[i].genotypes[2]) snpfrag[i].ignore = '1'; 
+		else snpfrag[i].ignore = '0'; 
+	   }
+    }
     
     detect_long_reads(Flist,fragments);
+    update_snpfrags(Flist, fragments, snpfrag, snps,&components);
+
+    // INITIALIZE RANDOM HAPLOTYPES
+    HAP1 = (char*) malloc(snps + 1);
+    for (i = 0; i < snps; i++) 
+    {
+        if (snpfrag[i].frags == 0 || (SNVS_BEFORE_INDELS && (strlen(snpfrag[i].allele0) != 1 || strlen(snpfrag[i].allele1) != 1)) || snpfrag[i].ignore == '1') 
+        {
+            HAP1[i] = '-';  
+        } 
+        else if (drand48() < 0.5) HAP1[i] = '0';
+        else HAP1[i] = '1';
+    }
+    
 
     // 10/25/2014, edges are only added between adjacent nodes in each fragment and used for determining connected components...
-    for (i = 0; i < snps; i++) snpfrag[i].elist = (struct edge*) malloc(sizeof (struct edge)*(snpfrag[i].edges+1));
-    if (LONG_READS ==0){
-        add_edges(Flist,fragments,snpfrag,snps,&components);
-    }else if (LONG_READS >=1){
-        add_edges_fosmids(Flist,fragments,snpfrag,snps,&components);
-    }
+    for (i = 0; i < snps; i++) snpfrag[i].elist = (struct edge*) malloc(sizeof (struct edge)*(snpfrag[i].edges+1)); // # of edges calculated in update_snpfrags function 
+    if (LONG_READS ==0)  add_edges(Flist,fragments,snpfrag,snps,&components);
+    else if (LONG_READS >=1) add_edges_fosmids(Flist,fragments,snpfrag,snps,&components);
 
     for (i = 0; i < snps; i++) snpfrag[i].telist = (struct edge*) malloc(sizeof (struct edge)*(snpfrag[i].edges+1));
 
@@ -159,21 +200,6 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
     // BUILD COMPONENT LIST
     clist = (struct BLOCK*) malloc(sizeof (struct BLOCK)*components);
     generate_clist_structure(Flist, fragments, snpfrag, snps, components, clist);
-
-    // READ VCF FILE
-    read_vcffile(variantfile, snpfrag, snps);
-
-    // INITIALIZE RANDOM HAPLOTYPES
-    HAP1 = (char*) malloc(snps + 1);
-    for (i = 0; i < snps; i++) {
-        if (snpfrag[i].frags == 0 || (SNVS_BEFORE_INDELS && (strlen(snpfrag[i].allele0) != 1 || strlen(snpfrag[i].allele1) != 1))) {
-            HAP1[i] = '-';
-        } else if (drand48() < 0.5) {
-            HAP1[i] = '0';
-        } else {
-            HAP1[i] = '1';
-        }
-    }
 
     // for each block, we maintain best haplotype solution under MFR criterion
     // compute the component-wise score for 'initHAP' haplotype
@@ -193,40 +219,13 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
 
     fprintf_time(stderr, "processed fragment file and variant file: fragments %d variants %d\n", fragments, snps);
 
-    int MAXIS = -1;
-
-    if (HIC){
-
-        // determine the probability of an h-trans interaction for read
-
-        for (i=0; i<fragments;i++){
-
-            Flist[i].htrans_prob = -80;
-
-            if (Flist[i].isize > MAXIS)
-                MAXIS = Flist[i].isize;
-        }
-
-        HTRANS_MAXBINS = MAXIS/HTRANS_BINSIZE + 1;
-    }else{
-        HTRANS_MAXBINS = 0;
-    }
-
-    // read in file with estimated probabilities of Hi-C h-trans interactions with distance
-    if (strcmp(HTRANS_DATA_INFILE, "None") != 0){
-        int num_bins        = count_htrans_bins(HTRANS_DATA_INFILE);
-        float* htrans_probs = (float*) malloc(sizeof(float) * num_bins);
-        read_htrans_file(HTRANS_DATA_INFILE, htrans_probs, num_bins);
-        for (i=0; i<fragments;i++){
-            Flist[i].htrans_prob = log10(htrans_probs[Flist[i].isize / HTRANS_BINSIZE]);
-        }
-        free(htrans_probs);
-    }
+    HTRANS_MAXBINS = 0;
+    if (HIC) init_HiC(Flist,fragments);
 
     slist = (int*) malloc(sizeof (int)*snps);
 
     OLD_HIC_LL_SCORE = bestscore;
-    for (hic_iter = 0; hic_iter < MAX_HIC_EM_ITER; hic_iter++){
+    for (hic_iter = 0; hic_iter < MAX_HIC_EM_ITER; hic_iter++){ // single iteration except for HiC 
         if (VERBOSE)
             fprintf_time(stdout, "HIC ITER %d\n", hic_iter);
         for (k = 0; k < components; k++){

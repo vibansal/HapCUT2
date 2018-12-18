@@ -61,7 +61,7 @@ int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
         span = snpfrag[clist[i].lastvar].position - snpfrag[clist[i].offset].position;
         fprintf(fp, "BLOCK: offset: %d len: %d phased: %d ", clist[i].offset + 1, clist[i].length, clist[i].phased);
         fprintf(fp, "SPAN: %d fragments %d\n", span, clist[i].frags);
-        for (k = 0; k < clist[i].phased; k++) {
+        for (k = 0; k < clist[i].phased; k++) { // only variants linked in component are phased 
 
             t = clist[i].slist[k];
             if (h1[t] =='0')

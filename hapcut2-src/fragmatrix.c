@@ -104,6 +104,7 @@ void add_edges_fosmids(struct fragment* Flist, int fragments, struct SNPfrags* s
         vars = 0;
         for (j = 0; j < Flist[i].blocks; j++) {
             for (k = 0; k < Flist[i].list[j].len; k++) {
+		if (snpfrag[Flist[i].list[j].offset + k].ignore == '1') continue; // filter for homozygous variants 
                 varlist[vars] = Flist[i].list[j].offset + k;
                 allelelist[vars] = Flist[i].list[j].hap[k];
                 vars++;
@@ -175,6 +176,7 @@ void add_edges(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, 
                 for (t = 0; t < Flist[i].blocks; t++) {
                     for (iter = 0; iter < Flist[i].list[t].len; iter++) {
                         if (Flist[i].list[j].offset + k == Flist[i].list[t].offset + iter) continue;
+			if (snpfrag[Flist[i].list[j].offset + k].ignore == '1' || snpfrag[Flist[i].list[t].offset + iter].ignore == '1') continue;  // filter for homozygous
                         if (Flist[i].list[j].offset + k - Flist[i].list[t].offset + iter > mdelta) mdelta = Flist[i].list[j].offset + k - Flist[i].list[t].offset + iter;
                         snpfrag[Flist[i].list[t].offset + iter].elist[snpfrag[Flist[i].list[t].offset + iter].edges].snp = Flist[i].list[j].offset + k;
                         snpfrag[Flist[i].list[j].offset + k].elist[snpfrag[Flist[i].list[j].offset + k].edges].frag = i;
@@ -290,7 +292,7 @@ void generate_clist_structure(struct fragment* Flist, int fragments, struct SNPf
 
 void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int* components) {
     int f = 0,i = 0, h = 0 , j = 0, s=0, k = 0, calls = 0; //maxdeg=0,avgdeg=0;
-
+    int prev = 0,curr=0;
     // find the first fragment whose endpoint lies at snp 'i' or beyond
     for (i = 0; i < snps; i++) {
         snpfrag[i].frags = 0;
@@ -298,16 +300,9 @@ void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snp
         snpfrag[i].post_hap = 0;
         snpfrag[i].pruned_discrete_heuristic = 0;
     }
-    for (i = 0; i < fragments; i++) {
-        j = Flist[i].list[0].offset;
-        k = Flist[i].list[Flist[i].blocks - 1].len + Flist[i].list[Flist[i].blocks - 1].offset;
-        // commented the line below since it slows program for long mate-pairs june 7 2012
-        //for (t=j;t<k;t++) { if (snpfrag[t].ff == -1) snpfrag[t].ff = i;  }
-    } //for (i=0;i<snps;i++) { fprintf(stdout,"SNP %d firstfrag %d start snp %d \n",i,snpfrag[i].ff,i); }
 
     for (i = 0; i < fragments; i++) {
         for (j = 0; j < Flist[i].blocks; j++) {
-            //if (Flist[i].list[j].offset+k < 0 || Flist[i].list[j].offset+k >= snps) fprintf(stdout,"%d %d %s\n",Flist[i].list[j].offset,snps,Flist[i].id);
             for (k = 0; k < Flist[i].list[j].len; k++) snpfrag[Flist[i].list[j].offset + k].frags++;
         }
     }
@@ -319,10 +314,10 @@ void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snp
     }
 
     for (i = 0; i < snps; i++) {
-        snpfrag[i].component = -1;
+        snpfrag[i].component = -1; // this will automatically be < 0 for homozygous variants
         snpfrag[i].csize = 1;
         snpfrag[i].frags = 0;
-        snpfrag[i].edges = 0;
+        snpfrag[i].edges = 0; // this will be zero for all homozygous variants
     }
 
     for (f = 0; f < fragments; f++) {
@@ -340,28 +335,34 @@ void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snp
                 snpfrag[s].klist[h] = k;
                 snpfrag[s].alist[h] = Flist[f].list[j].hap[k];
 
-
-
                 snpfrag[s].frags++;
-                calls += Flist[f].list[j].len;
+                if (snpfrag[s].ignore == '0') calls +=1;  // only non-homozygous variants 
             }
         }
 
         if (LONG_READS == 1) // long reads
         {
             // 2 edges for every node in fragment ( 00000----0---[1]----10011 ) adjacent left and right
+	    prev = -1; curr = -1;
             for (j = 0; j < Flist[f].blocks; j++) {
-                for (k = 0; k < Flist[f].list[j].len; k++) snpfrag[Flist[f].list[j].offset + k].edges += 2;
+                for (k = 0; k < Flist[f].list[j].len; k++) 
+		{
+			if (snpfrag[Flist[f].list[j].offset+k].ignore == '1') continue; 
+			curr = Flist[f].list[j].offset+k;
+			if (prev >= 0 && curr >= 0) snpfrag[prev].edges += 1;
+			if (prev >= 0 && curr >= 0) snpfrag[curr].edges += 1;
+			prev = curr; 
+		}
             }
-            j = 0;
-            snpfrag[Flist[f].list[j].offset].edges -= 1;
-            j = Flist[f].blocks - 1;
-            snpfrag[Flist[f].list[j].offset + Flist[f].list[j].len - 1].edges -= 1;
-            // single edge for first and last node in fragment
         } else {
             for (j = 0; j < Flist[f].blocks; j++) {
-                for (k = 0; k < Flist[f].list[j].len; k++) snpfrag[Flist[f].list[j].offset + k].edges += calls - 1;
+                for (k = 0; k < Flist[f].list[j].len; k++) 
+		{
+			if (snpfrag[Flist[f].list[j].offset+k].ignore == '1') continue; 
+			snpfrag[Flist[f].list[j].offset + k].edges += calls - 1;
+		}
             }
         }
     }
+    //for (i=0;i<snps;i++) { fprintf(stdout,"SNP %d firstfrag %d start snp %d \n",i,snpfrag[i].frags,i); }
 }
