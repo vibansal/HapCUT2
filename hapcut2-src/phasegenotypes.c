@@ -6,6 +6,7 @@ void calculate_GLS(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, c
     for (i = 0; i < snps; i++) {
     }
 }
+// same approach can be used for phasing indels using SNV haplotypes... set ignore flag for indel alleles while running HapCUT
 
 
 void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1, int call_homozygous) {
