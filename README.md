@@ -45,7 +45,9 @@ sudo make uninstall-hapcut2
 ## Input:
 HapCUT2 requires the following input:
 - BAM file for an individual containing reads aligned to a reference genome
-- VCF file containing **diploid** SNVs for the individual with respect to the reference
+- VCF file containing **diploid** SNVs (and short indel calls) for the individual with respect to the reference genome
+
+**Note: the program does not accept gzipped VCF files**
 
 ## To Run:
 
