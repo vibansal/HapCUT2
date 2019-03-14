@@ -153,7 +153,7 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
         }
         // find the chromosome in reflist that matches read->chrom if the previous chromosome is different from current chromosome
         if (read->tid != prevtid) {
-            chrom = getindex(ht, read->chrom); // this will return -1 if the contig name is not  in the VCF file 
+            chrom = getindex(ht, read->chrom); // this will return -1 if the contig name is not  in the VCF file
 	    if (chrom < 0) fprintf(stderr,"chrom \"%s\" not in VCF file, skipping all reads for this chrom.... \n",read->chrom);
 	    else fprintf(stderr,"processing reads mapped to chrom \"%s\" \n",read->chrom);
 		// doing this for every read, can replace this by string comparison ..april 4 2012
@@ -171,7 +171,7 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
                 }
             }
         } else chrom = prevchrom;
-        //if (chrom_missing_index ==1) { prevtid = read->tid; free_readmemory(read); continue; } 
+        //if (chrom_missing_index ==1) { prevtid = read->tid; free_readmemory(read); continue; }
 
         fragment.absIS = (read->IS < 0) ? -1 * read->IS : read->IS;
         // add check to see if the mate and its read are on same chromosome, bug for contigs, july 16 2012
@@ -233,7 +233,7 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
         prevtid = read->tid;
         free_readmemory(read);
     } // end of main while loop
-    if (fragments > 0)  // still fragments left in buffer 
+    if (fragments > 0)  // still fragments left in buffer
     {
         fprintf(stderr, "final cleanup of fragment list: %d current chrom %s %d prev %d \n", fragments, read->chrom, read->position,prevchrom);
         if (prevchrom >=0) clean_fragmentlist(flist, &fragments, varlist, -1, read->position, prevchrom); // added extra filter 03/08/18
@@ -383,6 +383,10 @@ int main(int argc, char** argv) {
     if (REALIGN_VARIANTS && strcmp(fastafile, "None") == 0) {
         fprintf(stderr, "\nERROR: In order to realign variants (including --pacbio and --ont options), reference fasta file must be provided with --ref option.\n");
         exit(1);
+    }
+    if (MINQ < 3) {
+      fprintf(stderr, "\nERROR: MINQ must be at least 3.\n");
+      exit(1);
     }
     if (bamfiles > 0 && strcmp(variantfile, "None") != 0) {
         bamfilelist = (char**) malloc(sizeof (char*)*bamfiles);
