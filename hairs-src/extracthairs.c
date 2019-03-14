@@ -1,4 +1,4 @@
-// author: Vikas Bansal, vbansal@scripps, 2011-2012
+/// author: Vikas Bansal, vbansal@scripps, 2011-2012
 //  program to extract haplotype informative reads from sorted BAM file, input requirements: bamfile and variantfile
 //  Jan 13 2012, changed to read directly from BAM file
 //  paired-end overlapping reads need to be handled properly
@@ -384,8 +384,8 @@ int main(int argc, char** argv) {
         fprintf(stderr, "\nERROR: In order to realign variants (including --pacbio and --ont options), reference fasta file must be provided with --ref option.\n");
         exit(1);
     }
-    if (MINQ < 3) {
-      fprintf(stderr, "\nERROR: MINQ must be at least 3.\n");
+    if (MINQ < 4) {
+      fprintf(stderr, "\nERROR: MINQ must be at least 4.\n");
       exit(1);
     }
     if (bamfiles > 0 && strcmp(variantfile, "None") != 0) {
