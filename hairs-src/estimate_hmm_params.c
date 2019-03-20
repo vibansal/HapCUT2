@@ -164,7 +164,7 @@ void print_error_params(int* emission_counts,int* trans_counts,int* indel_length
 		fprintf(stderr,"\n");
 	}
 	//for (pr=0;pr<16;pr++) fprintf(stdout,"%c:%c %d \n",ITB[pr/4],ITB[pr%4],emission_counts[pr]);
-	fprintf(stderr,"emission for match state \nreads transition counts \n");
+	//fprintf(stderr,"emission for match state \nreads transition counts \n");
 	//for (pr=0;pr<9;pr++) fprintf(stdout,"%c:%c %d \n",state[pr/3],state[pr%3],trans_counts[pr]);
 	//for (pr=0;pr<10;pr++) fprintf(stderr,"%d del: %d ins: %d \n",pr,indel_lengths[pr],indel_lengths[pr+20]);
 
