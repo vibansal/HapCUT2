@@ -2,7 +2,7 @@
 #include "common.h"
 #include <assert.h>
 
-extern int HOMOZYGOUS_PRIOR;
+extern float HOMOZYGOUS_PRIOR;
 extern int NEW_FRAGFILE_FORMAT;
 
 int fragment_compare(const void *a, const void *b) {
@@ -217,9 +217,9 @@ int count_variants_vcf(char* vcffile) {
 int read_vcffile(char* vcffile, struct SNPfrags* snpfrag, int snps) {
     char buffer[500000];
     char temp[1000];
-    char GQ[5];
+    char GQ[100];
     char* gen;
-    int i = 0, j = 0, k=0, len=0, s = 0, e = 0, var = 0, GQ_ix, format_ix;
+    int i = 0, j = 0, k=0, s = 0, e = 0, var = 0, GQ_ix, format_ix;
     FILE* fp = fopen(vcffile, "r");
     while (fgets(buffer, 500000, fp)) {
         if (buffer[0] == '#') continue;
@@ -307,29 +307,47 @@ int read_vcffile(char* vcffile, struct SNPfrags* snpfrag, int snps) {
         snpfrag[var].genotypes = (char*) malloc(e - s + 1);
         for (j = s; j < e; j++) snpfrag[var].genotypes[j - s] = buffer[j];
         snpfrag[var].genotypes[j - s] = '\0';
-        len = j-s;
+        //len = j-s;
         gen = snpfrag[var].genotypes; //  for convenience
+        snpfrag[var].homozygous_prior = HOMOZYGOUS_PRIOR; // default value
+        int no_gq = 0;
         if (GQ_ix != -1) {
+
             // get to the index where GQ is located.
             k = 0; // where we are in gen
             for (j=0; j<GQ_ix; j++){
-                while(gen[k] != ':')
+                if (no_gq){
+                  break;
+                }
+
+                while(gen[k] != ':') {
                     k++;
+                    if (gen[k] == '\n' || gen[k] == '\0') {
+                        no_gq = 1;
+                        break;
+                    }
+                }
                 k++; // step past the ':'
+
+                if (gen[k] == '\n' || gen[k] == '\0') {
+                    no_gq = 1;
+                    break;
+                }
             }
+
             // reached GQ field. read it in.
+            if (!no_gq) {
+                j=0;
 
-            j=0;
-            while (k<len && gen[k] != ':') {
-                GQ[j] = gen[k];
-                k++;
-                j++;
+                while (gen[k] != '\0' && gen[k] != ':') {
+                    GQ[j] = gen[k];
+                    k++;
+                    j++;
+                }
+                GQ[j] = '\0';
+
+                snpfrag[var].homozygous_prior = atof(GQ) / -10.0; // log prior probability of homozygousity
             }
-            GQ[j] = '\0';
-
-            snpfrag[var].homozygous_prior = atof(GQ) / -10; // log prior probability of homozygousity
-        } else{
-            snpfrag[var].homozygous_prior = HOMOZYGOUS_PRIOR;
         }
 
         var++;

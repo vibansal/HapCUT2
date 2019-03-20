@@ -6,66 +6,61 @@ Haplotyping Utilities
 This file is a self-contained script to compute a number of useful statistics on haplotypes
 assembled using HapCUT2 or similar tools. It is written in Python 3. To see options run with no arguments:
 ```
-usage: calculate_haplotype_statistics.py [-h]
-                                         [-h1 HAPLOTYPE_BLOCKS [HAPLOTYPE_BLOCKS ...]]
-                                         [-v1 VCF [VCF ...]]
-                                         [-f1 FRAGMENTS [FRAGMENTS ...]]
-                                         [-pv [PHASED_VCF [PHASED_VCF ...]]]
-                                         [-h2 REFERENCE_HAPLOTYPE_BLOCKS [REFERENCE_HAPLOTYPE_BLOCKS ...]]
-                                         [-v2 [REFERENCE_VCF [REFERENCE_VCF ...]]]
-                                         [-c [CONTIG_SIZE_FILE]]
+usage: calculate_haplotype_statistics.py [-h] [-v1 VCF1 [VCF1 ...]]
+                                         [-v2 VCF2 [VCF2 ...]]
+                                         [-h1 HAPLOTYPE_BLOCKS1 [HAPLOTYPE_BLOCKS1 ...]]
+                                         [-h2 HAPLOTYPE_BLOCKS2 [HAPLOTYPE_BLOCKS2 ...]]
+                                         [-i]
 
 Calculate statistics on haplotypes assembled using HapCUT2 or similar tools.
-Error rates for an assembled haplotype (specified by -h1,-v1,-f1 arguments)
-are computed with respect to a "reference" haplotype (specified by -h2, -v2
-arguments or -pv argument). All files must contain information for one
-chromosome only (except --contig_size_file)! To compute aggregate statistics
-across multiple chromosomes, provide files for each chromosome/contig as an
-ordered list, using the same chromosome order between flags.
+Error rates for an assembled haplotype (specified by -v1 and optionally -h1
+arguments) are computed with respect to a "reference" haplotype (specified by
+-v2 and optionally -h2 arguments). All files must contain information for one
+chromosome only! To compute aggregate statistics across multiple chromosomes,
+provide files for each chromosome/contig as an ordered list, using the same
+chromosome order between flags. Note: Triallelic variants are supported, but
+variants with more than 2 alternative alleles are currently NOT supported.
+These variants are ignored. Also, variants where the ref and alt alleles
+differ between the test haplotype and reference haplotype are skipped.
 
 optional arguments:
   -h, --help            show this help message and exit
-  -h1 HAPLOTYPE_BLOCKS [HAPLOTYPE_BLOCKS ...], --haplotype_blocks HAPLOTYPE_BLOCKS [HAPLOTYPE_BLOCKS ...]
-                        haplotype block file(s) to compute statistics on
-  -v1 VCF [VCF ...], --vcf VCF [VCF ...]
-                        VCF file(s) that was used to generate h1 haplotype
-                        fragments and phase h1 haplotype (--vcf in
-                        extractHAIRS and HapCUT2)
-  -f1 FRAGMENTS [FRAGMENTS ...], --fragments FRAGMENTS [FRAGMENTS ...]
-                        HapCUT2 format fragment file(s) used to generate input
-                        haplotype block file (-h1)
-  -pv [PHASED_VCF [PHASED_VCF ...]], --phased_vcf [PHASED_VCF [PHASED_VCF ...]]
-                        compute errors with respect to this phased single-
-                        individual VCF file(s). NOTE: VCFs must be fully phased
-                        across chromosome -- (Phase Set) PS information is ignored.
-                        Files must be separated by contig/chromosome!
-                        (Use with no arguments to use same VCF(s) from --vcf.)
-  -h2 REFERENCE_HAPLOTYPE_BLOCKS [REFERENCE_HAPLOTYPE_BLOCKS ...], --reference_haplotype_blocks REFERENCE_HAPLOTYPE_BLOCKS [REFERENCE_HAPLOTYPE_BLOCKS ...]
-                        compute errors with respect to this haplotype block
-                        file(s)
-  -v2 [REFERENCE_VCF [REFERENCE_VCF ...]], --reference_vcf [REFERENCE_VCF [REFERENCE_VCF ...]]
-                        VCF file(s) that was used to generate h2 haplotype
-                        fragments and phase h2 haplotype (--vcf in
-                        extractHAIRS and HapCUT2). Use with no arguments to
-                        use same VCF(s) from --vcf.
-  -c [CONTIG_SIZE_FILE], --contig_size_file [CONTIG_SIZE_FILE]
-                        Tab-delimited file with size of contigs
-                        (<contig>\t<size>). If not provided, N50 will not be
-                        calculated.
+  -v1 VCF1 [VCF1 ...], --vcf1 VCF1 [VCF1 ...]
+                        A phased, single sample VCF file to compute haplotype
+                        statistics on.
+  -v2 VCF2 [VCF2 ...], --vcf2 VCF2 [VCF2 ...]
+                        A phased, single sample VCF file to use as the "ground
+                        truth" haplotype.
+  -h1 HAPLOTYPE_BLOCKS1 [HAPLOTYPE_BLOCKS1 ...], --haplotype_blocks1 HAPLOTYPE_BLOCKS1 [HAPLOTYPE_BLOCKS1 ...]
+                        Override the haplotype information in "-v1" with the
+                        information in this HapCUT2-format haplotype block
+                        file. If this option is used, then the VCF specified
+                        with -v1 MUST be the same VCF used with HapCUT2
+                        (--vcf) to produce the haplotype block file!
+  -h2 HAPLOTYPE_BLOCKS2 [HAPLOTYPE_BLOCKS2 ...], --haplotype_blocks2 HAPLOTYPE_BLOCKS2 [HAPLOTYPE_BLOCKS2 ...]
+                        Override the haplotype information in "-v2" with the
+                        information in this HapCUT2-format haplotype block
+                        file. If this option is used, then the VCF specified
+                        with -v2 MUST be the same VCF used with HapCUT2
+                        (--vcf) to produce the haplotype block file!
+  -i, --indels          Use this flag to consider indel variants. Default:
+                        Indels ignored.
 ```
 
-The assembled haplotype you wish to assess should be input using the -h1, -v1, and -f1 options (the output haplotype block file
-from HapCUT2, the VCF  used as input to HapCUT2, and haplotype fragment file used as input to HapCUT2, respectively).
+The assembled/test haplotype you wish to assess for accuracy should be input using the -v1 option.
+If only -v1 is used, it is assumed to be a phased VCF. The "phase set" information
+about haplotype blocks will be used if it is present.
+If the -h1 option is used, then a haplotype block file (i.e. HapCUT2 output format)
+can be specified to override the phase information in -v1. If this option is used,
+then only the genotype information in -v1 will be considered. If -h1 is used,
+then the vcf provided with -v1 should be the same VCF used to run HapCUT2 and produce
+the haplotype block file.
 
-The haplotype you wish to compare against (for computing error rates) can be either a VCF with phase information (-pv),
-or another HapCUT2-type assembly (requires both -h2 and -v2 options). If the haplotype is a VCF (-pv) then it must be
-fully phased across the chromosome -- Phase Set (PS) or haplotype block information is currently ignored for VCFs.
-For example, a valid input would be a trio-phased variant set from the platinum genomes project.
+The haplotype you wish to compare against (the "ground truth" haplotype, for computing error rates)
+is specified in the exact same fashion, except specified with -v2 (and optionally -h2) options.
 
-The -c option is required if you wish to compute the N50 statistic. For instance, if Hg19 is your reference, you can use hg19.chrom.sizes (downloaded from UCSC and included here for convenience).
-
-Since fragment files and haplotype block files are separated by chromosome, you may wish to compute aggregate statistics across
-multiple contigs (or the whole genome). Every option (with the exception of -c) may be specified as a list as so:
+In the case of -v1 and -v2 inputs, only records for a single contig should be in a given file.
+If you wish to assess multiple contigs (or the whole genome), every option (with the exception of -c) may be specified as a list as so:
 
 ```
 python3 calculate_haplotype_statistics.py -h1 chr1.block chr2.block chr3.block -v1 chr1.vcf chr2.vcf chr3.vcf ........
@@ -78,11 +73,10 @@ Here is a brief description of the output:
 switch rate:          switch errors as a fraction of possible positions for switch errors
 mismatch rate:        mismatch errors as a fraction of possible positions for mismatch errors
 flat rate:            flat errors as a fraction of possible positions for flat errors
-missing rate:         fraction of positions that were covered by informative read(s), but were removed from the final haplotype due to low confidence in phasing accuracy
-phased count:         count of total SNVs phased
+phased count:         count of total SNVs phased in the test haplotype
 AN50:                 the AN50 metric of haplotype completeness
 N50:                  the N50 metric of haplotype completeness
-max block snp frac:   the fraction of SNVs in the largest (most variants phased) block
+num snps max blk:   the fraction of SNVs in the largest (most variants phased) block
 ```
 
 A switch error is defined as a position where the phase is switched from that of the previous heterozygous SNV, when compared to
@@ -90,4 +84,8 @@ the reference haplotype. Two switch errors in a row are instead counted as a mis
 
 We use "flat error" to the minimum hamming distance between the two assembled haplotypes (for a given block)
 and the reference haplotype. This is an alternative metric to observing switch/mismatch errors in tandem.
-Although, this metric penalizes switch errors too harshly, it is useful for a dataset with extremely low incidence of long switch errors (e.g. HiC). 
+In general, this metric is thought to penalize switch errors too harshly.
+It may be of interest for a dataset with extremely low incidence of long switch errors.
+
+#### Update 11/27/2018:
+The behavior of the N50 calculation has been changed. The N50 is now calculated with respect to the phased portion of the genome instead of the entire genome.
