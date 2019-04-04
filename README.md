@@ -153,6 +153,9 @@ The directory **recipes** contains example pipelines to assemble haplotypes from
 
 ## Updates and Announcements:
 
+#### April 4, 2019
+
+New release of HapCUT2 with updates to local realignment for long read allelotyping and ability to process specific genomic regions (--region option in extractHAIRS). 
 
 #### March 13, 2018
 
