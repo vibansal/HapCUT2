@@ -182,7 +182,7 @@ def parse_vcf_phase(vcf_file, CHROM, indels = False):
                 if i == 0:
                     assert(f == 'GT')
                 if f == 'PS':
-                    if snp_ix == 0:
+                    if PS_index == None:
                         PS_index = i
                     else:
                         assert(PS_index == i)
@@ -207,8 +207,6 @@ def parse_vcf_phase(vcf_file, CHROM, indels = False):
                 ps = dat[PS_index]
                 if ps == '.':
                     consider = False
-            elif PS_index == None:
-                ps = "1" # just put everytthing in one block
             else:
                 ps = None
 
@@ -440,7 +438,6 @@ class error_result():
         poss_sw = self.get_poss_sw()
 
         if poss_sw > 0:
-            print("poss_sw: ", poss_sw)
             return float(switch_count)/poss_sw
         else:
             return 0
@@ -450,7 +447,6 @@ class error_result():
         poss_mm = self.get_poss_mm()
 
         if poss_mm > 0:
-            print("poss_mm: ", poss_mm)
             return float(mismatch_count)/poss_mm
         else:
             return 0
