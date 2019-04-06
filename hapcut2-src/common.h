@@ -39,6 +39,8 @@ struct fragment {
     float htrans_prob; // probability of an h-trans interaction for this read
     int mate2_ix;     // snp index of second mate; -1 if this fragment has one mate
     int isize;        // approximate insert size
+    
+    int PS; int PQ; char HP; // haplotype assignments for each fragment, HP= 0/1, PS = integer, PQ = probability that assignment of fragment is correct
 };
 
 // haplotype block
@@ -96,6 +98,7 @@ struct SNPfrags {
     float post_hap;
     int pruned_discrete_heuristic; // for error analysis mode
     float homozygous_prior; // prior probability of homozygousity. Based on GQ field of VCF.
+    float PGLL[5]; // phased genotype likelihoods, 00,01,10,11 and ./. (if variant is ignored) 
 };
 
 int fprintf_time(FILE *stream, const char *format, ...);

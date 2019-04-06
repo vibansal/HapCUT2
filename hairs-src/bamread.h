@@ -54,4 +54,6 @@ int fetch_func(const bam1_t *b, void *data, struct alignedread* read);
 
 void free_readmemory(struct alignedread* read);
 
+void print_read_debug(struct alignedread* read);
+
 #endif

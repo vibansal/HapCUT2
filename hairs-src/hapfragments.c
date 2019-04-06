@@ -43,14 +43,24 @@ int print_fragment(FRAGMENT* fragment, VARIANT* varlist, FILE* outfile) {
 
     //for (i=0;i<fragment->variants;i++) fprintf(stdout,"%c",fragment->alist[i].qv);
     // varid is printed with offset of 1 rather than 0 since that is encoded in the Hapcut program
-    fprintf(outfile, " %d %c", fragment->alist[0].varid + 1, fragment->alist[0].allele);
-    for (i = 1; i < fragment->variants; i++) {
-        if (fragment->alist[i].varid - fragment->alist[i - 1].varid == 1) fprintf(outfile, "%c", fragment->alist[i].allele);
-        else fprintf(outfile, " %d %c", fragment->alist[i].varid + 1, fragment->alist[i].allele);
-    }
-    fprintf(outfile, " ");
-    for (i = 0; i < fragment->variants; i++) fprintf(outfile, "%c", fragment->alist[i].qv);
-    fprintf(outfile, "\n");
+
+    if (PRINT_COMPACT ==1) 
+	{
+
+	    fprintf(outfile, " %d %c", fragment->alist[0].varid + 1, fragment->alist[0].allele);
+	    for (i = 1; i < fragment->variants; i++) {
+		if (fragment->alist[i].varid - fragment->alist[i - 1].varid == 1) fprintf(outfile, "%c", fragment->alist[i].allele);
+		else fprintf(outfile, " %d %c", fragment->alist[i].varid + 1, fragment->alist[i].allele);
+	    }
+	    fprintf(outfile, " ");
+	    for (i = 0; i < fragment->variants; i++) fprintf(outfile, "%c", fragment->alist[i].qv);
+	}
+    else // individual variant format, for debugging
+	{
+    	    fprintf(outfile,":%c",fragment->strand);
+	    for (i = 0; i < fragment->variants; i++) fprintf(outfile, " %d:%c:%d",fragment->alist[i].varid+1,fragment->alist[i].allele,(char)fragment->alist[i].qv-33);
+	}
+	    fprintf(outfile, "\n");
 
     return 0;
 }
@@ -132,7 +142,7 @@ void clean_fragmentlist(FRAGMENT* flist, int* fragments, VARIANT* varlist, int c
     int i = 0, j = 0, k = 0, first = 0, sl = 0, bl = 0;
     FRAGMENT fragment;
     fragment.variants = 0;
-    fragment.alist = (allele*) malloc(sizeof (allele)*1000);
+    fragment.alist = (allele*) malloc(sizeof (allele)*16184);
     if (*fragments > 1) qsort(flist, *fragments, sizeof (FRAGMENT), compare_fragments);
     // sort such that mate pairs are together and reverse sorted by starting position of second read in a mate-piar
     //for (i=0;i<*fragments;i++) fprintf(stdout,"frag %s %d vars %d \n",flist[i].id,flist[i].alist[0].varid,flist[i].variants);
@@ -154,7 +164,7 @@ void clean_fragmentlist(FRAGMENT* flist, int* fragments, VARIANT* varlist, int c
                 //fprintf(stdout,"mate-pair %s %s %s\n",flist[i].id);
                 if (flist[i].alist[flist[i].variants - 1].varid < flist[i + 1].alist[0].varid) print_matepair(&flist[i], &flist[i + 1], varlist, fragment_file);
                 else if (flist[i + 1].alist[flist[i + 1].variants - 1].varid < flist[i].alist[0].varid) print_matepair(&flist[i + 1], &flist[i], varlist, fragment_file);
-                else if (flist[i].variants + flist[i + 1].variants > 2) {
+                else if (flist[i].variants + flist[i + 1].variants >= 2) {
                     j = 0;
                     k = 0;
                     fragment.variants = 0;
@@ -202,7 +212,7 @@ void clean_fragmentlist(FRAGMENT* flist, int* fragments, VARIANT* varlist, int c
                             k++;
                         }
                     }
-                    if (fragment.variants >= 2) {
+                    if (fragment.variants >= 2 || SINGLEREADS ==1) {
                         sl = strlen(flist[i].id);
                         fragment.id = (char*) malloc(sl + 1);
                         for (j = 0; j < sl; j++) fragment.id[j] = flist[i].id[j];

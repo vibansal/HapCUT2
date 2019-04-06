@@ -45,7 +45,9 @@ sudo make uninstall-hapcut2
 ## Input:
 HapCUT2 requires the following input:
 - BAM file for an individual containing reads aligned to a reference genome
-- VCF file containing **diploid** SNVs for the individual with respect to the reference
+- VCF file containing **diploid** SNVs (and short indel calls) for the individual with respect to the reference genome
+
+**Note: the program does not accept gzipped VCF files**
 
 ## To Run:
 
@@ -58,7 +60,7 @@ Assembling haplotypes requires two steps:
 
 (2) use HAPCUT2 to assemble fragment file into haplotype blocks.
 ```
-./build/HAPCUT2 --fragments fragment_file --vcf variantcalls.vcf --output haplotype_output_file
+./build/HAPCUT2 --fragments fragment_file --VCF variantcalls.vcf --output haplotype_output_file
 ```
 
 Run the programs without arguments to see all options.
@@ -69,6 +71,9 @@ In the case of Hi-C reads, it is recommended to use ```--hic 1``` for both extra
 Based on user preference, SNV pruning (filtering of low-quality phased SNVs) may be adjusted with ```--threshold <float>``` (closer to 1 prunes more, closer to 0.5 prunes less) or turned off with ```--no_prune 1```.
 
 ## Output Format:
+
+#### HapCUT2 now outputs the phased variants to a VCF file "output_haplotype_file.phased.vcf" 
+
 Haplotype blocks are printed to the output file. For a given block, column 2 represents
 the allele on one chromosome copy (0 for reference, 1 for variant), while column 3 represents
 the allele on the other copy.
@@ -100,7 +105,9 @@ Important note: flag "--split_blocks 1" (compute switch error confidence and aut
 Field 11 is useful for controlling mismatch (single SNV) haplotype errors, similarly to field 9. The default behavior of HapCUT2 is to prune individual SNVs for which this confidence is less than 6.98 (probability of error 0.2), as these are highly likely to be errors.
 
 ## 10X Genomics Linked-Reads
-10X Genomics Linked Reads require an extra step to link short reads together into barcoded molecules:
+10X Genomics Linked Reads require an extra step to link short reads together into barcoded molecules.
+
+NOTE: It is required that the BAM reads have the BX (corrected barcode) tag.
 
 (1) use extractHAIRS to convert BAM file to the compact fragment file format containing only haplotype-relevant information. This is a necessary precursor step to running HapCUT2.
 ```
@@ -114,6 +121,8 @@ python3 utilities/LinkFragments.py --bam reads.sorted.bam --VCF variants.VCF --f
 ```
 ./build/HAPCUT2 --nf 1 --fragments linked_fragment_file --VCF variantcalls.vcf --output haplotype_output_file
 ```
+
+It is assumed that reads with the same barcode occurring within 20 kb of another belong to the same molecule, and reads separated by more than this distance are assigned to separate molecules. This distance can be controlled using the ```-d``` parameter in LinkFragments.
 
 ## Hi-C (Proximity Ligation) Sequencing Reads
 
@@ -134,9 +143,6 @@ The --indels option may be used if desired -- the realignment strategy used with
 ## Calculating Haplotype Statistics
 The calculate_haplotype_statistics script in the utilities directory calculates haplotype error rates with respect to a reference haplotype, as well as completeness statistics such as N50 and AN50.
 
-## Converting HapCUT2 output to VCF format
-Nils Homer has developed a tool HapCutToVcf that supports converting HapCUT2-formatted haplotype blocks into VCF format. It will be included with the fgbio tool suite, available [here](https://github.com/fulcrumgenomics/fgbio).
-
 ## Reproducing the HapCUT2 manuscript
 
 The directory **reproduce_hapcut2_paper** contains the source code and pipeline used to obtain the results of the HapCUT2 manuscript (linked above). It is nearly complete except for some early data access and cleaning steps which are not yet integrated into the pipeline, but these will be added soon.
@@ -146,6 +152,15 @@ The directory **reproduce_hapcut2_paper** contains the source code and pipeline 
 The directory **recipes** contains example pipelines to assemble haplotypes from various types of sequencing data.
 
 ## Updates and Announcements:
+
+#### April 4, 2019
+
+New release of HapCUT2 with updates to local realignment for long read allelotyping and ability to process specific genomic regions (--region option in extractHAIRS). 
+
+#### March 13, 2018
+
+HapCUT2 now outputs the phased variants to a VCF file ("haplotype_output_file".phased.vcf) in addition to the haplotype blocks. This VCF file preserves most of the information in the original VCF file but removes phasing information (if any) that is present in the input VCF. Standard VCF tags (PS, PQ, PD: https://samtools.github.io/hts-specs/VCFv4.1.pdf) are used to 
+annotate the phased variants. This is a new feature and additional changes to the output VCF are likely. 
 
 #### August 14, 2017
 Extracthairs now has optimizations for error prone long read technologies (Pacific Biosciences and Oxford Nanopore). The strategy performs a sensitive realignment in a window around the potential variant. A read-window is aligned to both the reference sequence, and the variant sequence (reference sequence modified to contain the variant). An allele call is assigned based on the best alignment, and the "base quality" of the allele call is determined by a bayesian posterior calculated using both alignment scores.

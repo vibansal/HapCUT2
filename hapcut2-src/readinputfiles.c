@@ -19,9 +19,9 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
     int i = 0, j = 0, k = 0, t = 0, t1 = 0, done = 0;
     int blocks = 0, type = 0, l = 0, biter = 0, offset = 0,dtype=0,isize = 0;
     char buffer[MAXBUF];
-    char blockseq[100000];
+    char blockseq[500000];
     for (i=0;i<MAXBUF;i++) buffer[i] = 0;
-    for (i=0;i<100000;i++) blockseq[i] = 0;
+    for (i=0;i<500000;i++) blockseq[i] = 0;
     char ch;
     int num_fields;
     int expected_num_fields;
@@ -190,7 +190,6 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
 
 
 // counts # of variants in VCF file, allows for arbitrary long lines
-
 int count_variants_vcf(char* vcffile) {
     FILE* fp = fopen(vcffile, "r");
     if (fp == NULL) {
@@ -216,13 +215,13 @@ int count_variants_vcf(char* vcffile) {
 // read variants from VCF file, this code doesn't check the vcf file and assumes that column 10 contains the genotypes for the individual we are interested in phasing
 
 int read_vcffile(char* vcffile, struct SNPfrags* snpfrag, int snps) {
-    char buffer[100000];
+    char buffer[500000];
     char temp[1000];
     char GQ[100];
     char* gen;
     int i = 0, j = 0, k=0, s = 0, e = 0, var = 0, GQ_ix, format_ix;
     FILE* fp = fopen(vcffile, "r");
-    while (fgets(buffer, 100000, fp)) {
+    while (fgets(buffer, 500000, fp)) {
         if (buffer[0] == '#') continue;
         i = 0;
         while (buffer[i] == ' ' || buffer[i] == '\t') i++;
@@ -474,3 +473,4 @@ int read_htrans_file(char* htrans_file, float* htrans_probs, int num_bins) {
 
     return 0;
 }
+

@@ -10,27 +10,27 @@ usage: calculate_haplotype_statistics.py [-h] [-v1 VCF1 [VCF1 ...]]
                                          [-v2 VCF2 [VCF2 ...]]
                                          [-h1 HAPLOTYPE_BLOCKS1 [HAPLOTYPE_BLOCKS1 ...]]
                                          [-h2 HAPLOTYPE_BLOCKS2 [HAPLOTYPE_BLOCKS2 ...]]
-                                         [-i] [-c [CONTIG_SIZE_FILE]]
+                                         [-i]
 
 Calculate statistics on haplotypes assembled using HapCUT2 or similar tools.
 Error rates for an assembled haplotype (specified by -v1 and optionally -h1
 arguments) are computed with respect to a "reference" haplotype (specified by
 -v2 and optionally -h2 arguments). All files must contain information for one
-chromosome only (except --contig_size_file)! To compute aggregate statistics
-across multiple chromosomes, provide files for each chromosome/contig as an
-ordered list, using the same chromosome order between flags.
-
-Note: Triallelic variants are supported, but variants with more than 2 alternative alleles
-are currently NOT supported. These variants are ignored. Also, variants where the ref and alt
-alleles differ between the test haplotype and reference haplotype are skipped.
+chromosome only! To compute aggregate statistics across multiple chromosomes,
+provide files for each chromosome/contig as an ordered list, using the same
+chromosome order between flags. Note: Triallelic variants are supported, but
+variants with more than 2 alternative alleles are currently NOT supported.
+These variants are ignored. Also, variants where the ref and alt alleles
+differ between the test haplotype and reference haplotype are skipped.
 
 optional arguments:
   -h, --help            show this help message and exit
   -v1 VCF1 [VCF1 ...], --vcf1 VCF1 [VCF1 ...]
-                        A phased VCF file to compute haplotype statistics on.
+                        A phased, single sample VCF file to compute haplotype
+                        statistics on.
   -v2 VCF2 [VCF2 ...], --vcf2 VCF2 [VCF2 ...]
-                        A phased VCF file to use as the "ground truth"
-                        haplotype.
+                        A phased, single sample VCF file to use as the "ground
+                        truth" haplotype.
   -h1 HAPLOTYPE_BLOCKS1 [HAPLOTYPE_BLOCKS1 ...], --haplotype_blocks1 HAPLOTYPE_BLOCKS1 [HAPLOTYPE_BLOCKS1 ...]
                         Override the haplotype information in "-v1" with the
                         information in this HapCUT2-format haplotype block
@@ -45,11 +45,6 @@ optional arguments:
                         (--vcf) to produce the haplotype block file!
   -i, --indels          Use this flag to consider indel variants. Default:
                         Indels ignored.
-  -c [CONTIG_SIZE_FILE], --contig_size_file [CONTIG_SIZE_FILE]
-                        Tab-delimited file with size of contigs
-                        (<contig>\t<size>). If not provided, N50 will not be
-                        calculated.
-
 ```
 
 The assembled/test haplotype you wish to assess for accuracy should be input using the -v1 option.
@@ -63,8 +58,6 @@ the haplotype block file.
 
 The haplotype you wish to compare against (the "ground truth" haplotype, for computing error rates)
 is specified in the exact same fashion, except specified with -v2 (and optionally -h2) options.
-
-The -c option is required if you wish to compute the N50 statistic. For instance, if Hg19 is your reference, you can use hg19.chrom.sizes (downloaded from UCSC and included here for convenience).
 
 In the case of -v1 and -v2 inputs, only records for a single contig should be in a given file.
 If you wish to assess multiple contigs (or the whole genome), every option (with the exception of -c) may be specified as a list as so:
@@ -93,3 +86,6 @@ We use "flat error" to the minimum hamming distance between the two assembled ha
 and the reference haplotype. This is an alternative metric to observing switch/mismatch errors in tandem.
 In general, this metric is thought to penalize switch errors too harshly.
 It may be of interest for a dataset with extremely low incidence of long switch errors.
+
+#### Update 11/27/2018:
+The behavior of the N50 calculation has been changed. The N50 is now calculated with respect to the phased portion of the genome instead of the entire genome.

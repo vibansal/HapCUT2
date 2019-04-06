@@ -15,7 +15,7 @@ T=test
 # below is the path to CUnit directory, change if need be
 CUNIT=/usr/include/CUnit
 
-all: $(B)/extractHAIRS $(B)/extractFOSMID $(B)/HAPCUT2
+all: $(B)/extractHAIRS $(B)/HAPCUT2
 
 # if samtools makefile not present, then submodules have not yet been downloaded (init & updated)
 # first check if git present, else print error message
@@ -39,11 +39,9 @@ $(HTSLIB)/libhts.a: $(HTSLIB)/Makefile
 # BUILD HAIRS
 
 #temporarily removed -O2 flag after -I$(HTSLIB)
-$(B)/extractHAIRS: $(B)/bamread.o $(B)/hashtable.o $(B)/readvariant.o $(B)/readfasta.o $(B)/hapfragments.o $(H)/extracthairs.c $(SAMTOOLS)/libbam.a $(HTSLIB)/libhts.a $(H)/parsebamread.c $(H)/realignbamread.c $(H)/nw.c | $(B)
+$(B)/extractHAIRS: $(B)/bamread.o $(B)/hashtable.o $(B)/readvariant.o $(B)/readfasta.o $(B)/hapfragments.o $(H)/extracthairs.c $(SAMTOOLS)/libbam.a $(HTSLIB)/libhts.a $(H)/parsebamread.c $(H)/realignbamread.c $(H)/nw.c $(H)/realign_pairHMM.c $(H)/estimate_hmm_params.c | $(B)
 	$(CC) -I$(SAMTOOLS) -I$(HTSLIB) -g $(B)/bamread.o $(B)/hapfragments.o $(B)/hashtable.o $(B)/readfasta.o $(B)/readvariant.o -o $(B)/extractHAIRS $(H)/extracthairs.c  -L$(SAMTOOLS) -L$(HTSLIB) -pthread -lhts -lbam -lm -lz
 #temporarily removed -O2 flag after -I$(HTSLIB)
-$(B)/extractFOSMID: $(B)/bamread.o $(B)/hashtable.o $(B)/readvariant.o $(B)/readfasta.o $(B)/hapfragments.o $(H)/extracthairs.c $(H)/fosmidbam_hairs.c $(H)/print_clusters.c $(SAMTOOLS)/libbam.a $(HTSLIB)/libhts.a | $(B)
-	$(CC) -I$(SAMTOOLS) -I$(HTSLIB) -g $(B)/bamread.o $(B)/hapfragments.o $(B)/hashtable.o $(B)/readfasta.o $(B)/readvariant.o -o $(B)/extractFOSMID $(H)/extracthairs.c  -L$(SAMTOOLS) -L$(HTSLIB) -pthread -lhts -lbam -lm -lz
 
 $(B)/hapfragments.o: $(H)/hapfragments.c $(H)/hapfragments.h $(H)/readvariant.h | $(B)
 	$(CC) -c $(H)/hapfragments.c -o $(B)/hapfragments.o
@@ -63,12 +61,12 @@ $(B)/readfasta.o: $(H)/readfasta.c $(H)/readfasta.h | $(B)
 # BUILD HAPCUT2
 
 $(B)/HAPCUT2: $(B)/fragmatrix.o $(B)/readinputfiles.o $(B)/pointerheap.o $(B)/common.o $(X)/hapcut2.c $(X)/find_maxcut.c $(X)/post_processing.c| $(B)
-	$(CC) $(B)/common.o $(B)/fragmatrix.o $(B)/readinputfiles.o $(B)/pointerheap.o -o $(B)/HAPCUT2 -lm $(X)/hapcut2.c
+	$(CC) $(B)/common.o $(B)/fragmatrix.o $(B)/readinputfiles.o $(B)/pointerheap.o -o $(B)/HAPCUT2 -lm $(X)/hapcut2.c -L$(HTSLIB) -lhts 
 
 $(B)/common.o: $(X)/common.h $(X)/common.c | $(B)
 	$(CC) -c $(X)/common.c -o $(B)/common.o
 
-$(B)/fragmatrix.o: $(X)/fragmatrix.h $(X)/fragmatrix.c $(X)/common.h $(X)/printhaplotypes.c | $(B)
+$(B)/fragmatrix.o: $(X)/fragmatrix.h $(X)/fragmatrix.c $(X)/common.h $(X)/printhaplotypes.c  | $(B)
 	$(CC) -c $(X)/fragmatrix.c -o $(B)/fragmatrix.o
 
 $(B)/readinputfiles.o: $(X)/readinputfiles.h $(X)/readinputfiles.c $(X)/common.h $(X)/fragmatrix.h | $(B)
@@ -82,7 +80,7 @@ $(B):
 	mkdir -p $(B)
 
 # INSTALL
-install: install-hapcut2 install-hairs install-fosmid
+install: install-hapcut2 install-hairs
 
 install-samtools:
 	make -C $(SAMTOOLS)
@@ -94,8 +92,6 @@ install-hapcut2:
 install-hairs:
 	cp $(B)/extractHAIRS /usr/local/bin
 
-install-fosmid:
-	cp $(B)/extractFOSMID /usr/local/bin
 
 # UNINSTALL
 uninstall: uninstall-hapcut2 uninstall-hairs uninstall-fosmid
@@ -106,8 +102,6 @@ uninstall-hapcut2:
 uninstall-hairs:
 	rm /usr/local/bin/extractHAIRS
 
-uninstall-fosmid:
-	rm /usr/local/bin/extractFOSMID
 
 # CLEANUP
 nuke: clean

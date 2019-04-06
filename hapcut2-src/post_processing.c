@@ -33,7 +33,7 @@ void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfr
     int i, j, f;
     char temp1;
     float P_data_H, P_data_Hf, P_data_H00, P_data_H11, total, log_hom_prior, log_het_prior;
-    float post_hap, post_hapf, post_00, post_11;
+    float post_hap, post_hapf, post_00, post_11,ll;
 
     for (i = 0; i < snps; i++) {
 
@@ -50,17 +50,20 @@ void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfr
         P_data_Hf = 0;
         P_data_H00 = 0;
         P_data_H11 = 0;
+	for (j=0;j<5;j++) snpfrag[i].PGLL[j] = 0; 
 
         //looping over fragments overlapping i and sum up read probabilities
         for (j = 0; j < snpfrag[i].frags; j++) {
 
             f = snpfrag[i].flist[j];
-            // normal haplotypes
-
             P_data_H += fragment_ll(Flist, f, HAP1, -1, -1);
-            // haplotypes with i flipped
             flip(HAP1[i]);
             P_data_Hf += fragment_ll(Flist, f, HAP1, -1, -1);
+	    /*
+	    calculate_fragscore(Flist,f,HAP1,&ll); P_data_H += ll; 
+	    if (HAP1[i] == '0') HAP1[i] = '1'; else if (HAP1[i] == '1') HAP1[i] = '0'; 
+            calculate_fragscore(Flist,f,HAP1,&ll); P_data_Hf += ll;
+	    */
 
             if (call_homozygous){
                 // haplotypes with i homozygous 00
@@ -70,11 +73,14 @@ void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfr
                 HAP1[i] = '1';
                 P_data_H11 += fragment_ll(Flist, f, HAP1, i, -1);
             }
-
+            HAP1[i] = '0'; snpfrag[i].PGLL[0] += fragment_ll(Flist, f, HAP1, i, -1); // added 03/12/2018
+            HAP1[i] = '1'; snpfrag[i].PGLL[3] += fragment_ll(Flist, f, HAP1, i, -1); // homozygous genotypes 00,11
             //return haplotype to original value
             HAP1[i] = temp1;
+	    ll = fragment_ll(Flist, f, HAP1, i, 10); // variant 'i' ignored for likelihood calculation if last parameter = 10
+	    if (ll < 0) snpfrag[i].PGLL[4] +=ll;
         }
-
+	snpfrag[i].PGLL[1] = P_data_H; snpfrag[i].PGLL[2] = P_data_Hf;
 
 
         if (call_homozygous){
@@ -187,11 +193,9 @@ void discrete_pruning(int snps, int fragments, struct fragment* Flist, struct SN
     }
 
     for (i = 0; i < snps; i++){
-
         snpfrag[i].pruned_discrete_heuristic = (int)(good[i] == bad[i]);
 
     }
-
     free(good); free(bad);
 }
 
@@ -258,7 +262,7 @@ int split_block(char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, s
 }
 
 
-// estimate probabilities of h-trans to feed back into HapCUT algorithm
+// estimate probabilities of h-trans to feed back into HapCUT algorithm, HIC data 
 int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struct SNPfrags* snpfrag){
 
     float* MLE_sum   = calloc(HTRANS_MAXBINS,sizeof(float));
@@ -344,7 +348,7 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
         }
     }
 
-
+	// using neighboring bins to calculate mean htrans for each bin
     for (i = 0; i < HTRANS_MAXBINS; i++){
         adj_MLE_count[i] = MLE_count[i];
         adj_MLE_sum[i] = MLE_sum[i];
@@ -352,7 +356,7 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
         i_plus = i;
         e_window_size = HTRANS_BINSIZE; //track the effective window size
         for (j = 0; j< 100000; j++){
-            if (adj_MLE_count[i] >= HTRANS_READ_LOWBOUND) break;
+            if (adj_MLE_count[i] >= HTRANS_READ_LOWBOUND) break; // 500 observations only ??
             i_minus--;
             i_plus++;
             if (i_minus >= 0){
@@ -367,6 +371,7 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
             }
             if (e_window_size >= HTRANS_MAX_WINDOW) break; // cut off window expansion if it's larger than some amount
         }
+	//fprintf(stdout,"i %d %d-%d count %f %f \n",i,i_minus*HTRANS_BINSIZE,i_plus*HTRANS_BINSIZE,adj_MLE_count[i],adj_MLE_sum[i]);
     }
 
     // compute the MLE for each bin
