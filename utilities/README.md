@@ -48,8 +48,8 @@ optional arguments:
 ```
 
 The assembled/test haplotype you wish to assess for accuracy should be input using the -v1 option.
-If only -v1 is used, it is assumed to be a phased VCF. The "phase set" information
-about haplotype blocks will be used if it is present.
+If only -v1 is used, it is assumed to be a phased VCF. The "phase set" information (PS flag)
+about haplotype blocks MUST be present.
 If the -h1 option is used, then a haplotype block file (i.e. HapCUT2 output format)
 can be specified to override the phase information in -v1. If this option is used,
 then only the genotype information in -v1 will be considered. If -h1 is used,
