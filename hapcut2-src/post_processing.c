@@ -51,7 +51,7 @@ void unphased_optim(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, 
     float log_half = log10(0.5);
     int i, j, f;
     char temp1;
-    float P_data_H, P_data_Hf, total,ll,min,delta;
+    float P_data_H, P_data_Hf, total,ll,max,delta;
     fprintf(stderr,"unphased genotype likelihood calculation for data %d \n",snps);
 
     for (i = 0; i < snps; i++) {
@@ -84,12 +84,15 @@ void unphased_optim(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, 
         }
 	snpfrag[i].PGLL[1] = P_data_H; snpfrag[i].PGLL[2] = P_data_Hf; // genotypes = 0|1 and 1|0, actually original and flipped
 
+	max = P_data_H; 
+	if (P_data_Hf > max) max = P_data_Hf; 
+	delta = snpfrag[i].hetLL+snpfrag[i].PGLL[4]-max;
+
 	if (HAP1[i] == '0') temp1 = '1'; else temp1 = '0';
-	min = snpfrag[i].PGLL[1]; delta = snpfrag[i].hetLL+snpfrag[i].PGLL[4]-min;
-	if (snpfrag[i].PGLL[2] < min) min = snpfrag[i].PGLL[2];
 	fprintf(stdout,"SNP %d %d HAP %c|%c cov %d hetLL %0.2f %0.2f ",i,snpfrag[i].position,HAP1[i],temp1,snpfrag[i].frags,snpfrag[i].hetLL,snpfrag[i].hetLL+snpfrag[i].PGLL[4]);
 	fprintf(stdout,"hets= %0.2f %0.2f ",snpfrag[i].PGLL[1],snpfrag[i].PGLL[2]);
 	fprintf(stdout,"homs= %0.2f %0.2f delta %0.2f ",snpfrag[i].PGLL[0],snpfrag[i].PGLL[3],delta);
+	if (P_data_Hf > P_data_H) fprintf(stdout,"flip-phase ");
 	if (delta > 0) fprintf(stdout,"unphased ");
 	fprintf(stdout,"\n");
 
