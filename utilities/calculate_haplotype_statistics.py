@@ -1,4 +1,8 @@
 from __future__ import print_function
+
+import sys
+if sys.version_info[0] < 3:
+    raise Exception("Python 3 or a more recent version is required."); 
 # test
 # Author : Peter Edge
 # Email  : pedge@eng.ucsd.edu
@@ -8,7 +12,6 @@ from __future__ import print_function
 # imports
 from collections import defaultdict
 import argparse
-import sys
 import statistics
 
 desc = '''
@@ -493,15 +496,16 @@ class error_result():
     def __str__(self):
 
         s = ('''
-switch rate:        {}
-mismatch rate:      {}
-flat rate:          {}
-phased count:       {}
+switch_rate:        {}
+mismatch_rate:      {}
+hamming_rate:          {}
+phased_count:       {}
+phased_count(fraction):       {}
 AN50:               {}
 N50:                {}
-num snps max blk:   {}
+num_snps_max_blk:   {}
             '''.format(self.get_switch_rate(), self.get_mismatch_rate(),
-                   self.get_flat_error_rate(), self.get_phased_count(),
+                   self.get_flat_error_rate(), self.get_phased_count(),self.get_phased_count()/self.get_num_snps(),
                    self.get_AN50(), self.get_N50_phased_portion(), sum(self.maxblk_snps.values())))
 
         return s

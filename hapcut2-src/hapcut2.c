@@ -26,9 +26,9 @@ int CONVERGE = 5; // stop iterations on a given block if exceed this many iterat
 float THRESHOLD = 0.8;
 float SPLIT_THRESHOLD = 0.8;
 float HOMOZYGOUS_PRIOR = -80; // in log form. assumed to be really unlikely
+int DISCRETE_PRUNING =0;
 int CALL_HOMOZYGOUS = 0;
 int SPLIT_BLOCKS = 0;
-int DISCRETE_PRUNING = 0;
 int ERROR_ANALYSIS_MODE = 0;
 int SKIP_PRUNE = 0;
 int SNVS_BEFORE_INDELS = 0;
@@ -297,7 +297,8 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
 
     // PRUNE SNPS
     if (!SKIP_PRUNE){
-        discrete_pruning(snps, fragments, Flist, snpfrag, HAP1);
+        //discrete_pruning(snps, fragments, Flist, snpfrag, HAP1);
+	unphased_optim(snps,Flist,snpfrag,HAP1);
         likelihood_pruning(snps, Flist, snpfrag, HAP1, CALL_HOMOZYGOUS);
     }
     // PRINT OUTPUT FILE
@@ -416,9 +417,6 @@ int main(int argc, char** argv) {
         }else if (strcmp(argv[i], "--call_homozygous") == 0 || strcmp(argv[i], "--ch") == 0){
             check_input_0_or_1(argv[i + 1]);
             CALL_HOMOZYGOUS = atoi(argv[i + 1]);
-        }else if (strcmp(argv[i], "--discrete_pruning") == 0 || strcmp(argv[i], "--dp") == 0){
-            check_input_0_or_1(argv[i + 1]);
-            DISCRETE_PRUNING = atoi(argv[i + 1]);
         }else if (strcmp(argv[i], "--error_analysis_mode") == 0 || strcmp(argv[i], "--ea") == 0){
             check_input_0_or_1(argv[i + 1]);
             ERROR_ANALYSIS_MODE = atoi(argv[i + 1]);

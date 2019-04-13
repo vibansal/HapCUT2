@@ -21,13 +21,80 @@ extern int SNVS_BEFORE_INDELS;
 
 float HIC_EM_THRESHOLD = 0.99; // use a strict-ish threshold for the HiC haplotype SNPs that we'll estimate h-trans from
 
+void calculate_hetLL(struct fragment* Flist, int fragments,struct SNPfrags* snpfrag, int snps,char* HAP1);
 void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1, int call_homozygous);
-void discrete_pruning(int snps, int fragments, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1);
 int split_block(char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, struct SNPfrags* snpfrag, int* components_ptr);
-void split_blocks_old(char* HAP, struct BLOCK* clist, int components, struct fragment* Flist, struct SNPfrags* snpfrag);
-//int maxcut_split_blocks(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1, int iter);
-void improve_hap(char* HAP, struct BLOCK* clist, int components, int snps, int fragments, struct fragment* Flist, struct SNPfrags* snpfrag);
 int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struct SNPfrags* snpfrag);
+
+// not used currentyl
+void calculate_hetLL(struct fragment* Flist, int fragments,struct SNPfrags* snpfrag, int snps,char* HAP1)
+{
+	float log_half = log10(0.5);
+	int i=0,j=0,k=0,snp_ix=0,f=0;
+    	for (i = 0; i < snps; i++) snpfrag[i].hetLL = 0.0;
+	for (f=0;f<fragments;f++)
+	{
+		for (j = 0; j < Flist[f].blocks; j++) 
+		{
+		    for (k = 0; k < Flist[f].list[j].len; k++) 
+		    {
+			snp_ix = Flist[f].list[j].offset + k; // index of current position with respect to all SNPs
+			if (HAP1[snp_ix] == '-') continue;
+			snpfrag[snp_ix].hetLL += log_half;
+		    }
+		}
+	}
+}
+
+void unphased_optim(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1) 
+{   
+    float log_half = log10(0.5);
+    int i, j, f;
+    char temp1;
+    float P_data_H, P_data_Hf, total,ll,min,delta;
+    fprintf(stderr,"unphased genotype likelihood calculation for data %d \n",snps);
+
+    for (i = 0; i < snps; i++) {
+        // "unmask" indel variant
+        if (SNVS_BEFORE_INDELS && (strlen(snpfrag[i].allele0) != 1 || strlen(snpfrag[i].allele1) != 1)) HAP1[i] = '0';
+        // we only care about positions that are haplotyped
+        if (!(HAP1[i] == '1' || HAP1[i] == '0')) continue;
+
+        // hold on to original haplotype values
+        temp1 = HAP1[i];
+        P_data_H = 0; P_data_Hf = 0; ll =0;
+	for (j=0;j<5;j++) snpfrag[i].PGLL[j] = 0;
+	snpfrag[i].hetLL = 0.0; 
+
+        //looping over fragments overlapping i and sum up read probabilities
+        for (j = 0; j < snpfrag[i].frags; j++) {
+
+            f = snpfrag[i].flist[j];
+            P_data_H += fragment_ll(Flist, f, HAP1, -1, -1);
+            flip(HAP1[i]);
+            P_data_Hf += fragment_ll(Flist, f, HAP1, -1, -1);
+
+            HAP1[i] = '0'; snpfrag[i].PGLL[0] += fragment_ll(Flist, f, HAP1, i, -1); // added 03/12/2018, genotype = 0|0
+            HAP1[i] = '1'; snpfrag[i].PGLL[3] += fragment_ll(Flist, f, HAP1, i, -1); // genotype = 1|1
+            //return haplotype to original value
+            HAP1[i] = temp1;
+	    ll = fragment_ll(Flist, f, HAP1, i, 10); // variant 'i' ignored for likelihood calculation if last parameter = 10
+	    if (ll < 0) snpfrag[i].PGLL[4] +=ll;  // genotype likelihood where variant is 'unphased' or missing
+	    snpfrag[i].hetLL += log_half;
+        }
+	snpfrag[i].PGLL[1] = P_data_H; snpfrag[i].PGLL[2] = P_data_Hf; // genotypes = 0|1 and 1|0, actually original and flipped
+
+	if (HAP1[i] == '0') temp1 = '1'; else temp1 = '0';
+	min = snpfrag[i].PGLL[1]; delta = snpfrag[i].hetLL+snpfrag[i].PGLL[4]-min;
+	if (snpfrag[i].PGLL[2] < min) min = snpfrag[i].PGLL[2];
+	fprintf(stdout,"SNP %d %d HAP %c|%c cov %d hetLL %0.2f %0.2f ",i,snpfrag[i].position,HAP1[i],temp1,snpfrag[i].frags,snpfrag[i].hetLL,snpfrag[i].hetLL+snpfrag[i].PGLL[4]);
+	fprintf(stdout,"hets= %0.2f %0.2f ",snpfrag[i].PGLL[1],snpfrag[i].PGLL[2]);
+	fprintf(stdout,"homs= %0.2f %0.2f delta %0.2f ",snpfrag[i].PGLL[0],snpfrag[i].PGLL[3],delta);
+	if (delta > 0) fprintf(stdout,"unphased ");
+	fprintf(stdout,"\n");
+
+    }
+}
 
 void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1, int call_homozygous) {
     int i, j, f;
@@ -134,69 +201,6 @@ void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfr
             }
         }
     }
-}
-
-// the discrete heuristic for pruning SNPs (introduced by RefHap, used by ProbHap)
-void discrete_pruning(int snps, int fragments, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1) {
-    int i, j, f, k, snp_ix, frag_assign;
-    float prob, prob2, p0, p1;
-    int* good = (int*) malloc(snps*sizeof(int)); // good[i] is the number of frag bases consistent with phasing at SNP i
-    int* bad  = (int*) malloc(snps*sizeof(int)); // bad [i] is the number of frag bases inconsistent with phasing at SNP i
-
-    // compute the optimal assignment of each fragment based on log likelihood
-    for (f = 0; f < fragments; f++){
-        p0 = 0; p1 = 0;
-        for (j = 0; j < Flist[f].blocks; j++) {
-            for (k = 0; k < Flist[f].list[j].len; k++) {
-                snp_ix = Flist[f].list[j].offset + k; // index of current position with respect to all SNPs
-
-                // conditions to skip this base
-                if (HAP1[snp_ix] == '-') continue;
-
-                prob = QVoffset - (int) Flist[f].list[j].qv[k];
-                prob /= 10;
-                prob2 = Flist[f].list[j].p1[k];
-                // this is likelihood based calculation
-                if (HAP1[snp_ix] == Flist[f].list[j].hap[k]) {
-                    p0 += prob2;
-                    p1 += prob;
-                } else {
-                    p0 += prob;
-                    p1 += prob2;
-                }
-            }
-        }
-
-        if (p0 > p1)
-            frag_assign = 1;
-        else if (p1 > p0)
-            frag_assign = 2;
-        else if (drand48() < 0.5)
-            frag_assign = 1;
-        else
-            frag_assign = 2;
-
-
-        for (j = 0; j < Flist[f].blocks; j++) {
-            for (k = 0; k < Flist[f].list[j].len; k++) {
-                snp_ix = Flist[f].list[j].offset + k; // index of current position with respect to all SNPs
-
-                if (HAP1[snp_ix] == '-') continue;
-
-                if ((frag_assign == 1 && HAP1[snp_ix] == Flist[f].list[j].hap[k])
-                  ||(frag_assign == 2 && HAP1[snp_ix] != Flist[f].list[j].hap[k]))
-                    good[snp_ix]++;
-                else
-                    bad[snp_ix]++;
-            }
-        }
-    }
-
-    for (i = 0; i < snps; i++){
-        snpfrag[i].pruned_discrete_heuristic = (int)(good[i] == bad[i]);
-
-    }
-    free(good); free(bad);
 }
 
 int split_block(char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, struct SNPfrags* snpfrag, int* components_ptr) {
