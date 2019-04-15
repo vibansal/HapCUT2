@@ -60,13 +60,11 @@ void unphased_optim(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, 
         // we only care about positions that are haplotyped
         if (!(HAP1[i] == '1' || HAP1[i] == '0')) continue;
 
-        // hold on to original haplotype values
         temp1 = HAP1[i];
         P_data_H = 0; P_data_Hf = 0; ll =0;
 	for (j=0;j<5;j++) snpfrag[i].PGLL[j] = 0;
 	snpfrag[i].hetLL = 0.0; 
 
-        //looping over fragments overlapping i and sum up read probabilities
         for (j = 0; j < snpfrag[i].frags; j++) {
 
             f = snpfrag[i].flist[j];
@@ -89,11 +87,14 @@ void unphased_optim(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, 
 	delta = snpfrag[i].hetLL+snpfrag[i].PGLL[4]-max;
 
 	if (HAP1[i] == '0') temp1 = '1'; else temp1 = '0';
-	fprintf(stdout,"SNP %d %d HAP %c|%c cov %d hetLL %0.2f %0.2f ",i,snpfrag[i].position,HAP1[i],temp1,snpfrag[i].frags,snpfrag[i].hetLL,snpfrag[i].hetLL+snpfrag[i].PGLL[4]);
+	fprintf(stdout,"SNP %d %d %s %s ",i,snpfrag[i].position,snpfrag[i].allele0,snpfrag[i].allele1);
+	fprintf(stdout," %c|%c cov %d hetLL %0.2f %0.2f ",HAP1[i],temp1,snpfrag[i].frags,snpfrag[i].hetLL,snpfrag[i].hetLL+snpfrag[i].PGLL[4]);
 	fprintf(stdout,"hets= %0.2f %0.2f ",snpfrag[i].PGLL[1],snpfrag[i].PGLL[2]);
 	fprintf(stdout,"homs= %0.2f %0.2f delta %0.2f ",snpfrag[i].PGLL[0],snpfrag[i].PGLL[3],delta);
+	if (snpfrag[i].PGLL[0] > max) fprintf(stdout,"ref-hom %0.2f ",snpfrag[i].PGLL[0]-max);
+	if (snpfrag[i].PGLL[3] > max) fprintf(stdout,"alt-hom %0.2f ",snpfrag[i].PGLL[3]-max);
 	if (P_data_Hf > P_data_H) fprintf(stdout,"flip-phase ");
-	if (delta > 0) fprintf(stdout,"unphased ");
+	else if (delta > 0) fprintf(stdout,"unphased ");
 	fprintf(stdout,"\n");
 
     }
