@@ -8,6 +8,8 @@
 #include "pointerheap.h"
 #include "readinputfiles.h"
 #include "printhaplotypes.c"
+#include "outvcf.c"
+#include "hapcut-options.c"
 
 // Printing related
 int VERBOSE = 0;
