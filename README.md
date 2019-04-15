@@ -45,7 +45,9 @@ sudo make uninstall-hapcut2
 ## Input:
 HapCUT2 requires the following input:
 - BAM file for an individual containing reads aligned to a reference genome
-- VCF file containing **diploid** SNVs for the individual with respect to the reference
+- VCF file containing **diploid** SNVs (and short indel calls) for the individual with respect to the reference genome
+
+**Note: the program does not accept gzipped VCF files**
 
 ## To Run:
 
@@ -103,7 +105,9 @@ Important note: flag "--split_blocks 1" (compute switch error confidence and aut
 Field 11 is useful for controlling mismatch (single SNV) haplotype errors, similarly to field 9. The default behavior of HapCUT2 is to prune individual SNVs for which this confidence is less than 6.98 (probability of error 0.2), as these are highly likely to be errors.
 
 ## 10X Genomics Linked-Reads
-10X Genomics Linked Reads require an extra step to link short reads together into barcoded molecules:
+10X Genomics Linked Reads require an extra step to link short reads together into barcoded molecules.
+
+NOTE: It is required that the BAM reads have the BX (corrected barcode) tag.
 
 (1) use extractHAIRS to convert BAM file to the compact fragment file format containing only haplotype-relevant information. This is a necessary precursor step to running HapCUT2.
 ```
@@ -117,6 +121,8 @@ python3 utilities/LinkFragments.py --bam reads.sorted.bam --VCF variants.VCF --f
 ```
 ./build/HAPCUT2 --nf 1 --fragments linked_fragment_file --VCF variantcalls.vcf --output haplotype_output_file
 ```
+
+It is assumed that reads with the same barcode occurring within 20 kb of another belong to the same molecule, and reads separated by more than this distance are assigned to separate molecules. This distance can be controlled using the ```-d``` parameter in LinkFragments.
 
 ## Hi-C (Proximity Ligation) Sequencing Reads
 
@@ -147,6 +153,9 @@ The directory **recipes** contains example pipelines to assemble haplotypes from
 
 ## Updates and Announcements:
 
+#### April 4, 2019
+
+New release of HapCUT2 with updates to local realignment for long read allelotyping and ability to process specific genomic regions (--region option in extractHAIRS). 
 
 #### March 13, 2018
 

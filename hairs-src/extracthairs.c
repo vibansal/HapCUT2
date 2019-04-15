@@ -1,4 +1,3 @@
-// author: Vikas Bansal
 //  program to extract haplotype informative reads from sorted BAM file, input requirements: bamfile and variantfile
 //#include "extracthairs.h"
 #include<stdio.h>
@@ -112,8 +111,8 @@ void print_options() {
     fprintf(stderr, "--ref <FILENAME> : reference sequence file (in fasta format, gzipped is okay), optional but required for indels, should be indexed\n");
     fprintf(stderr, "--out <FILENAME> : output filename for haplotype fragments, if not provided, fragments will be output to stdout\n");
     fprintf(stderr, "--region <chr:start-end> : chromosome and region in BAM file, useful to process individual chromosomes or genomic regions \n\n");
-    fprintf(stderr, "--sumall <0/1> : set to 1 to use sum of all local alignments approach (only with long reads), default = 0 \n\n");
-    fprintf(stderr, "--ep <0/1> : set to 1 to estimate HMM parameters from aligned reads (only with long reads), default = 0 \n\n");
+    fprintf(stderr, "--ep <0/1> : set to 1 to estimate HMM parameters from aligned reads (only with long reads), default = 0\n\n");
+    //fprintf(stderr, "--sumall <0/1> : set to 1 to use sum of all local alignments approach (only with long reads), default = 1 \n\n");
 }
 
 void check_input_0_or_1(char* x){
@@ -181,7 +180,7 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
         }
         // find the chromosome in reflist that matches read->chrom if the previous chromosome is different from current chromosome
         if (read->tid != prevtid) {
-            chrom = getindex(ht, read->chrom); // this will return -1 if the contig name is not  in the VCF file 
+            chrom = getindex(ht, read->chrom); // this will return -1 if the contig name is not  in the VCF file
 	    if (chrom < 0) fprintf(stderr,"chrom \"%s\" not in VCF file, skipping all reads for this chrom.... \n",read->chrom);
 	    else fprintf(stderr,"processing reads mapped to chrom \"%s\" \n",read->chrom);
 		// doing this for every read, can replace this by string comparison ..april 4 2012
@@ -199,6 +198,7 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
                 }
             }
         } else chrom = prevchrom;
+        //if (chrom_missing_index ==1) { prevtid = read->tid; free_readmemory(read); continue; }
 
         fragment.absIS = (read->IS < 0) ? -1 * read->IS : read->IS;
         // add check to see if the mate and its read are on same chromosome, bug for contigs, july 16 2012
@@ -257,8 +257,7 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
         prevtid = read->tid;
         free_readmemory(read);
     } // end of main while loop
-
-    if (fragments > 0)  // still fragments left in buffer 
+    if (fragments > 0)  // still fragments left in buffer
     {
         fprintf(stderr, "final cleanup of fragment list: %d current chrom %s %d prev %d \n", fragments, read->chrom, read->position,prevchrom);
         if (prevchrom >=0) clean_fragmentlist(flist, &fragments, varlist, -1, read->position, prevchrom); // added extra filter 03/08/18
@@ -307,6 +306,12 @@ int main(int argc, char** argv) {
         else if (strcmp(argv[i], "--VCF") == 0 || strcmp(argv[i], "--vcf") == 0) {
             strcpy(variantfile, argv[i + 1]);
             VCFformat = 1;
+	    int l=strlen(variantfile); 
+            if (variantfile[l-1] == 'z' && variantfile[l-2] == 'g' && variantfile[l-3] == '.') 
+	    {
+		fprintf(stderr,"The input VCF file appears to be gzipped (.gz extension), hapcut only accepts unzipped VCF files as input\n Please provide an unzipped VCF file or make sure that the file doesn't have the .gz extension\n\n");
+		exit(0);
+	    }
         } else if (strcmp(argv[i], "--sorted") == 0){
             check_input_0_or_1(argv[i + 1]);
             readsorted = atoi(argv[i + 1]);
@@ -338,7 +343,8 @@ int main(int argc, char** argv) {
         }else if (strcmp(argv[i], "--pacbio") == 0 || strcmp(argv[i], "--SMRT") == 0 || strcmp(argv[i],"--pb") ==0){
             check_input_0_or_1(argv[i + 1]);
             if (atoi(argv[i + 1])){
-                REALIGN_VARIANTS = 1; PACBIO =1; MINQ = 10;
+                REALIGN_VARIANTS = 1; PACBIO =1; MINQ = 7;
+		SUM_ALL_ALIGN = 1; 
             }
 
             // scores based on https://www.researchgate.net/figure/230618348_fig1_Characterization-of-Pacific-Biosciences-dataa-Base-error-mode-rate-for-deletions
@@ -354,7 +360,7 @@ int main(int argc, char** argv) {
         }else if (strcmp(argv[i], "--ont") == 0 || strcmp(argv[i], "--ONT") == 0){
             check_input_0_or_1(argv[i + 1]);
             if (atoi(argv[i + 1])){
-                REALIGN_VARIANTS = 1;  MINQ = 10;
+                REALIGN_VARIANTS = 1;  MINQ = 7;
             }
             // scores based on http://www.nature.com/nmeth/journal/v12/n4/abs/nmeth.3290.html
             MATCH = log10(1.0 - (0.051 + 0.049 + 0.078));
@@ -363,6 +369,7 @@ int main(int argc, char** argv) {
             INSERTION_EXTEND = log10(0.25); // this number has no basis in anything
             DELETION_OPEN = log10(0.078);
             DELETION_EXTEND = log10(0.25); // this number also has no basis in anything
+	    SUM_ALL_ALIGN = 1; 
 
         }else if (strcmp(argv[i], "--verbose") == 0 || strcmp(argv[i], "--v") == 0){
             check_input_0_or_1(argv[i + 1]);
@@ -423,6 +430,10 @@ int main(int argc, char** argv) {
     if (REALIGN_VARIANTS && strcmp(fastafile, "None") == 0) {
         fprintf(stderr, "\nERROR: In order to realign variants (including --pacbio and --ont options), reference fasta file must be provided with --ref option.\n");
         exit(1);
+    }
+    if (MINQ < 4) {
+      fprintf(stderr, "\nERROR: MINQ must be at least 4.\n");
+      exit(1);
     }
     if (bamfiles > 0 && strcmp(variantfile, "None") != 0) {
         bamfilelist = (char**) malloc(sizeof (char*)*bamfiles);

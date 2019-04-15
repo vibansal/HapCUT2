@@ -50,10 +50,14 @@ double sum_all_alignments_logspace(char* v, char* w,Align_Params* params, int mi
 	}
 	middle_prev[0] = 0.0;
 
-	if (ALLOW_END_GAPS ==1)
+	//if (ALLOW_END_GAPS ==1)
 	{
 		upper_prev[1] = params->lTRS[0][2];
-		for (j=2;j<lw+1;j++) upper_prev[j] = upper_prev[j-1] + params->lTRS[2][2];
+		for (j=2;j<lw+1;j++) 
+		{
+			upper_prev[j] = upper_prev[j-1] + params->lTRS[2][2];
+			middle_prev[j] = log0;
+		}
 	}
 
 	for (i=1;i<lv;i++)
@@ -64,7 +68,7 @@ double sum_all_alignments_logspace(char* v, char* w,Align_Params* params, int mi
 		int band_end = lw;
 		if (band_middle + band_width/2 <= lw) band_end = band_middle + band_width/2;
 
-		if (ALLOW_END_GAPS ==1)
+		//if (ALLOW_END_GAPS ==1)
 		{
 			if (band_start ==1)
 			{
@@ -138,10 +142,14 @@ double sum_all_alignments_fast(char* v, char* w,Align_Params* params, int min_ba
 	}
 	middle_prev[0] = 1.0;
 
-	if (ALLOW_END_GAPS ==1)
+	//if (ALLOW_END_GAPS ==1)
 	{
 		upper_prev[1] = params->TRS[0][2];
-		for (j=2;j<lw+1;j++) upper_prev[j] = upper_prev[j-1] * params->TRS[2][2];
+		for (j=2;j<lw+1;j++) 
+		{
+			upper_prev[j] = upper_prev[j-1] * params->TRS[2][2];
+			middle_prev[j] =log0;
+		}
 	}
 
 	for (i=1;i<lv;i++) // main loop
@@ -152,7 +160,7 @@ double sum_all_alignments_fast(char* v, char* w,Align_Params* params, int min_ba
 		int band_end = lw;
 		if (band_middle + band_width/2 <= lw) band_end = band_middle + band_width/2;
 
-		if (ALLOW_END_GAPS ==1)
+		//if (ALLOW_END_GAPS ==1)
 		{
 			if (band_start ==1)
 			{
@@ -191,6 +199,13 @@ double sum_all_alignments_fast(char* v, char* w,Align_Params* params, int min_ba
 		{
 			upper_prev[j] = upper_curr[j]; middle_prev[j] = middle_curr[j]; lower_prev[j] = lower_curr[j];
 		}
+		if (band_start >=2)
+		{
+			upper_prev[band_start-2] = -1000000;
+	                middle_prev[band_start-2] = -1000000;
+                        lower_prev[band_start-2] = -1000000; // NaN
+		}
+
 		upper_curr[band_start]= log0; middle_curr[band_start] = log0; lower_curr[band_start] = log0;
 	}
 	double ll;
