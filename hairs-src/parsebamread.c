@@ -279,10 +279,10 @@ int extract_variants_read(struct alignedread* read, HASHTABLE* ht, CHROMVARS* ch
 			//fprintf(stderr,"close-2-boundary, %d %d\n",offset,pclip);
 		if ((DATA_TYPE == 1 && offset > margin) || DATA_TYPE != 1) // filter only for HiC
 		{
-			if (varlist[ss].heterozygous == '1' && varlist[ss].type == 0) compare_read_SNP(read, varlist, ss, start, l1, l2, fragment);
+			if ((varlist[ss].heterozygous == '1' || HOMOZYGOUS ==1) && varlist[ss].type == 0) compare_read_SNP(read, varlist, ss, start, l1, l2, fragment);
 			else if (varlist[ss].heterozygous == '2' && varlist[ss].type == 0) {
 			    compare_read_SNP(read, varlist, ss, start, l1, l2, fragment);
-			} else if (varlist[ss].heterozygous == '1' && varlist[ss].type != 0 && varlist[ss].position < start + l2 + ol - 1 && reflist->current >= 0 && PARSEINDELS == 1) {
+			} else if ((varlist[ss].heterozygous == '1' || HOMOZYGOUS ==1) && varlist[ss].type != 0 && varlist[ss].position < start + l2 + ol - 1 && reflist->current >= 0 && PARSEINDELS == 1) {
 			    compare_read_INDEL(read, varlist, ss, start, l1, l2, ol, fragment, i, reflist);
 			}
 		}
@@ -293,7 +293,7 @@ int extract_variants_read(struct alignedread* read, HASHTABLE* ht, CHROMVARS* ch
             l1 += ol;
             l2 += ol;
         } else if (op == BAM_CINS) {
-            if (varlist[ss].heterozygous == '1' && varlist[ss].position == start + l2 && varlist[ss].type == ol && PARSEINDELS == 1 && ss <= chromvars[chrom].last) {
+            if ((varlist[ss].heterozygous == '1' || HOMOZYGOUS ==1) && varlist[ss].position == start + l2 && varlist[ss].type == ol && PARSEINDELS == 1 && ss <= chromvars[chrom].last) {
                 if (IFLAG) fprintf(stdout, "%s INSERTION %d %s:%d:%s:%s\n", read->readid, start + l2, varlist[ss].chrom, varlist[ss].position, varlist[ss].RA, varlist[ss].AA);
                 fragment->alist[fragment->variants].varid = ss;
                 fragment->alist[fragment->variants].allele = '1';
@@ -306,7 +306,7 @@ int extract_variants_read(struct alignedread* read, HASHTABLE* ht, CHROMVARS* ch
             }
             l1 += ol;
         } else if (op == BAM_CDEL) {
-            if (varlist[ss].heterozygous == '1' && varlist[ss].position == start + l2 && varlist[ss].type == -1 * ol  && PARSEINDELS == 1 && ss <= chromvars[chrom].last) {
+            if ((varlist[ss].heterozygous == '1' || HOMOZYGOUS ==1) && varlist[ss].position == start + l2 && varlist[ss].type == -1 * ol  && PARSEINDELS == 1 && ss <= chromvars[chrom].last) {
                 if (IFLAG) fprintf(stdout, "%s DELETION %d %s:%d:%s:%s\n", read->readid, start + l2, varlist[ss].chrom, varlist[ss].position, varlist[ss].RA, varlist[ss].AA);
                 fragment->alist[fragment->variants].varid = ss;
                 fragment->alist[fragment->variants].allele = '1';

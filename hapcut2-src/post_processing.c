@@ -1,7 +1,3 @@
-/*
- Author: Peter Edge
- */
-
 #include "common.h"
 #include <float.h>
 #include <assert.h>     /* assert */
@@ -57,6 +53,11 @@ void unphased_optim(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, 
     for (i = 0; i < snps; i++) {
         // "unmask" indel variant
         if (SNVS_BEFORE_INDELS && (strlen(snpfrag[i].allele0) != 1 || strlen(snpfrag[i].allele1) != 1)) HAP1[i] = '0';
+	if (HAP1[i] == '-')
+	{
+		fprintf(stdout,"SNP %d %d %s %s %s %d\n",i,snpfrag[i].position,snpfrag[i].allele0,snpfrag[i].allele1,snpfrag[i].genotypes,snpfrag[i].frags);
+	}
+
         // we only care about positions that are haplotyped
         if (!(HAP1[i] == '1' || HAP1[i] == '0')) continue;
 
