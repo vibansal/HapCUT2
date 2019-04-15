@@ -37,6 +37,7 @@ int OUTPUT_VCF =0;
 
 int AUTODETECT_LONGREADS = 1;
 int LONG_READS = 0; // if this variable is 1, the data contains long read data
+int UNPHASED = 1;  // if set to 1, consider the option of leaving some variants unphased 
 
 // HiC-related global variables
 int HIC = 0;
@@ -166,6 +167,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
     	   read_vcffile(variantfile, snpfrag, snps);
 	   for (i=0;i<snps;i++)
 	   {
+		// ignore homzygous variants, for such variants, the HAP1[i] value is set to '-' to avoid using them for phasing  
 		if (snpfrag[i].genotypes[0] == snpfrag[i].genotypes[2]) snpfrag[i].ignore = '1'; 
 		else snpfrag[i].ignore = '0'; 
 	   }
@@ -299,7 +301,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
     // PRUNE SNPS
     if (!SKIP_PRUNE){
         //discrete_pruning(snps, fragments, Flist, snpfrag, HAP1);
-	unphased_optim(snps,Flist,snpfrag,HAP1);
+	if (UNPHASED ==1) unphased_optim(snps,Flist,snpfrag,HAP1);
         likelihood_pruning(snps, Flist, snpfrag, HAP1, CALL_HOMOZYGOUS);
     }
     // PRINT OUTPUT FILE

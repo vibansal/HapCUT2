@@ -110,8 +110,9 @@ void print_options() {
     //fprintf(stderr,"--triallelic <0/1> : print information about , default 0 \n");
     fprintf(stderr, "--ref <FILENAME> : reference sequence file (in fasta format, gzipped is okay), optional but required for indels, should be indexed\n");
     fprintf(stderr, "--out <FILENAME> : output filename for haplotype fragments, if not provided, fragments will be output to stdout\n");
-    fprintf(stderr, "--region <chr:start-end> : chromosome and region in BAM file, useful to process individual chromosomes or genomic regions \n\n");
-    fprintf(stderr, "--ep <0/1> : set to 1 to estimate HMM parameters from aligned reads (only with long reads), default = 0\n\n");
+    fprintf(stderr, "--region <chr:start-end> : chromosome and region in BAM file, useful to process individual chromosomes or genomic regions \n");
+    fprintf(stderr, "--ep <0/1> : set to 1 to estimate HMM parameters from aligned reads (only with long reads), default = 0\n");
+    fprintf(stderr, "--hom <0/1> : set to 1 to include homozygous variants for processing, default = 0 (only heterozygous) \n\n");
     //fprintf(stderr, "--sumall <0/1> : set to 1 to use sum of all local alignments approach (only with long reads), default = 1 \n\n");
 }
 
