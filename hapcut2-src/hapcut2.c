@@ -7,7 +7,8 @@
 #include "fragmatrix.h"
 #include "pointerheap.h"
 #include "readinputfiles.h"
-#include "printhaplotypes.c"
+#include "readvcf.h"
+#include "hapcutblocksIO.c"
 #include "outvcf.c"
 #include "hapcut-options.c"
 
@@ -56,23 +57,6 @@ int MAX_IS = -1;
 #include "find_maxcut.c"   // function compute_good_cut
 #include "post_processing.c"  // post-processing functions
      
-
-int get_num_fragments(char* fragmentfile)
-{
-    char buffer[MAXBUF];
-     FILE* ff = fopen(fragmentfile, "r");
-    if (ff == NULL) {
-        fprintf_time(stderr, "couldn't open fragment file %s\n", fragmentfile);
-        exit(0);
-    }
-    int fragments = 0;
-    while (fgets(buffer, MAXBUF, ff) != NULL){
-        if (!((buffer[0] == '0')&&(buffer[1] == ' ')))
-            fragments++;
-    }
-    fclose(ff);
-    return fragments;
-}
 
 void detect_long_reads(struct fragment* Flist,int fragments)
 {
@@ -340,13 +324,6 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
     free(Flist);
 
     return 0;
-}
-
-void check_input_0_or_1(char* x){
-    if (!(strcmp(x, "0") == 0 || strcmp(x, "1") == 0)){
-        fprintf(stderr, "\nERROR: Invalid input \"%s\" for <0/1> option flag.\n",x);
-        exit(1);
-    }
 }
 
 int main(int argc, char** argv) {

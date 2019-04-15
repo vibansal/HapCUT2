@@ -106,5 +106,6 @@ struct SNPfrags {
 int fprintf_time(FILE *stream, const char *format, ...);
 float phred(float x);
 float unphred(float x);
+void check_input_0_or_1(char* x);
 
 #endif

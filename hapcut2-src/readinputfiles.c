@@ -5,6 +5,24 @@
 extern float HOMOZYGOUS_PRIOR;
 extern int NEW_FRAGFILE_FORMAT;
 
+int get_num_fragments(char* fragmentfile)
+{
+    char buffer[MAXBUF];
+     FILE* ff = fopen(fragmentfile, "r");
+    if (ff == NULL) {
+        fprintf_time(stderr, "couldn't open fragment file %s\n", fragmentfile);
+        exit(0);
+    }
+    int fragments = 0;
+    while (fgets(buffer, MAXBUF, ff) != NULL){
+        if (!((buffer[0] == '0')&&(buffer[1] == ' ')))
+            fragments++;
+    }
+    fclose(ff);
+    return fragments;
+}
+
+
 int fragment_compare(const void *a, const void *b) {
     const struct fragment *ia = (const struct fragment*) a;
     const struct fragment *ib = (const struct fragment*) b;
@@ -186,239 +204,6 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
     qsort(Flist, fragments, sizeof (struct fragment), fragment_compare);
 
     return fragments;
-}
-
-
-// counts # of variants in VCF file, allows for arbitrary long lines
-int count_variants_vcf(char* vcffile) {
-    FILE* fp = fopen(vcffile, "r");
-    if (fp == NULL) {
-        fprintf_time(stderr, "could not open file %s \n", vcffile);
-        return -1;
-    }
-    int variants = 0;
-    char buffer[10000];
-    while (fgets(buffer, 10000, fp)) {
-        if (buffer[0] == '#') {
-            while (buffer[strlen(buffer) - 1] != '\n') fgets(buffer, 10000, fp);
-            continue;
-        }
-        if (buffer[strlen(buffer) - 1] == '\n') variants++;
-    }
-    fclose(fp);
-    fprintf_time(stderr, "read %d variants from %s file \n", variants, vcffile);
-    return variants;
-}
-
-// 1000 genomes file have large deletions, need to allow longer VCF line
-// this function is distinct from the function used to read VCF file for parsing haplotype informative reads, why ???
-// read variants from VCF file, this code doesn't check the vcf file and assumes that column 10 contains the genotypes for the individual we are interested in phasing
-
-int read_vcffile(char* vcffile, struct SNPfrags* snpfrag, int snps) {
-    char buffer[500000];
-    char temp[1000];
-    char GQ[100];
-    char* gen;
-    int i = 0, j = 0, k=0, s = 0, e = 0, var = 0, GQ_ix, format_ix;
-    FILE* fp = fopen(vcffile, "r");
-    while (fgets(buffer, 500000, fp)) {
-        if (buffer[0] == '#') continue;
-        i = 0;
-        while (buffer[i] == ' ' || buffer[i] == '\t') i++;
-        s = i;
-        while (buffer[i] != ' ' && buffer[i] != '\t') i++;
-        e = i;
-        snpfrag[var].chromosome = (char*) malloc(e - s + 1);
-        for (j = s; j < e; j++) snpfrag[var].chromosome[j - s] = buffer[j];
-        snpfrag[var].chromosome[j - s] = '\0';
-        while (buffer[i] == ' ' || buffer[i] == '\t') i++;
-        s = i;
-        while (buffer[i] != ' ' && buffer[i] != '\t') i++;
-        e = i;
-        for (j = s; j < e; j++) temp[j - s] = buffer[j];
-        temp[j - s] = '\0';
-        snpfrag[var].position = atoi(temp);
-
-        while (buffer[i] == ' ' || buffer[i] == '\t') i++;
-        s = i;
-        while (buffer[i] != ' ' && buffer[i] != '\t') i++;
-        e = i;
-        snpfrag[var].id = (char*) malloc(e - s + 1);
-        for (j = s; j < e; j++) snpfrag[var].id[j - s] = buffer[j];
-        snpfrag[var].id[j - s] = '\0';
-        //strcpy(snpfrag[var].id,".");
-        //variant->id = (char*)malloc(e-s+1); for (j=s;j<e;j++) variant->id[j-s] = buffer[j]; variant->id[j-s] = '\0';
-
-        while (buffer[i] == ' ' || buffer[i] == '\t') i++;
-        s = i;
-        while (buffer[i] != ' ' && buffer[i] != '\t') i++;
-        e = i;
-        snpfrag[var].allele0 = (char*) malloc(e - s + 1);
-        for (j = s; j < e; j++) snpfrag[var].allele0[j - s] = buffer[j];
-        snpfrag[var].allele0[j - s] = '\0';
-
-        while (buffer[i] == ' ' || buffer[i] == '\t') i++;
-        s = i;
-        while (buffer[i] != ' ' && buffer[i] != '\t') i++;
-        e = i;
-        snpfrag[var].allele1 = (char*) malloc(e - s + 1);
-        for (j = s; j < e; j++) snpfrag[var].allele1[j - s] = buffer[j];
-        snpfrag[var].allele1[j - s] = '\0';
-
-        while (buffer[i] == ' ' || buffer[i] == '\t') i++;
-        s = i;
-        while (buffer[i] != ' ' && buffer[i] != '\t') i++;
-        e = i;
-        //variant->quality = (char*)malloc(e-s+1); for (j=s;j<e;j++) variant->quality[j-s] = buffer[j]; variant->quality[j-s] = '\0';
-        while (buffer[i] == ' ' || buffer[i] == '\t') i++;
-        s = i;
-        while (buffer[i] != ' ' && buffer[i] != '\t') i++;
-        e = i;
-        //variant->filter = (char*)malloc(e-s+1); for (j=s;j<e;j++) variant->filter[j-s] = buffer[j]; variant->filter[j-s] = '\0';
-        while (buffer[i] == ' ' || buffer[i] == '\t') i++;
-        s = i;
-        while (buffer[i] != ' ' && buffer[i] != '\t') i++;
-        e = i;
-        //variant->info = (char*)malloc(e-s+1); for (j=s;j<e;j++) variant->info[j-s] = buffer[j]; variant->info[j-s] = '\0';
-        while (buffer[i] == ' ' || buffer[i] == '\t') i++;
-        s = i;
-        while (buffer[i] != ' ' && buffer[i] != '\t') i++;
-        e = i;
-
-        // assert that GT field is the first field
-        assert(buffer[s] == 'G' && buffer[s+1] == 'T' && (buffer[s+2] == ':' || buffer[s+2] == '\t'));
-
-        // check format string for presence of GQ
-        format_ix = 0;
-        GQ_ix = -1; // the index of format field for GQ
-        for (j=s;j<e;j++){
-            if (buffer[j] == ':')
-                format_ix++;
-            else if((j+1 < e) && buffer[j] == 'G' && buffer[j+1] == 'Q'){
-                GQ_ix = format_ix;
-            }
-        }
-
-        while (buffer[i] == ' ' || buffer[i] == '\t') i++;
-        s = i;
-        while (buffer[i] != ' ' && buffer[i] != '\t' && buffer[i] != '\n') i++;
-        e = i;
-
-        snpfrag[var].genotypes = (char*) malloc(e - s + 1);
-        for (j = s; j < e; j++) snpfrag[var].genotypes[j - s] = buffer[j];
-        snpfrag[var].genotypes[j - s] = '\0';
-        //len = j-s;
-        gen = snpfrag[var].genotypes; //  for convenience
-        snpfrag[var].homozygous_prior = HOMOZYGOUS_PRIOR; // default value
-        int no_gq = 0;
-        if (GQ_ix != -1) {
-
-            // get to the index where GQ is located.
-            k = 0; // where we are in gen
-            for (j=0; j<GQ_ix; j++){
-                if (no_gq){
-                  break;
-                }
-
-                while(gen[k] != ':') {
-                    k++;
-                    if (gen[k] == '\n' || gen[k] == '\0') {
-                        no_gq = 1;
-                        break;
-                    }
-                }
-                k++; // step past the ':'
-
-                if (gen[k] == '\n' || gen[k] == '\0') {
-                    no_gq = 1;
-                    break;
-                }
-            }
-
-            // reached GQ field. read it in.
-            if (!no_gq) {
-                j=0;
-
-                while (gen[k] != '\0' && gen[k] != ':') {
-                    GQ[j] = gen[k];
-                    k++;
-                    j++;
-                }
-                GQ[j] = '\0';
-
-                snpfrag[var].homozygous_prior = atof(GQ) / -10.0; // log prior probability of homozygousity
-            }
-        }
-
-        var++;
-    }
-    fclose(fp);
-    return 1;
-}
-
-int count_variants(char* variantfile) {
-    int snps = 0;
-    char buffer[MAXBUF];
-    FILE* ff = fopen(variantfile, "r");
-    if (ff == NULL) {
-        fprintf_time(stderr, "couldn't open variant file %s\n", variantfile);
-        exit(0);
-    }
-    while (fgets(buffer, MAXBUF, ff) != NULL) snps++;
-    fclose(ff);
-    return snps;
-}
-
-int read_haplotypefile(char* hapfile, struct SNPfrags* snpfrag, int snps, char* HAP1, char* initHAP, int* bn) {
-    /****************************** READ HAPLOTYPE SOLUTION*************************************************/
-    int i = 0, j = 0;
-    char id[100];
-    char c1, c2;
-    int offset, len, phased, blocks;
-    FILE* sf = fopen(hapfile, "r");
-    struct BLOCK* blist;
-    if (sf == NULL) fprintf_time(stderr, "couldn't open initial haplotype file file \n");
-    else {
-        j = 0;
-        while (1) {
-            fscanf(sf, "%s ", id);
-            if (strcmp(id, "BLOCK:") != 0) break;
-            fscanf(sf, "%s %d %s %d %s %d \n", id, &offset, id, &len, id, &phased);
-            j++;
-            for (i = 0; i < len; i++) fscanf(sf, "%s %c %c \n", id, &c1, &c2);
-            fscanf(sf, "%s \n", id);
-        }
-        fclose(sf);
-
-        blocks = j;
-        blist = (struct BLOCK*) malloc(sizeof (struct BLOCK)*blocks);
-        sf = fopen(hapfile, "r");
-        j = 0;
-        while (1) {
-            fscanf(sf, "%s ", id);
-            if (strcmp(id, "BLOCK:") != 0) break; //fprintf(stdout,"%s %d\n",id,j-1);
-            fscanf(sf, "%s %d %s %d %s %d \n", id, &offset, id, &len, id, &phased);
-            blist[j].offset = offset - 1;
-            blist[j].length = len;
-            blist[j].phased = phased;
-            //if (pflag) fprintf(stdout,"BLOCK--- %9d len %5d phased %5d \n",offset,len,phased);
-            j++;
-            for (i = 0; i < len; i++) {
-                fscanf(sf, "%s %c %c \n", id, &c1, &c2);
-                if (c1 != '-') {
-                    HAP1[offset + i - 1] = c1;
-                    bn[offset + i - 1] = offset;
-                    initHAP[offset + i - 1] = c1;
-                }
-                strcpy(snpfrag[offset + i - 1].id, id); // IMPORTANT copy SNP id from haplotype solution to SNP ID
-                // offset is the id of each block since it is supposed to be unique
-            }
-            fscanf(sf, "%s \n", id);
-        }
-        fclose(sf);
-    }
-    return 1;
-    /***************************** READ HAPLOTYPE SOLUTION*************************************************/
 }
 
 int count_htrans_bins(char* htrans_file) {
