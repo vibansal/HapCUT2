@@ -164,7 +164,7 @@ void update_fragscore(struct fragment* Flist, int f, char* h) {
 float fragment_ll(struct fragment* Flist, int f, char* h, int homozygous, int switch_ix) {
     int j = 0, k = 0;
     float p0 = 0, p1 = 0, p0h = 0, p1h =0, prob = 0, prob1 = 0, prob2 = 0;
-    float good = 0, bad = 0, ll=0;
+    float ll=0;
     int snp_ix, switched, htrans_flipped;
 
     // normal LL calculation, no Hi-C h-trans

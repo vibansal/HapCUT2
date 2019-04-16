@@ -1,7 +1,8 @@
 #ifndef _COMMON_H
 #define _COMMON_H
 #include <stdint.h>
-#include "datastructures.h"
+#include "fragments.h"
+#include "variant.h"
 
 extern int QVoffset;
 extern int MINQ;

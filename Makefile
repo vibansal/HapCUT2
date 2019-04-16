@@ -60,20 +60,26 @@ $(B)/readfasta.o: $(H)/readfasta.c $(H)/readfasta.h | $(B)
 
 # BUILD HAPCUT2
 
-$(B)/HAPCUT2: $(B)/readhap_graph.o $(B)/readinputfiles.o $(B)/readvcf.o $(B)/pointerheap.o $(B)/common.o $(B)/hic.o $(X)/hapcut2.c $(X)/output_phasedvcf.c $(X)/output_phasedblocks.c $(X)/haplotags.c $(X)/find_maxcut.c $(X)/post_processing.c| $(B)
-	$(CC) $(B)/common.o $(B)/hic.o $(B)/readhap_graph.o $(B)/readinputfiles.o $(B)/readvcf.o $(B)/pointerheap.o -o $(B)/HAPCUT2 -lm $(X)/hapcut2.c -L$(HTSLIB) -lhts 
+$(B)/HAPCUT2: $(B)/variantgraph.o $(B)/readinputfiles.o $(B)/hapcontig.o $(B)/fragments.o $(B)/readvcf.o $(B)/pointerheap.o $(B)/common.o $(B)/hic.o $(X)/hapcut2.c $(X)/output_phasedvcf.c $(X)/haplotags.c $(X)/find_maxcut.c $(X)/post_processing.c $(X)/like_scores.c $(X)/maxcut_lr.c | $(B)
+	$(CC) $(B)/common.o $(B)/hic.o $(B)/variantgraph.o $(B)/readinputfiles.o $(B)/hapcontig.o $(B)/fragments.o $(B)/readvcf.o $(B)/pointerheap.o -o $(B)/HAPCUT2 -lm $(X)/hapcut2.c -L$(HTSLIB) -lhts 
 
-$(B)/common.o: $(X)/common.h $(X)/common.c $(X)/datastructures.h | $(B)
+$(B)/common.o: $(X)/common.h $(X)/common.c $(X)/variant.h $(X)/fragments.h | $(B)
 	$(CC) -c $(X)/common.c -o $(B)/common.o
+
+$(B)/fragments.o: $(X)/fragments.c $(X)/fragments.h $(X)/variant.h | $(B)
+	$(CC) -c $(X)/fragments.c -o $(B)/fragments.o
 
 $(B)/hic.o: $(X)/hic.h $(X)/hic.c $(X)/common.h | $(B)
 	$(CC) -c $(X)/hic.c -o $(B)/hic.o
 
-$(B)/readhap_graph.o: $(X)/fragmatrix.h $(X)/readhap_graph.c $(X)/common.h $(X)/output_phasedblocks.c  | $(B)
-	$(CC) -c $(X)/readhap_graph.c -o $(B)/readhap_graph.o
+$(B)/variantgraph.o: $(X)/variantgraph.h $(X)/variantgraph.c $(X)/common.h  | $(B)
+	$(CC) -c $(X)/variantgraph.c -o $(B)/variantgraph.o
 
-$(B)/readinputfiles.o: $(X)/readinputfiles.h $(X)/readinputfiles.c $(X)/common.h $(X)/fragmatrix.h | $(B)
+$(B)/readinputfiles.o: $(X)/readinputfiles.h $(X)/readinputfiles.c $(X)/common.h | $(B)
 	$(CC) -c $(X)/readinputfiles.c -o $(B)/readinputfiles.o
+
+$(B)/hapcontig.o: $(X)/hapcontig.c $(X)/common.h | $(B)
+	$(CC) -c $(X)/hapcontig.c -o $(B)/hapcontig.o
 
 $(B)/readvcf.o: $(X)/readinputfiles.h $(X)/readvcf.c $(X)/common.h | $(B)
 	$(CC) -c $(X)/readvcf.c -o $(B)/readvcf.o

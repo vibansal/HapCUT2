@@ -15,7 +15,7 @@
 extern int HTRANS_BINSIZE;
 extern int HTRANS_MAXBINS; // this value will be overwritten at startup
 extern int HTRANS_READ_LOWBOUND;
-extern HTRANS_MAX_WINDOW; // maximum window size for h-trans estimation
+extern int HTRANS_MAX_WINDOW; // maximum window size for h-trans estimation
 
 int count_htrans_bins(char* htrans_file);
 

@@ -5,6 +5,7 @@
 #include <errno.h>
 #include<math.h>
 #include "common.h"
+#include<string.h>
 
 
 void check_input_0_or_1(char* x){

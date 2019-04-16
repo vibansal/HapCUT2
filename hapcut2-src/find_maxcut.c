@@ -1,8 +1,8 @@
 #define DEBUG 0
 
+#include "like_scores.c" // additional functions for likelihood based calculation
 #include "maxcut_lr.c"
 #include "common.h"
-#include "like_scores.c" // additional functions for likelihood based calculation
 #include <float.h>
 #include <assert.h>     /* assert */
 

@@ -1,3 +1,4 @@
+#include "hapcontig.h"
 #include "common.h"
 extern int DISCRETE_PRUNING;
 extern int ERROR_ANALYSIS_MODE;
@@ -5,14 +6,62 @@ extern int SPLIT_BLOCKS;
 extern int SKIP_PRUNE;
 extern float THRESHOLD;
 extern int HIC;
+extern int VERBOSE;
+
+// populate the connected component data structure only for non-trivial connected components, at least 2 variants
+void generate_contigs(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int components, struct BLOCK* clist) {
+    // bcomp maps the SNP to the component number in clist since components << snps
+    // note that the previous invariant about the first SNP (ordered by position) being the root of the component is no longer true !!
+    // should we still require it ??
+    int i = 0, component = 0;
+    for (i = 0; i < snps; i++) snpfrag[i].bcomp = -1;
+    for (i = 0; i < snps; i++) {
+        if (snpfrag[i].component == i && snpfrag[i].csize > 1) // root node of component
+        {
+            snpfrag[i].bcomp = component;
+            clist[component].slist = calloc(sizeof (int), snpfrag[i].csize);
+            clist[component].phased = 0;
+            component++;
+        }
+    }
+    //fprintf_time(stderr,"non-trivial components in graph %d \n",components);
+    for (i = 0; i < snps; i++) {
+        if (snpfrag[i].component < 0) continue; // to allow for initialization to -1 in other code feb 15 2013
+        if (snpfrag[i].csize <= 1 && snpfrag[i].component == i) continue; // ignore singletons that are not connected to other variants
+
+        if (snpfrag[i].component != i) snpfrag[i].bcomp = snpfrag[snpfrag[i].component].bcomp;
+        if (snpfrag[i].bcomp < 0) continue;
+        component = snpfrag[i].bcomp;
+        if (clist[component].phased == 0) clist[component].offset = i;
+        clist[component].slist[clist[component].phased] = i;
+        clist[component].phased++;
+        clist[component].lastvar = i;
+    }
+    for (i = 0; i < components; i++) clist[i].length = clist[i].lastvar - clist[i].offset + 1;
+    for (i = 0; i < components; i++) clist[i].frags = 0;
+    for (i = 0; i < fragments; i++) {
+        if (snpfrag[Flist[i].list[0].offset].bcomp < 0)continue; // ignore fragments that cover singleton vertices
+        clist[snpfrag[Flist[i].list[0].offset].bcomp].frags++;
+    }
+    for (i = 0; i < components; i++) clist[i].flist = calloc(clist[i].frags,sizeof (int));
+    for (i = 0; i < components; i++) clist[i].frags = 0;
+    for (i = 0; i < fragments; i++) {
+        if (snpfrag[Flist[i].list[0].offset].bcomp < 0)continue;
+        clist[snpfrag[Flist[i].list[0].offset].bcomp].flist[clist[snpfrag[Flist[i].list[0].offset].bcomp].frags] = i;
+        clist[snpfrag[Flist[i].list[0].offset].bcomp].frags++;
+    }
+    for (i = 0; i < components; i++) {
+        if (VERBOSE) fprintf_time(stdout, "comp %d first %d last %d phased %d fragments %d \n", i, clist[i].offset, clist[i].lastvar, clist[i].phased, clist[i].frags);
+    }
+}
+
 
 // THIS FUNCTION PRINTS THE CURRENT HAPLOTYPE ASSEMBLY in a new file block by block
-int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* outfile) {
+int print_contigs(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* outfile) {
     // print a new file containing one block phasing and the corresponding fragments
     int i = 0, t = 0, k = 0, span = 0;
     char c=0, c1=0, c2=0;
     FILE* fp;
-    int edgelist[4096];
     fp = fopen(outfile, "w");
 
     for (i = 0; i < blocks; i++) {
@@ -87,19 +136,6 @@ int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
             }
 
             fprintf(fp, "%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%d", snpfrag[t].chromosome, snpfrag[t].position, snpfrag[t].allele0, snpfrag[t].allele1, snpfrag[t].genotypes, discrete_conf, switch_conf, snp_conf,snpfrag[t].frags);
-
-	   //if (HiC && snpfrag[t].frags > 0 && snpfrag[t].tedges < 20 )
-	 //  {
-	//	int t1=0,f1=0,l1=0,e1=0;
-		/*
-		for (f1=0;f1< snpfrag[t].frags;f1++); 
-		{
-			for (t1=0;t1<Flist[f1].blocks;t1++) 
-			{
-			    for (l1=0;l1<Flist[f1].len[t1];l1++) edgelist[e1++] = Flist[f1].offset + l1; 
-			}
-		}*/
-	  // }
 	   fprintf(fp,"\n");  
 
         }
@@ -107,57 +143,5 @@ int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
     }
     fclose(fp);
     return 0;
-}
-
-/****************************** READ HAPLOTYPE SOLUTION BLOCK by BLOCK*************************************************/
-int read_haplotypefile(char* hapfile, struct SNPfrags* snpfrag, int snps, char* HAP1, char* initHAP, int* bn) {
-    int i = 0, j = 0;
-    char id[100];
-    char c1, c2;
-    int offset, len, phased, blocks;
-    FILE* sf = fopen(hapfile, "r");
-    struct BLOCK* blist;
-    if (sf == NULL) fprintf_time(stderr, "couldn't open initial haplotype file file \n");
-    else {
-        j = 0;
-        while (1) {
-            fscanf(sf, "%s ", id);
-            if (strcmp(id, "BLOCK:") != 0) break;
-            fscanf(sf, "%s %d %s %d %s %d \n", id, &offset, id, &len, id, &phased);
-            j++;
-            for (i = 0; i < len; i++) fscanf(sf, "%s %c %c \n", id, &c1, &c2);
-            fscanf(sf, "%s \n", id);
-        }
-        fclose(sf);
-
-        blocks = j;
-        blist = (struct BLOCK*) malloc(sizeof (struct BLOCK)*blocks);
-        sf = fopen(hapfile, "r");
-        j = 0;
-        while (1) {
-            fscanf(sf, "%s ", id);
-            if (strcmp(id, "BLOCK:") != 0) break; //fprintf(stdout,"%s %d\n",id,j-1);
-            fscanf(sf, "%s %d %s %d %s %d \n", id, &offset, id, &len, id, &phased);
-            blist[j].offset = offset - 1;
-            blist[j].length = len;
-            blist[j].phased = phased;
-            //if (pflag) fprintf(stdout,"BLOCK--- %9d len %5d phased %5d \n",offset,len,phased);
-            j++;
-            for (i = 0; i < len; i++) {
-                fscanf(sf, "%s %c %c \n", id, &c1, &c2);
-                if (c1 != '-') {
-                    HAP1[offset + i - 1] = c1;
-                    bn[offset + i - 1] = offset;
-                    initHAP[offset + i - 1] = c1;
-                }
-                strcpy(snpfrag[offset + i - 1].id, id); // IMPORTANT copy SNP id from haplotype solution to SNP ID
-                // offset is the id of each block since it is supposed to be unique
-            }
-            fscanf(sf, "%s \n", id);
-        }
-        fclose(sf);
-    }
-    return 1;
-    /***************************** READ HAPLOTYPE SOLUTION*************************************************/
 }
 

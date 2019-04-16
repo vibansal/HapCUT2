@@ -4,7 +4,6 @@
 #include<math.h>
 #include<string.h>
 
-
 /*
 for Hi-C data, calculate number of unique linkages per variant
 

@@ -44,6 +44,7 @@ char HTRANS_DATA_INFILE[10000];
 char HTRANS_DATA_OUTFILE[10000];
 int MAX_IS = -1;
 
+void print_hapcut_options();
 
 int parse_arguments(int argc,char* argv[],char* fragfile,char* fragfile2,char* VCFfile,char* hapfile)
 {

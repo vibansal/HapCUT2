@@ -8,7 +8,6 @@
 #include<string.h>
 #include<ctype.h>
 #include "common.h"
-#include "fragmatrix.h"
 //#include "htslib/hts.h"
 //#include "htslib/vcf.h"
 
@@ -26,7 +25,7 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
 
 //int read_variantfile(char* variantfile, struct SNPfrags* snpfrag, int snps);
 
-int read_haplotypefile(char* hapfile, struct SNPfrags* snpfrag, int snps, char* HAP1, char* initHAP, int* bn);
+//int read_haplotypefile(char* hapfile, struct SNPfrags* snpfrag, int snps, char* HAP1, char* initHAP, int* bn);
 
 //int count_htrans_bins(char* htrans_file);
 //int read_htrans_file(char* htrans_file, float* htrans_probs, int num_bins);
