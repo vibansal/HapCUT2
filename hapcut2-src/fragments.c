@@ -4,7 +4,8 @@ extern int HIC;
 
 /* functions to calculate likelihoods P(read| haplotype) for sequencing errors and chimeric fragments */
 
-void calculate_fragscore1(struct fragment* FRAG, char* h, float* ll) {
+void calculate_fragscore1(struct fragment* Flist, int f, char* h, float* ll) {
+    struct fragment* FRAG = &Flist[f];
     int j = 0, k = 0;
     float p0 = 0, p1 = 0, prob = 0, prob2 = 0;
     float p0h = 0, p1h = 0, normal_ll=0, htrans_ll=0; // p0 and p1 for h-trans
@@ -68,7 +69,8 @@ void calculate_fragscore1(struct fragment* FRAG, char* h, float* ll) {
     }
 }
 
-void update_fragscore1(struct fragment* FRAG, char* h) {
+void update_fragscore1(struct fragment* Flist,int f, char* h) {
+    struct fragment* FRAG = &Flist[f];
     int j = 0, k = 0;
     float p0 = 0, p1 = 0, prob = 0, prob1 = 0, prob2 = 0;
     float p0h = 0, p1h = 0; // p0 and p1 for h-trans interactions
@@ -157,7 +159,8 @@ void update_fragscore1(struct fragment* FRAG, char* h) {
 // homozygous: 0-based index of a homozygous position. -1 if no homozygous pos
 
 // switch_ix: 0-based index of the switch error being tested, -1 if none
-float fragment_ll1(struct fragment* FRAG, char* h, int homozygous, int switch_ix) {
+float fragment_ll1(struct fragment* Flist, int f, char* h, int homozygous, int switch_ix) {
+    struct fragment* FRAG = &Flist[f];
     int j = 0, k = 0;
     float p0 = 0, p1 = 0, p0h = 0, p1h =0, prob = 0, prob1 = 0, prob2 = 0;
     float ll=0;

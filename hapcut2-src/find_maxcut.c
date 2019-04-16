@@ -1,6 +1,7 @@
 #define DEBUG 0
 
-#include "like_scores.c" // additional functions for likelihood based calculation
+//#include "like_scores.c" // additional functions for likelihood based calculation
+#include "fragments.h"
 #include "maxcut_lr.c"
 #include "common.h"
 #include <float.h>
@@ -27,7 +28,7 @@ void single_variant_flips(struct fragment* Flist, struct SNPfrags* snpfrag, stru
         for (i = 0; i < snpfrag[slist[t]].frags; i++) {
             f = snpfrag[slist[t]].flist[i];
             newscore -= Flist[f].currscore;
-            update_fragscore(Flist, f, HAP1);
+            update_fragscore1(Flist, f, HAP1);
             newscore += Flist[f].currscore;
         }
 
@@ -37,7 +38,7 @@ void single_variant_flips(struct fragment* Flist, struct SNPfrags* snpfrag, stru
             else if (HAP1[slist[t]] == '0') HAP1[slist[t]] = '1';
             for (i = 0; i < snpfrag[slist[t]].frags; i++) {
                 f = snpfrag[slist[t]].flist[i];
-                update_fragscore(Flist, f, HAP1);
+                update_fragscore1(Flist, f, HAP1);
             }
         } else {
             clist[k].SCORE = newscore;
@@ -90,7 +91,7 @@ int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, str
     // not required but we do it to avoid errors
     clist[k].SCORE = 0;
     for (i = 0; i < clist[k].frags; i++) {
-        update_fragscore(Flist, clist[k].flist[i], HAP1);
+        update_fragscore1(Flist, clist[k].flist[i], HAP1);
         clist[k].SCORE += Flist[clist[k].flist[i]].currscore;
     }
     clist[k].bestSCORE = clist[k].SCORE;
@@ -99,7 +100,7 @@ int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, str
 
     clist[k].SCORE = 0;
     for (i = 0; i < clist[k].frags; i++) {
-        update_fragscore(Flist, clist[k].flist[i], HAP1);
+        update_fragscore1(Flist, clist[k].flist[i], HAP1);
         clist[k].SCORE += Flist[clist[k].flist[i]].currscore;
     }
     clist[k].bestSCORE = clist[k].SCORE;
@@ -118,7 +119,7 @@ int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, str
     clist[k].bestSCORE = clist[k].SCORE;
     clist[k].SCORE = 0;
     for (i = 0; i < clist[k].frags; i++) {
-        update_fragscore(Flist, clist[k].flist[i], HAP1);
+        update_fragscore1(Flist, clist[k].flist[i], HAP1);
         clist[k].SCORE += Flist[clist[k].flist[i]].currscore;
     }
 
@@ -141,7 +142,7 @@ int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, str
         }
         clist[k].SCORE = 0;
         for (i = 0; i < clist[k].frags; i++) {
-            update_fragscore(Flist, clist[k].flist[i], HAP1);
+            update_fragscore1(Flist, clist[k].flist[i], HAP1);
             clist[k].SCORE += Flist[clist[k].flist[i]].currscore;
         }
     }else{

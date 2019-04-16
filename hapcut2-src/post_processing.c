@@ -58,15 +58,15 @@ void unphased_optim(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, 
         for (j = 0; j < snpfrag[i].frags; j++) {
 
             f = snpfrag[i].flist[j];
-            P_data_H += fragment_ll(Flist, f, HAP1, -1, -1);
+            P_data_H += fragment_ll1(Flist, f, HAP1, -1, -1);
             flip(HAP1[i]);
-            P_data_Hf += fragment_ll(Flist, f, HAP1, -1, -1);
+            P_data_Hf += fragment_ll1(Flist,f, HAP1, -1, -1);
 
-            HAP1[i] = '0'; snpfrag[i].PGLL[0] += fragment_ll(Flist, f, HAP1, i, -1); // added 03/12/2018, genotype = 0|0
-            HAP1[i] = '1'; snpfrag[i].PGLL[3] += fragment_ll(Flist, f, HAP1, i, -1); // genotype = 1|1
+            HAP1[i] = '0'; snpfrag[i].PGLL[0] += fragment_ll1(Flist,f, HAP1, i, -1); // added 03/12/2018, genotype = 0|0
+            HAP1[i] = '1'; snpfrag[i].PGLL[3] += fragment_ll1(Flist,f, HAP1, i, -1); // genotype = 1|1
             //return haplotype to original value
             HAP1[i] = temp1;
-	    ll = fragment_ll(Flist, f, HAP1, i, 10); // variant 'i' ignored for likelihood calculation if last parameter = 10
+	    ll = fragment_ll1(Flist,f, HAP1, i, 10); // variant 'i' ignored for likelihood calculation if last parameter = 10
 	    if (ll < 0) snpfrag[i].PGLL[4] +=ll;  // genotype likelihood where variant is 'unphased' or missing
 	    snpfrag[i].hetLL += log_half;
         }
@@ -117,28 +117,23 @@ void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfr
         for (j = 0; j < snpfrag[i].frags; j++) {
 
             f = snpfrag[i].flist[j];
-            P_data_H += fragment_ll(Flist, f, HAP1, -1, -1);
+            P_data_H += fragment_ll1(Flist,f, HAP1, -1, -1);
             flip(HAP1[i]);
-            P_data_Hf += fragment_ll(Flist, f, HAP1, -1, -1);
-	    /*
-	    calculate_fragscore(Flist,f,HAP1,&ll); P_data_H += ll; 
-	    if (HAP1[i] == '0') HAP1[i] = '1'; else if (HAP1[i] == '1') HAP1[i] = '0'; 
-            calculate_fragscore(Flist,f,HAP1,&ll); P_data_Hf += ll;
-	    */
+            P_data_Hf += fragment_ll1(Flist,f, HAP1, -1, -1);
 
             if (call_homozygous){
                 // haplotypes with i homozygous 00
                 HAP1[i] = '0';
-                P_data_H00 += fragment_ll(Flist, f, HAP1, i, -1);
+                P_data_H00 += fragment_ll1(Flist,f, HAP1, i, -1);
                 // haplotypes with i homozygous 11
                 HAP1[i] = '1';
-                P_data_H11 += fragment_ll(Flist, f, HAP1, i, -1);
+                P_data_H11 += fragment_ll1(Flist,f, HAP1, i, -1);
             }
-            HAP1[i] = '0'; snpfrag[i].PGLL[0] += fragment_ll(Flist, f, HAP1, i, -1); // added 03/12/2018
-            HAP1[i] = '1'; snpfrag[i].PGLL[3] += fragment_ll(Flist, f, HAP1, i, -1); // homozygous genotypes 00,11
+            HAP1[i] = '0'; snpfrag[i].PGLL[0] += fragment_ll1(Flist,f, HAP1, i, -1); // added 03/12/2018
+            HAP1[i] = '1'; snpfrag[i].PGLL[3] += fragment_ll1(Flist,f, HAP1, i, -1); // homozygous genotypes 00,11
             //return haplotype to original value
             HAP1[i] = temp1;
-	    ll = fragment_ll(Flist, f, HAP1, i, 10); // variant 'i' ignored for likelihood calculation if last parameter = 10
+	    ll = fragment_ll1(Flist,f, HAP1, i, 10); // variant 'i' ignored for likelihood calculation if last parameter = 10
 	    if (ll < 0) snpfrag[i].PGLL[4] +=ll;
         }
 	snpfrag[i].PGLL[1] = P_data_H; snpfrag[i].PGLL[2] = P_data_Hf;
@@ -217,9 +212,9 @@ int split_block(char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, s
         for (j = 0; j < clist[k].frags; j++) {
             // normal haplotype
             f = clist[k].flist[j];
-            P_data_H += fragment_ll(Flist, f, HAP, -1, -1);
+            P_data_H += fragment_ll1(Flist,f, HAP, -1, -1);
             // haplotype with switch error starting at i
-            P_data_Hsw += fragment_ll(Flist, f, HAP, -1, i);
+            P_data_Hsw += fragment_ll1(Flist,f, HAP, -1, i);
         }
         // posterior probability of no switch error
         post_sw = P_data_Hsw - addlogs(P_data_H, P_data_Hsw);

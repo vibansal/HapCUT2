@@ -35,7 +35,7 @@ float cut_score(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* 
             Ln = addlogs(Ln+subtractlogs(0,Flist[f].htrans_prob), Ln_htrans+Flist[f].htrans_prob);
         }
 
-        calculate_fragscore(Flist, f, hap, &fL);
+        calculate_fragscore1(Flist, f, hap, &fL);
         oldLL += fL; // ready to go with h-trans calculations
         newLL += Ln;
 

@@ -33,8 +33,8 @@ struct fragment {
 
 void fragment_assignment(struct fragment* FRAG, struct SNPfrags* snpfrag,char* h);
 
-void calculate_fragscore1(struct fragment* FRAG, char* h, float* ll);
-void update_fragscore1(struct fragment* FRAG, char* h);
-float fragment_ll1(struct fragment* FRAG, char* h, int homozygous, int switch_ix);
+void calculate_fragscore1(struct fragment* Flist, int f, char* h, float* ll);
+void update_fragscore1(struct fragment* Flist, int f, char* h);
+float fragment_ll1(struct fragment* Flist, int f, char* h, int homozygous, int switch_ix);
 
 #endif
