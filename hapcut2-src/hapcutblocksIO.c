@@ -110,8 +110,8 @@ int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
     return 0;
 }
 
+/****************************** READ HAPLOTYPE SOLUTION BLOCK by BLOCK*************************************************/
 int read_haplotypefile(char* hapfile, struct SNPfrags* snpfrag, int snps, char* HAP1, char* initHAP, int* bn) {
-    /****************************** READ HAPLOTYPE SOLUTION*************************************************/
     int i = 0, j = 0;
     char id[100];
     char c1, c2;

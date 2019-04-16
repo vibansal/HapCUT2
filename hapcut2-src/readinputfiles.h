@@ -28,8 +28,7 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
 
 int read_haplotypefile(char* hapfile, struct SNPfrags* snpfrag, int snps, char* HAP1, char* initHAP, int* bn);
 
-int count_htrans_bins(char* htrans_file);
-
-int read_htrans_file(char* htrans_file, float* htrans_probs, int num_bins);
+//int count_htrans_bins(char* htrans_file);
+//int read_htrans_file(char* htrans_file, float* htrans_probs, int num_bins);
 
 #endif

@@ -4,13 +4,13 @@
 #include<math.h>
 #include<string.h>
 #include "common.h"
+#include "hic.h"
 #include "fragmatrix.h"
 #include "pointerheap.h"
 #include "readinputfiles.h"
 #include "readvcf.h"
 #include "hapcutblocksIO.c"
 #include "outvcf.c"
-#include "hapcut-options.c"
 
 // Printing related
 int VERBOSE = 0;
@@ -54,6 +54,7 @@ char HTRANS_DATA_INFILE[10000];
 char HTRANS_DATA_OUTFILE[10000];
 int MAX_IS = -1;
 
+#include "optionparser.c" // parse command line options 
 #include "find_maxcut.c"   // function compute_good_cut
 #include "post_processing.c"  // post-processing functions
      
@@ -73,30 +74,6 @@ void detect_long_reads(struct fragment* Flist,int fragments)
             LONG_READS = 0;
         }
     }
-}
-
-void init_HiC(struct fragment* Flist,int fragments)
-{
-        int MAXIS = -1;
-        int i =0;
-        // determine the probability of an h-trans interaction for read
-        for (i=0; i<fragments;i++){
-
-            Flist[i].htrans_prob = -80;
-
-            if (Flist[i].isize > MAXIS)
-                MAXIS = Flist[i].isize;
-        }
-        HTRANS_MAXBINS = MAXIS/HTRANS_BINSIZE + 1;
-
-    // read in file with estimated probabilities of Hi-C h-trans interactions with distance
-    if (strcmp(HTRANS_DATA_INFILE, "None") != 0){
-        int num_bins        = count_htrans_bins(HTRANS_DATA_INFILE);
-        float* htrans_probs = (float*) malloc(sizeof(float) * num_bins);
-        read_htrans_file(HTRANS_DATA_INFILE, htrans_probs, num_bins);
-        for (i=0; i<fragments;i++)      Flist[i].htrans_prob = log10(htrans_probs[Flist[i].isize / HTRANS_BINSIZE]);
-        free(htrans_probs);
-        }
 }
 
 int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) {
@@ -210,7 +187,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
     fprintf_time(stderr, "processed fragment file and variant file: fragments %d variants %d\n", fragments, snps);
 
     HTRANS_MAXBINS = 0;
-    if (HIC) init_HiC(Flist,fragments);
+    if (HIC) init_HiC(Flist,fragments,HTRANS_DATA_INFILE);
 
     slist = (int*) malloc(sizeof (int)*snps);
 
@@ -341,6 +318,11 @@ int main(int argc, char** argv) {
     strcpy(hapfile, "None");
     strcpy(HTRANS_DATA_INFILE, "None");
     strcpy(HTRANS_DATA_OUTFILE, "None");
+    parse_arguments(argc,argv,fragfile,VCFfile,hapfile);
+    maxcut_haplotyping(fragfile, VCFfile, hapfile);
+    return 0;
+
+
 
     if (argc % 2 != 1){
         fprintf(stderr, "\nERROR: Invalid number of arguments specified.\n");
