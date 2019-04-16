@@ -27,6 +27,7 @@
 //#include "output_phasedblocks.c" // output phased haplotypes in original HapCUT format
 #include "haplotags.c" // output haplotype assignment for each long read based on final haplotypes
 
+// IMPORTANT NOTE: all SNPs start from 1 instead of 0 and all offsets are 1+ in fragment file
 
 // captures all the relevant data structures for phasing as a single structure
 typedef struct    
@@ -284,21 +285,19 @@ void post_processing(DATA* data)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 int maxcut_haplotyping(char* fragmentfile,char* fragmentfile2, char* variantfile, char* outputfile) {
-    // IMP NOTE: all SNPs start from 1 instead of 0 and all offsets are 1+
-    int i = 0, k = 0, components=0;
-    DATA data; 
 
-    // READ INPUT FILES
+    // READ INPUT FILES (Fragments and Variants)
+    DATA data; 
     if (read_input_files(fragmentfile,fragmentfile2,variantfile,&data) < 1)  return -1;
     fprintf_time(stderr, "processed fragment file and variant file: fragments %d variants %d\n",data.fragments,data.snps);
     struct fragment* Flist = data.Flist; int fragments = data.fragments;
     struct SNPfrags* snpfrag =data.snpfrag; int snps = data.snps;
 
-    // BUILD READ-VARIANT GRAPH 
+    // BUILD FRAGMENT-VARIANT GRAPH 
     fprintf_time(stderr, "building read-variant graph for phasing\n");
     build_readvariant_graph(&data); 
     
-    // INITIALIZE RANDOM HAPLOTYPES
+    // INITIALIZE HAPLOTYPES
     data.HAP1 = (char*) malloc(snps + 1);
     init_random_hap(snpfrag,snps,data.HAP1);
 
