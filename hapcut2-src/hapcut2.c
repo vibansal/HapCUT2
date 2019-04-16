@@ -6,7 +6,7 @@
 
 // data structures and global variables 
 #include "common.h" // datastructures for fragments, variants and haplotype blocks
-#include "fragments.h"
+#include "fragments.h" // fragment likelihood, haplotype assignment
 #include "variantgraph.h" // 
 #include "hapcontig.h" // haplotype contigs or blocks 
 #include "optionparser.c" // global variables and parse command line arguments to change these variables 
@@ -24,8 +24,6 @@
 
 // output related
 #include "output_phasedvcf.c" // output VCF phased file
-//#include "output_phasedblocks.c" // output phased haplotypes in original HapCUT format
-#include "haplotags.c" // output haplotype assignment for each long read based on final haplotypes
 
 // IMPORTANT NOTE: all SNPs start from 1 instead of 0 and all offsets are 1+ in fragment file
 
@@ -61,7 +59,7 @@ int detect_long_reads(struct fragment* Flist,int fragments)
 
 int read_input_files(char* fragmentfile,char* fragmentfile2,char* variantfile,DATA* data)
 {
-    // READ FRAGMENT MATRIX
+    // READ FRAGMENT MATRIX, allows for second fragment file as well. 
     data->fragments = get_num_fragments(fragmentfile);
     int offset = data->fragments;
     if (strcmp(fragmentfile2,"None") !=0) data->fragments += get_num_fragments(fragmentfile2);

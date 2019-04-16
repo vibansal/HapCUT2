@@ -60,7 +60,7 @@ $(B)/readfasta.o: $(H)/readfasta.c $(H)/readfasta.h | $(B)
 
 # BUILD HAPCUT2
 
-$(B)/HAPCUT2: $(B)/variantgraph.o $(B)/readinputfiles.o $(B)/hapcontig.o $(B)/fragments.o $(B)/readvcf.o $(B)/pointerheap.o $(B)/common.o $(B)/hic.o $(X)/hapcut2.c $(X)/output_phasedvcf.c $(X)/haplotags.c $(X)/find_maxcut.c $(X)/post_processing.c $(X)/maxcut_lr.c | $(B)
+$(B)/HAPCUT2: $(B)/variantgraph.o $(B)/readinputfiles.o $(B)/hapcontig.o $(B)/fragments.o $(B)/readvcf.o $(B)/pointerheap.o $(B)/common.o $(B)/hic.o $(X)/hapcut2.c $(X)/output_phasedvcf.c $(X)/find_maxcut.c $(X)/post_processing.c $(X)/maxcut_lr.c | $(B)
 	$(CC) $(B)/common.o $(B)/hic.o $(B)/variantgraph.o $(B)/readinputfiles.o $(B)/hapcontig.o $(B)/fragments.o $(B)/readvcf.o $(B)/pointerheap.o -o $(B)/HAPCUT2 -lm $(X)/hapcut2.c -L$(HTSLIB) -lhts 
 
 $(B)/common.o: $(X)/common.h $(X)/common.c $(X)/variant.h $(X)/fragments.h | $(B)

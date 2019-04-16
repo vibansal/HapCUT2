@@ -11,6 +11,12 @@ extern int MAX_ITER;
 extern int CONVERGE;
 extern int VERBOSE;
 
+typedef struct EDGE {
+    int s, t;
+    float w;
+} EDGE;
+
+
 /****** CODE TO FIND MAX CUT FOR EACH COMPONENT *************/
 int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1);
 float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, struct BLOCK* component, struct fragment* Flist);
@@ -234,9 +240,7 @@ float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, struct BL
             }
         }
     }
-
     /* CODE TO set up the read-haplotype consistency graph */
-
 
     // edge contraction algorithm: merge vertices until only two nodes left or total edge weight of graph is negative
     int startnode = (int) (drand48() * N);

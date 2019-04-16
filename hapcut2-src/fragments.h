@@ -31,7 +31,7 @@ struct fragment {
     int PS; int PQ; char HP; // haplotype assignments for each fragment, HP= 0/1, PS = integer, PQ = probability that assignment of fragment is correct
 };
 
-void fragment_assignment(struct fragment* FRAG, struct SNPfrags* snpfrag,char* h);
+void fragment_assignments(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag,char* h,char* outfile);
 
 void calculate_fragscore1(struct fragment* Flist, int f, char* h, float* ll);
 void update_fragscore1(struct fragment* Flist, int f, char* h);

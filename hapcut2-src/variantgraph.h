@@ -16,12 +16,6 @@ struct edge {
     float w;
 };
 
-typedef struct EDGE {
-    int s, t;
-    float w;
-} EDGE;
-
-
 //void label_node(struct SNPfrags* snpfrag, int node, int comp);
 float edge_weight(char* hap, int i, int j, char* p, struct fragment* Flist, int f);
 void add_edges(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int* components);

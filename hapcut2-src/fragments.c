@@ -254,7 +254,7 @@ float fragment_ll1(struct fragment* Flist, int f, char* h, int homozygous, int s
 }
 
 // output the block-ID (first SNP in block), haplotype-assignment and probability of assignment  | only for long-reads or linked reads
-void fragment_assignment(struct fragment* FRAG, struct SNPfrags* snpfrag,char* h)
+int fragment_assignment(struct fragment* FRAG, struct SNPfrags* snpfrag,char* h)
 {
     int f=0,j = 0, k = 0,alleles=0,offset=0,component;
     float p0 = 0, p1 = 0, prob = 0, prob2 = 0;
@@ -289,7 +289,26 @@ void fragment_assignment(struct fragment* FRAG, struct SNPfrags* snpfrag,char* h
 	   {
 	     FRAG->PS = snpfrag[component].position; FRAG->HP = tag; 
 	   }
+	   return 1;
    }
+   return 0;
+}
+
+// for each fragment, output the block-ID (first SNP in block), haplotype-assignment and probability of assignment  | only for long-reads or linked reads
+void fragment_assignments(struct fragment* Flist,int fragments, struct SNPfrags* snpfrag,char* h,char* outfile)
+{
+    int f=0,j = 0, k = 0,alleles=0,offset=0,component;
+    float p0 = 0, p1 = 0, prob = 0, prob2 = 0;
+    char tag;
+    int valid = 0;
+    FILE* OUTFILE = fopen(outfile,"w");
+
+    for (f=0;f<fragments;f++)
+    {
+	valid = fragment_assignment(&Flist[f], snpfrag,h);
+        if (valid ==1) fprintf(OUTFILE,"%s %d %c %d\n",Flist[f].id,Flist[f].PS,Flist[f].HP,Flist[f].PQ);
+    }
+    fclose(OUTFILE);
 }
 
    /*
@@ -306,4 +325,3 @@ void fragment_assignment(struct fragment* FRAG, struct SNPfrags* snpfrag,char* h
    }
    fprintf(OUTFILE,"\n");
    */
-
