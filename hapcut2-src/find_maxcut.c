@@ -1,4 +1,3 @@
-
 #define DEBUG 0
 
 #include "maxcut_lr.c"

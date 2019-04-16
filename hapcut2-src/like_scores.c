@@ -3,6 +3,11 @@
 #include "common.h"
 extern int HIC;
 
+void update_fragscore(struct fragment* Flist, int f, char* h);
+void calculate_fragscore(struct fragment* Flist, int f, char* h, float* mec_ll);
+float fragment_ll(struct fragment* Flist, int f, char* h, int homozygous, int switch_ix);
+
+
 void calculate_fragscore(struct fragment* Flist, int f, char* h, float* ll) {
     int j = 0, k = 0;
     float p0 = 0, p1 = 0, prob = 0, prob2 = 0;

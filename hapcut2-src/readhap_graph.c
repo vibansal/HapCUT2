@@ -1,7 +1,10 @@
 #include "khash.h"
 KHASH_SET_INIT_INT(32)
-
 #include "fragmatrix.h"
+
+/*
+functions to build the read-haplotype graph (nodes are SNPfrag objects), build edge list, find connected components
+*/
 
 extern int VERBOSE;
 extern int LONG_READS;
