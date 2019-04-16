@@ -7,11 +7,10 @@ extern float THRESHOLD;
 extern int HIC;
 
 // THIS FUNCTION PRINTS THE CURRENT HAPLOTYPE ASSEMBLY in a new file block by block
-int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* fname, int score, char* outfile) {
+int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* outfile) {
     // print a new file containing one block phasing and the corresponding fragments
     int i = 0, t = 0, k = 0, span = 0;
     char c=0, c1=0, c2=0;
-    //char fn[200]; sprintf(fn,"%s-%d.phase",fname,score);
     FILE* fp;
     int edgelist[4096];
     fp = fopen(outfile, "w");

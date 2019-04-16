@@ -22,7 +22,7 @@ void generate_clist_structure(struct fragment* Flist, int fragments, struct SNPf
 //void calculate_fragscore(struct fragment* Flist, int f, char* h, float* mec_ll);
 //float fragment_ll(struct fragment* Flist, int f, char* h, int homozygous, int switch_ix);
 
-int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* fname, int score, char* outfile);
+int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* outfile);
 void print_haplotypes_vcf(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, char* outfile);
 void print_hapcut_options();
 void print_fragmentmatrix_MEC(struct fragment* Flist, int fragments, char* h, char* outfileprefix);

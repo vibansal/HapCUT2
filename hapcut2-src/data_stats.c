@@ -4,6 +4,15 @@
 #include<math.h>
 #include<string.h>
 
+
+/*
+for Hi-C data, calculate number of unique linkages per variant
+
+also calculate the mean and median base quality value
+
+*/
+
+
 int detect_long_reads(struct fragment* Flist,int fragments)
 {
     int i=0;

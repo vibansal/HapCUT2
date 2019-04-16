@@ -15,7 +15,7 @@
 
 int get_num_fragments(char* fragmentfile);
 
-int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragments);
+int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragments,int OFFSET);
 
 // counts # of variants in VCF file, copies from rarevariantassociation testing code (readvcf.c), allows for arbitrary long lines
 //int count_variants_vcf(char* vcffile);

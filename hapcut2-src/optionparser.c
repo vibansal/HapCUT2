@@ -45,7 +45,7 @@ char HTRANS_DATA_OUTFILE[10000];
 int MAX_IS = -1;
 
 
-int parse_arguments(int argc,char* argv[],char* fragfile,char* VCFfile,char* hapfile)
+int parse_arguments(int argc,char* argv[],char* fragfile,char* fragfile2,char* VCFfile,char* hapfile)
 {
     // input arguments are initial fragment file, variant file with variant information and alleles for each variant
     // number of iterations total, when to output the solution, file to output solution .....
@@ -64,6 +64,8 @@ int parse_arguments(int argc,char* argv[],char* fragfile,char* VCFfile,char* hap
         if (strcmp(argv[i], "--fragments") == 0 || strcmp(argv[i], "--f") == 0) {
             strcpy(fragfile, argv[i + 1]);
             flag++;
+        } else if (strcmp(argv[i], "--fragments2") == 0 ) {
+            strcpy(fragfile2, argv[i + 1]);
         } else if (strcmp(argv[i], "--VCF") == 0 || strcmp(argv[i], "--vcf") == 0) {
             strcpy(VCFfile, argv[i + 1]);
             flag++;
