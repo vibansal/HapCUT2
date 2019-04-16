@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include "variant.h"
 
-// fragment blocks
+// fragment block =  consecutive variants with allele-calls, each fragment is a linked list of such blocks
 struct block {
     int offset;
     char* hap;
