@@ -3,7 +3,6 @@
 #include <stdint.h>
 #include "datastructures.h"
 
-//Tue May 29 23:13:29 PDT 2007
 extern int QVoffset;
 extern int MINQ;
 

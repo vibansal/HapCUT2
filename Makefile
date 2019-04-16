@@ -60,8 +60,8 @@ $(B)/readfasta.o: $(H)/readfasta.c $(H)/readfasta.h | $(B)
 
 # BUILD HAPCUT2
 
-$(B)/HAPCUT2: $(B)/fragmatrix.o $(B)/readinputfiles.o $(B)/readvcf.o $(B)/pointerheap.o $(B)/common.o $(B)/hic.o $(X)/hapcut2.c $(X)/find_maxcut.c $(X)/post_processing.c| $(B)
-	$(CC) $(B)/common.o $(B)/hic.o $(B)/fragmatrix.o $(B)/readinputfiles.o $(B)/readvcf.o $(B)/pointerheap.o -o $(B)/HAPCUT2 -lm $(X)/hapcut2.c -L$(HTSLIB) -lhts 
+$(B)/HAPCUT2: $(B)/readhap_graph.o $(B)/readinputfiles.o $(B)/readvcf.o $(B)/pointerheap.o $(B)/common.o $(B)/hic.o $(X)/hapcut2.c $(X)/find_maxcut.c $(X)/post_processing.c| $(B)
+	$(CC) $(B)/common.o $(B)/hic.o $(B)/readhap_graph.o $(B)/readinputfiles.o $(B)/readvcf.o $(B)/pointerheap.o -o $(B)/HAPCUT2 -lm $(X)/hapcut2.c -L$(HTSLIB) -lhts 
 
 $(B)/common.o: $(X)/common.h $(X)/common.c $(X)/datastructures.h | $(B)
 	$(CC) -c $(X)/common.c -o $(B)/common.o
@@ -69,8 +69,8 @@ $(B)/common.o: $(X)/common.h $(X)/common.c $(X)/datastructures.h | $(B)
 $(B)/hic.o: $(X)/hic.h $(X)/hic.c $(X)/common.h | $(B)
 	$(CC) -c $(X)/hic.c -o $(B)/hic.o
 
-$(B)/fragmatrix.o: $(X)/fragmatrix.h $(X)/fragmatrix.c $(X)/common.h $(X)/hapcutblocksIO.c  | $(B)
-	$(CC) -c $(X)/fragmatrix.c -o $(B)/fragmatrix.o
+$(B)/readhap_graph.o: $(X)/fragmatrix.h $(X)/readhap_graph.c $(X)/common.h $(X)/output_phasedblocks.c  | $(B)
+	$(CC) -c $(X)/readhap_graph.c -o $(B)/readhap_graph.o
 
 $(B)/readinputfiles.o: $(X)/readinputfiles.h $(X)/readinputfiles.c $(X)/common.h $(X)/fragmatrix.h | $(B)
 	$(CC) -c $(X)/readinputfiles.c -o $(B)/readinputfiles.o

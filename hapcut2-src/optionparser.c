@@ -1,6 +1,49 @@
 
-/* code for parsing arguments from command line for HapCUT2 and also print the various command line options
+/* specification of the command line arguments for HapCUT2 and I/O of these
  */
+
+// Printing related
+int VERBOSE = 0;
+int PRINT_FRAGMENT_SCORES = 0; // output the MEC/switch error score of erroneous reads/fragments to a file for evaluation
+
+// Quality-score related parameters
+int QVoffset = 33;
+int MINQ = 6; // additional base quality filter in hapcut added april 18 2012
+
+// Number of iterations
+int MAXITER = 10000;     // maximum number of global iterations
+int MAXCUT_ITER = 10000; // maximum number of iterations for max-cut algorithm, if this is proportional to 'N' -> complexity is 'N^2', added march 13 2013
+int CONVERGE = 5; // stop iterations on a given block if exceed this many iterations since improvement
+
+// Post-processing related variables
+float THRESHOLD = 0.8;
+float SPLIT_THRESHOLD = 0.8;
+float HOMOZYGOUS_PRIOR = -80; // in log form. assumed to be really unlikely
+int DISCRETE_PRUNING =0;    // not used 
+int CALL_HOMOZYGOUS = 0;  
+int SPLIT_BLOCKS = 0;
+int ERROR_ANALYSIS_MODE = 0;  
+int SKIP_PRUNE = 0;
+int UNPHASED = 1;  // if set to 1, consider the option of leaving some variants unphased 
+int SNVS_BEFORE_INDELS = 0; // ??? 
+int OUTPUT_HAPLOTAGS =0; // read-haplotype assignments
+int OUTPUT_VCF =0;     // output phased VCF or not 
+
+int AUTODETECT_LONGREADS = 1;
+int LONG_READS = 0; // if this variable is 1, the data contains long read data
+
+// HiC-related global variables
+int HIC = 0;
+int MAX_HIC_EM_ITER = 1;
+int NEW_FRAGFILE_FORMAT = 0;
+int HTRANS_BINSIZE = 5000;
+int HTRANS_MAXBINS = 10000; // this value will be overwritten at startup
+int HTRANS_READ_LOWBOUND = 500;
+int HTRANS_MAX_WINDOW = 4000000; // maximum window size for h-trans estimation
+char HTRANS_DATA_INFILE[10000];
+char HTRANS_DATA_OUTFILE[10000];
+int MAX_IS = -1;
+
 
 int parse_arguments(int argc,char* argv[],char* fragfile,char* VCFfile,char* hapfile)
 {
@@ -30,7 +73,7 @@ int parse_arguments(int argc,char* argv[],char* fragfile,char* VCFfile,char* hap
         }else if ((strcmp(argv[i], "--converge") == 0) || (strcmp(argv[i], "--c") == 0)) {
             CONVERGE = atoi(argv[i + 1]);
         }else if ((strcmp(argv[i], "--rh") == 0) || (strcmp(argv[i], "--tags") == 0)) { // read-haplotype assignments
-            OUTPUT_RH_ASSIGNMENTS = atoi(argv[i + 1]);
+            OUTPUT_HAPLOTAGS = atoi(argv[i + 1]);
         }else if ((strcmp(argv[i], "--outvcf") == 0) ) { // output VCF or not, default is 1
             OUTPUT_VCF = atoi(argv[i + 1]);
         }else if (strcmp(argv[i], "--verbose") == 0 || strcmp(argv[i], "--v") == 0){

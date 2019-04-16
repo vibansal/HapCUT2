@@ -7,6 +7,26 @@ extern int VERBOSE;
 extern int LONG_READS;
 //////////////////////////////////////// edge list is only used in the two functions below add_edges (Feb 4 2013) //////////////////////////////
 
+float edge_weight(char* hap, int i, int j, char* p, struct fragment* Flist, int f) {
+    float q1 = 1, q2 = 1;
+    int k = 0, l = 0;
+    // new code added so that edges are weighted by quality scores, running time is linear in length of fragment !! 08/15/13 | reduce this
+    for (k = 0; k < Flist[f].blocks; k++) {
+        for (l = 0; l < Flist[f].list[k].len; l++) {
+            if (Flist[f].list[k].offset + l == i) q1 = Flist[f].list[k].pv[l];
+            else if (Flist[f].list[k].offset + l == j) q2 = Flist[f].list[k].pv[l];
+        }
+    }
+    float p1 = q1 * q2 + (1 - q1)*(1 - q2);
+    float p2 = q1 * (1 - q2) + q2 * (1 - q1);
+    if (hap[i] == hap[j] && p[0] == p[1]) return log10(p1 / p2);
+    else if (hap[i] != hap[j] && p[0] != p[1]) return log10(p1 / p2);
+    else if (hap[i] == hap[j] && p[0] != p[1]) return log10(p2 / p1);
+    else if (hap[i] != hap[j] && p[0] == p[1]) return log10(p2 / p1);
+    else return 0;
+}
+
+
 // non-recursive version of label_node
 void label_node_alt(struct SNPfrags* snpfrag, int init_node, int comp, khash_t(32) *label_node_hash) {
 	int ret;
@@ -83,12 +103,13 @@ int edge_compare(const void *a, const void *b) {
     return ia->snp - ib->snp;
 }
 
-void add_edges_fosmids(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int* components) {
+void add_edges_longreads(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps, int* components) {
     int i = 0, j = 0, k = 0, maxdeg = 0, avgdeg = 0, t1 = 0, t2 = 0;
     //char allele;
     int csnps = 0;
     int max_vars = 65536;
 	khash_t(32) *label_node_hash = kh_init(32);
+    for (i = 0; i < snps; i++) snpfrag[i].elist = (struct edge*) malloc(sizeof (struct edge)*(snpfrag[i].edges+1));
     for (i = 0; i < snps; i++) snpfrag[i].edges = 0;
 
     int varlist[max_vars];
@@ -169,6 +190,7 @@ void add_edges(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, 
 	khash_t(32) *label_node_hash = kh_init(32);
     int i = 0, j = 0, t = 0, k = 0, iter = 0, maxdeg = 0, avgdeg = 0, mdelta = 0;
     int csnps = 0;
+    for (i = 0; i < snps; i++) snpfrag[i].elist = (struct edge*) malloc(sizeof (struct edge)*(snpfrag[i].edges+1));
     for (i = 0; i < snps; i++) snpfrag[i].edges = 0;
     for (i = 0; i < fragments; i++) {
         for (j = 0; j < Flist[i].blocks; j++) {

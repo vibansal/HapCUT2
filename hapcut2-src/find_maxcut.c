@@ -47,7 +47,7 @@ void single_variant_flips(struct fragment* Flist, struct SNPfrags* snpfrag, stru
     }
 }
 
-
+/*
 float edge_weight(char* hap, int i, int j, char* p, struct fragment* Flist, int f) {
     float q1 = 1, q2 = 1;
     int k = 0, l = 0;
@@ -66,6 +66,7 @@ float edge_weight(char* hap, int i, int j, char* p, struct fragment* Flist, int 
     else if (hap[i] != hap[j] && p[0] == p[1]) return log10(p2 / p1);
     else return 0;
 }
+*/
 
 /**************** DETERMINISTIC MAX_CUT MEC IMPLEMENTATION *********************************************************//////
 

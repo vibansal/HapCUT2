@@ -5,22 +5,15 @@
 extern float THRESHOLD;
 extern int DISCRETE_PRUNING;
 extern int ERROR_ANALYSIS_MODE;
-extern int HTRANS_MAXBINS;
-extern int HTRANS_BINSIZE;
 extern float HOMOZYGOUS_PRIOR;
 extern float SPLIT_THRESHOLD;
 extern int SPLIT_BLOCKS;
-extern int HTRANS_READ_LOWBOUND;
-extern char HTRANS_DATA_OUTFILE[10000];
-extern int HTRANS_MAX_WINDOW;
 extern int SNVS_BEFORE_INDELS;
 
-float HIC_EM_THRESHOLD = 0.99; // use a strict-ish threshold for the HiC haplotype SNPs that we'll estimate h-trans from
 
 void calculate_hetLL(struct fragment* Flist, int fragments,struct SNPfrags* snpfrag, int snps,char* HAP1);
 void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfrag, char* HAP1, int call_homozygous);
 int split_block(char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, struct SNPfrags* snpfrag, int* components_ptr);
-int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struct SNPfrags* snpfrag);
 
 // not used currentyl
 void calculate_hetLL(struct fragment* Flist, int fragments,struct SNPfrags* snpfrag, int snps,char* HAP1)
@@ -264,153 +257,4 @@ int split_block(char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, s
     }
 
     return split_occured;
-}
-
-
-// estimate probabilities of h-trans to feed back into HapCUT algorithm, HIC data 
-int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, struct SNPfrags* snpfrag){
-
-    float* MLE_sum   = calloc(HTRANS_MAXBINS,sizeof(float));
-    float* MLE_count = calloc(HTRANS_MAXBINS,sizeof(float));
-    float* p_htrans      = calloc(HTRANS_MAXBINS,sizeof(float));
-    float* adj_MLE_sum   = calloc(HTRANS_MAXBINS,sizeof(float));
-    float* adj_MLE_count = calloc(HTRANS_MAXBINS,sizeof(float));
-
-    int i=0,j=0,k=0,f=0,bin;
-    int i_minus = 0, i_plus = 0;
-    int e_window_size = HTRANS_BINSIZE; //track the effective window size
-
-    // consistent counts, inconsistent counts
-    int i1=-1, i2=-1;
-    char a1='-', a2='-', h1='-', h2='-';
-    float q1=0,q2=0;
-    // count the number of consistent vs inconsistent for a given insert size bin
-    for (f = 0; f < fragments; f++){
-
-        // consider mate pairs only
-        if (Flist[f].mate2_ix == -1 || Flist[f].isize == -1){
-            continue;
-        }
-
-        // insert size bin
-        bin = Flist[f].isize / HTRANS_BINSIZE;
-
-        if (bin < 0){
-            fprintf_time(stderr,"ERROR: bin less than 0");
-            exit(1);
-        }
-        if (bin >= HTRANS_MAXBINS){
-            fprintf_time(stderr,"ERROR: bin greater than HTRANS_MAXBINS");
-            exit(1);
-        }
-
-        // keep things very simple by only sampling 1-snp mates
-        if (Flist[f].calls < 2){
-            continue;
-        }
-
-        i1 = Flist[f].list[0].offset;
-        a1 = Flist[f].list[0].hap[0];
-        q1 = Flist[f].list[0].pv[0];
-
-        i2 = Flist[f].mate2_ix;
-        for (j=0; j<Flist[f].blocks; j++){
-            for (k=0; k<Flist[f].list[j].len; k++){
-                if (Flist[f].list[j].offset+k == Flist[f].mate2_ix){
-                    a2 = Flist[f].list[j].hap[k];
-                    q2 = Flist[f].list[j].pv[k];
-                    break;
-                }
-            }
-        }
-
-        h1 = HAP[i1];
-        h2 = HAP[i2];
-
-        if (h1 == '-' || h2 == '-'
-         || snpfrag[i1].post_hap < log10(HIC_EM_THRESHOLD)|| snpfrag[i2].post_hap < log10(HIC_EM_THRESHOLD)
-         || (snpfrag[i1].bcomp != snpfrag[i2].bcomp)
-         || (snpfrag[i1].bcomp == -1)
-         || (snpfrag[i2].bcomp == -1)
-         || (snpfrag[i1].frags == 1)
-         || (snpfrag[i2].frags == 1)){
-            continue;
-        }
-
-        MLE_count[bin]++;
-
-        assert(i1 < Flist[f].mate2_ix);
-        assert(i2 == Flist[f].mate2_ix);
-        assert (h1 == '1' || h1 == '0');
-        assert (h2 == '1' || h2 == '0');
-        assert (a1 == '1' || a1 == '0');
-        assert (a2 == '1' || a2 == '0');
-
-        if ((a1 == a2) == (h1 == h2)){ // phase match
-            MLE_sum[bin] += ((1-q1)*q2 + (1-q2)*q1);
-        }else{                         // phase mismatch
-            MLE_sum[bin] += ((1-q1)*(1-q2) + q1*q2);
-        }
-    }
-
-	// using neighboring bins to calculate mean htrans for each bin
-    for (i = 0; i < HTRANS_MAXBINS; i++){
-        adj_MLE_count[i] = MLE_count[i];
-        adj_MLE_sum[i] = MLE_sum[i];
-        i_minus = i;
-        i_plus = i;
-        e_window_size = HTRANS_BINSIZE; //track the effective window size
-        for (j = 0; j< 100000; j++){
-            if (adj_MLE_count[i] >= HTRANS_READ_LOWBOUND) break; // 500 observations only ??
-            i_minus--;
-            i_plus++;
-            if (i_minus >= 0){
-                adj_MLE_count[i] += MLE_count[i_minus];
-                adj_MLE_sum[i] += MLE_sum[i_minus];
-                e_window_size += HTRANS_BINSIZE;
-            }
-            if(i_plus < HTRANS_MAXBINS){
-                adj_MLE_count[i] += MLE_count[i_plus];
-                adj_MLE_sum[i] += MLE_sum[i_plus];
-                e_window_size += HTRANS_BINSIZE;
-            }
-            if (e_window_size >= HTRANS_MAX_WINDOW) break; // cut off window expansion if it's larger than some amount
-        }
-	//fprintf(stdout,"i %d %d-%d count %f %f \n",i,i_minus*HTRANS_BINSIZE,i_plus*HTRANS_BINSIZE,adj_MLE_count[i],adj_MLE_sum[i]);
-    }
-
-    // compute the MLE for each bin
-    for (i = 0; i < HTRANS_MAXBINS; i++){
-        if (adj_MLE_count[i] == 0 || adj_MLE_sum[i] == 0)
-            p_htrans[i] = -80;
-        else
-            p_htrans[i] = log10(adj_MLE_sum[i] / adj_MLE_count[i]);
-    }
-
-    // assign the probabilities to fragments based in insert size
-    for (f = 0; f < fragments; f++){
-        if (Flist[f].mate2_ix == -1){
-            Flist[f].htrans_prob = -80;
-            continue;
-        }
-        Flist[f].htrans_prob = p_htrans[Flist[f].isize / HTRANS_BINSIZE];
-    }
-
-    if (strcmp(HTRANS_DATA_OUTFILE,"None") != 0){
-        FILE* fp;
-        fp = fopen(HTRANS_DATA_OUTFILE, "w");
-        // compute the MLE for each bin
-        for (i = 0; i < HTRANS_MAXBINS; i++){
-            fprintf(fp,"%d-%d\t%f\n",i*HTRANS_BINSIZE,(i+1)*HTRANS_BINSIZE,
-                    pow(10,p_htrans[i]));
-        }
-        fclose(fp);
-    }
-
-    free(MLE_sum);
-    free(MLE_count);
-    free(adj_MLE_sum);
-    free(adj_MLE_count);
-    free(p_htrans);
-    return 0;
 }
