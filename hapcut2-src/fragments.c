@@ -2,19 +2,22 @@
 #include "common.h"
 #include "frag_likelihood.c"
 
+void free_fragment(struct fragment* FRAG)
+{
+    int j=0;
+    for (j = 0; j < FRAG->blocks; j++){
+    free(FRAG->list[j].hap);
+            free(FRAG->list[j].qv);
+            free(FRAG->list[j].pv);
+            free(FRAG->list[j].p1);
+    }
+    free(FRAG->list); free(FRAG->id);
+}
+
 void free_fragmentlist(struct fragment* Flist, int fragments)
 {
     int i=0,j=0;
-    for (i=0;i<fragments;i++)
-    {
-	for (j = 0; j < Flist[i].blocks; j++){
-            free(Flist[i].list[j].hap);
-            free(Flist[i].list[j].qv);
-            free(Flist[i].list[j].pv);
-            free(Flist[i].list[j].p1);
-        }
-        free(Flist[i].list); free(Flist[i].id);
-    }
+    for (i=0;i<fragments;i++) free_fragment(&Flist[i]);
     free(Flist);
 }
 
@@ -34,40 +37,55 @@ void print_fragment(struct fragment* FRAG,FILE* OUTFILE)
    fprintf(OUTFILE,"\n");
 }
 
-int filter_fragment(struct fragment* FRAG,struct SNPfrags* snpfrag,FILE* OUTFILE)
+int filter_fragments(struct fragment* Flist,int fragments,struct SNPfrags* snpfrag,struct fragment* nFlist)
 {
-   int j=0,k=0,snp_ix=0;
+   int j=0,k=0,snp_ix=0,i=0;
    int total=0,het=0;
-   for (j = 0; j < FRAG->blocks; j++) 
-   {
-	for (k = 0; k < FRAG->list[j].len; k++) 
-	{
-		snp_ix = FRAG->list[j].offset + k; // index of current position
-                if (snpfrag[snp_ix].genotypes[0] != snpfrag[snp_ix].genotypes[2]) het++;
-                total++;
-	}
-   }
-   fprintf(stdout,"stats %d %d \n",total,het); 
-   if (het < 2) return het;
+   int n=0;
+   int q =0;
 
-   char* newqv = calloc(sizeof(char),het+1); int q =0;
-   fprintf(OUTFILE,"NEW %d %s ",het,FRAG->id);
-   for (j = 0; j < FRAG->blocks; j++)
+   struct fragment* FRAG;
+   for (i=0;i<fragments;i++)
    {
-        for (k = 0; k < FRAG->list[j].len; k++)
-        {
-                snp_ix = FRAG->list[j].offset + k; // index of current position
-                if (snpfrag[snp_ix].genotypes[0] != snpfrag[snp_ix].genotypes[2]) 
-                {
-			fprintf(OUTFILE,"%d %c ",snp_ix+1,FRAG->list[j].hap[k]); 
-			newqv[q] = FRAG->list[j].qv[k]; q++; 
+	FRAG = &Flist[i]; het=0; total =0;
+	   for (j = 0; j < FRAG->blocks; j++) 
+	   {
+		for (k = 0; k < FRAG->list[j].len; k++) 
+		{
+			snp_ix = FRAG->list[j].offset + k; // index of current position
+			if (snpfrag[snp_ix].genotypes[0] != snpfrag[snp_ix].genotypes[2]) het++;
+			total++;
 		}
-        }
-   }
-   newqv[q] = '\0';
-   fprintf(OUTFILE,"%s\n",newqv);
-   free(newqv);
+	   }
+	   if (het < 2) continue; 
+           //fprintf(stdout,"stats %d %d \n",total,het); 
 
+	   nFlist[n].id = calloc(sizeof(char),strlen(FRAG->id)+1); strcpy(nFlist[n].id,FRAG->id);
+   	   nFlist[n].list = calloc(sizeof(struct block),het); 
+   	   nFlist[n].blocks = het; nFlist[n].data_type = FRAG->data_type;
+	   q=0;
+	   
+	   for (j = 0; j < FRAG->blocks; j++)
+	   {
+		for (k = 0; k < FRAG->list[j].len; k++)
+		{
+			snp_ix = FRAG->list[j].offset + k; // index of current position
+			if (snpfrag[snp_ix].genotypes[0] != snpfrag[snp_ix].genotypes[2]) 
+			{
+				nFlist[n].list[q].offset = snp_ix; nFlist[n].list[q].len = 1;
+				nFlist[n].list[q].hap = calloc(sizeof(char),2); nFlist[n].list[q].hap[0] = FRAG->list[j].hap[k];
+				nFlist[n].list[q].qv = calloc(sizeof(char),2); nFlist[n].list[q].qv[0] = FRAG->list[j].qv[k];
+				nFlist[n].list[q].pv = calloc(sizeof(float),1); nFlist[n].list[q].pv[0] = FRAG->list[j].pv[k];
+				nFlist[n].list[q].p1 = calloc(sizeof(float),1); nFlist[n].list[q].p1[0] = FRAG->list[j].p1[k];
+				q++;
+			}
+		}
+	   }
+           nFlist[n].calls = q;
+           //fprintf(stdout,"NEW "); print_fragment(&nFlist[n],stdout);
+	   n++;
+   }
+   return n;
 }
    
 

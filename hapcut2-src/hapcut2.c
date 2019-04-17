@@ -31,6 +31,7 @@
 typedef struct    
 {
 	struct fragment* Flist; int fragments;
+	struct fragment* nFlist; int nfragments;
 	struct SNPfrags* snpfrag; int snps;
 	char* HAP1;
 	struct BLOCK* clist; int components;
@@ -72,7 +73,7 @@ int read_input_files(char* fragmentfile,char* fragmentfile2,char* variantfile,DA
     int i=0;
 
     if (MAX_IS != -1){
-        // we are going to filter out some insert sizes, is some memory being lost here?
+        // we are going to filter out some insert sizes, some memory being lost here, need to FIX
         new_fragments = 0;
         new_Flist = (struct fragment*) malloc(sizeof (struct fragment)* data->fragments);
         for(i = 0; i < data->fragments; i++){
@@ -282,20 +283,26 @@ void post_processing(DATA* data) // block splitting and pruning individual varia
     }
 }
 
+int FILTER_HETS=0;
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-int maxcut_haplotyping(DATA* data, char* variantfile, char* outputfile) {
+int diploid_haplotyping(DATA* data, char* variantfile, char* outputfile) {
 
     struct fragment* Flist = data->Flist; int fragments = data->fragments;
     struct SNPfrags* snpfrag =data->snpfrag; int snps = data->snps;
-    /*
     int i=0;
-    for (i=0;i<data->fragments;i++) {
-	print_fragment(&Flist[i],stdout);
-	filter_fragment(&Flist[i],snpfrag,stdout);
+    struct fragment* new;
+    data->nFlist = calloc(sizeof(struct fragment),data->fragments);
+    data->nfragments = 0;
+
+    if (FILTER_HETS ==1) {
+	    data->nfragments = filter_fragments(data->Flist,data->fragments,data->snpfrag,data->nFlist);
+	    fprintf(stderr,"filtering fragments for het variants: %d %d \n",data->fragments,data->nfragments);
+	    // swap the two data structures 
+	    new = data->Flist; data->Flist = data->nFlist; data->nFlist = new; 
+	    i = data->fragments; data->fragments = data->nfragments; data->nfragments = i; 
     }
-    return -1;
-    */
 
     // BUILD FRAGMENT-VARIANT GRAPH 
     fprintf_time(stderr, "building read-variant graph for phasing\n");
@@ -343,7 +350,7 @@ int main(int argc, char** argv) {
     fprintf_time(stderr, "read fragment file and variant file: fragments %d variants %d\n",data.fragments,data.snps);
 
     // CALL MAIN FUNCTION
-    maxcut_haplotyping(&data,VCFfile, outfile);
+    diploid_haplotyping(&data,VCFfile, outfile);
 
     // FREE DATA STRUCTURES
     free_memory(data.snpfrag,data.snps,data.clist,data.components); 

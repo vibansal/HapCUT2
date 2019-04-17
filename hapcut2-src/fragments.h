@@ -39,7 +39,7 @@ float fragment_ll1(struct fragment* Flist, int f, char* h, int homozygous, int s
 
 void print_fragment(struct fragment* FRAG,FILE* OUTFILE);
 
-int filter_fragment(struct fragment* FRAG,struct SNPfrags* snpfrag,FILE* OUTFILE);
+int filter_fragments(struct fragment* Flist,int fragments,struct SNPfrags* snpfrag,struct fragment* nFlist);
 
 void free_fragmentlist(struct fragment* Flist, int fragments); // freememory
 
