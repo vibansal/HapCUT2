@@ -31,10 +31,13 @@
 typedef struct    
 {
 	struct fragment* Flist; int fragments;
-	struct fragment* nFlist; int nfragments;
+	struct fragment* full_Flist; int full_fragments; // full fragment list
 	struct SNPfrags* snpfrag; int snps;
-	char* HAP1;
+	char* phased; // variant is part of heterozygous set of phased variants (all variants with genotype = 0/0, 1/1, 0/1 are not)  
+	char* HAP1; // single haplotype for het variants, remaining variants are set to '-' (missing)
+	char** hap_pair; // haplotype pair for all variants
 	struct BLOCK* clist; int components;
+	int filtered; // whether fragment list used for phasing is filtered or identical to full_Flist
 } DATA;
 
 
@@ -61,12 +64,12 @@ int detect_long_reads(struct fragment* Flist,int fragments)
 int read_input_files(char* fragmentfile,char* fragmentfile2,char* variantfile,DATA* data)
 {
     // READ FRAGMENT MATRIX, allows for second fragment file as well. 
-    data->fragments = get_num_fragments(fragmentfile);
-    int offset = data->fragments;
-    if (strcmp(fragmentfile2,"None") !=0) data->fragments += get_num_fragments(fragmentfile2);
-    data->Flist = (struct fragment*) malloc(sizeof (struct fragment)* data->fragments);
-    int flag = read_fragment_matrix(fragmentfile, data->Flist,offset,0);
-    if (strcmp(fragmentfile2,"None") !=0) read_fragment_matrix(fragmentfile2, data->Flist,data->fragments-offset,offset);
+    data->full_fragments = get_num_fragments(fragmentfile);
+    int offset = data->full_fragments;
+    if (strcmp(fragmentfile2,"None") !=0) data->full_fragments += get_num_fragments(fragmentfile2);
+    data->full_Flist = (struct fragment*) malloc(sizeof (struct fragment)* data->full_fragments);
+    int flag = read_fragment_matrix(fragmentfile, data->full_Flist,offset,0);
+    if (strcmp(fragmentfile2,"None") !=0) read_fragment_matrix(fragmentfile2, data->full_Flist,data->full_fragments-offset,offset);
 
     int new_fragments = 0;
     struct fragment* new_Flist;
@@ -75,12 +78,12 @@ int read_input_files(char* fragmentfile,char* fragmentfile2,char* variantfile,DA
     if (MAX_IS != -1){
         // we are going to filter out some insert sizes, some memory being lost here, need to FIX
         new_fragments = 0;
-        new_Flist = (struct fragment*) malloc(sizeof (struct fragment)* data->fragments);
-        for(i = 0; i < data->fragments; i++){
+        new_Flist = (struct fragment*) malloc(sizeof (struct fragment)* data->full_fragments);
+        for(i = 0; i < data->full_fragments; i++){
             if (data->Flist[i].isize < MAX_IS) new_Flist[new_fragments++] = data->Flist[i];
         }
-        data->Flist = new_Flist;
-        data->fragments = new_fragments;
+        data->full_Flist = new_Flist;
+        data->full_fragments = new_fragments;
     }
     if (flag < 0) {
         fprintf_time(stderr, "unable to read fragment matrix file %s \n", fragmentfile);
@@ -155,6 +158,7 @@ void print_output_files(DATA* data,char* variantfile, char* outputfile)
 
 void optimization_using_maxcut(DATA* data)
 {
+    fprintf_time(stderr, "starting Max-Likelihood-Cut based haplotype assembly algorithm\n");
     int iter=0; int hic_iter=0; int k=0; int i=0;
     int* slist = (int*) malloc(sizeof (int)*data->snps);
     int converged_count=0;
@@ -232,13 +236,6 @@ void optimization_using_maxcut(DATA* data)
 int build_readvariant_graph(DATA* data)
 {
     int i=0; int components=0;
-    LONG_READS = detect_long_reads(data->Flist,data->fragments);
-    for (i=0;i<data->snps;i++)
-    {
-	// ignore homzygous variants, for such variants, the HAP1[i] value is set to '-' to avoid using them for phasing  
-	if (data->snpfrag[i].genotypes[0] == data->snpfrag[i].genotypes[2]) data->snpfrag[i].ignore = '1'; 
-	else data->snpfrag[i].ignore = '0'; 
-    }
     update_snpfrags(data->Flist, data->fragments, data->snpfrag, data->snps);
     // 10/25/2014, edges are only added between adjacent nodes in each fragment and used for determining connected components...
    // for (i = 0; i < snps; i++) snpfrag[i].elist = (struct edge*) malloc(sizeof (struct edge)*(snpfrag[i].edges+1)); // # of edges calculated in update_snpfrags function 
@@ -251,6 +248,7 @@ int build_readvariant_graph(DATA* data)
 
 void post_processing(DATA* data) // block splitting and pruning individual variants
 {
+    fprintf_time(stderr, "starting to post-process phased haplotypes to further improve accuracy\n");
     // BLOCK SPLITTING
     int split_count, new_components;
     int k=0;
@@ -274,11 +272,7 @@ void post_processing(DATA* data) // block splitting and pruning individual varia
             split_block(data->HAP1, data->clist, k, data->Flist, data->snpfrag, &new_components);
         }
     }
-
-    // PRUNE INDIVIDUAL VARIANTS based on phased genotype likelihoods
     if (!SKIP_PRUNE){
-        //discrete_pruning(snps, fragments, Flist, snpfrag, HAP1);
-	//if (UNPHASED ==1) unphased_optim(snps,Flist,snpfrag,HAP1);
         likelihood_pruning(data->snps,data->Flist, data->snpfrag,data->HAP1, CALL_HOMOZYGOUS);
     }
 }
@@ -287,30 +281,34 @@ int FILTER_HETS=0;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-int diploid_haplotyping(DATA* data, char* variantfile, char* outputfile) {
-
-    struct fragment* Flist = data->Flist; int fragments = data->fragments;
-    struct SNPfrags* snpfrag =data->snpfrag; int snps = data->snps;
+int diploid_haplotyping(DATA* data) {
     int i=0;
-    struct fragment* new;
-    data->nFlist = calloc(sizeof(struct fragment),data->fragments);
-    data->nfragments = 0;
 
-    if (FILTER_HETS ==1) {
-	    data->nfragments = filter_fragments(data->Flist,data->fragments,data->snpfrag,data->nFlist);
-	    fprintf(stderr,"filtering fragments for het variants: %d %d \n",data->fragments,data->nfragments);
-	    // swap the two data structures 
-	    new = data->Flist; data->Flist = data->nFlist; data->nFlist = new; 
-	    i = data->fragments; data->fragments = data->nfragments; data->nfragments = i; 
+    // INITIALIZE VARIANTS TO BE PHASED based on current genotype
+    for (i=0;i<data->snps;i++)
+    {
+	// ignore homzygous variants, for such variants, the HAP1[i] value is set to '-' to avoid using them for phasing  
+	if (data->snpfrag[i].genotypes[0] == data->snpfrag[i].genotypes[2]) data->snpfrag[i].ignore = '1'; 
+	else data->snpfrag[i].ignore = '0'; 
     }
 
-    // BUILD FRAGMENT-VARIANT GRAPH 
+    // Generate reduced fragment list for 'to-be-phased' variants 
+    if (FILTER_HETS ==1) {
+    	    data->Flist = calloc(sizeof(struct fragment),data->full_fragments);
+	    data->fragments = filter_fragments(data->full_Flist,data->full_fragments,data->snpfrag,data->Flist);
+	    fprintf(stderr,"filtering fragments for hets: %d %d removed %d \n",data->full_fragments,data->fragments,data->full_fragments-data->fragments);
+    }
+    else
+    {
+          data->fragments = data->full_fragments; data->Flist = data->full_Flist; 
+    }
+
+    // BUILD FRAGMENT-VARIANT GRAPH for to-be-phased variants
     fprintf_time(stderr, "building read-variant graph for phasing\n");
     build_readvariant_graph(data); 
     
-    // INITIALIZE HAPLOTYPES
-    data->HAP1 = (char*) malloc(snps + 1);
-    init_random_hap(snpfrag,snps,data->HAP1);
+    // INITIALIZE HAPLOTYPES, this should be changed to only updating 'phased' set and set HAP1[x] = '-' 
+    init_random_hap(data->snpfrag,data->snps,data->HAP1);
 
     // BUILD CONTIGS/CONNECTED COMPONENTS OF GRAPH 
     data->clist = (struct BLOCK*) malloc(sizeof (struct BLOCK)*data->components);
@@ -318,17 +316,15 @@ int diploid_haplotyping(DATA* data, char* variantfile, char* outputfile) {
     fprintf_time(stderr, "fragments %d snps %d component(blocks) %d\n", data->fragments,data->snps,data->components);
 
     // MAX-CUT OPTIMIZATION
-    fprintf_time(stderr, "starting Max-Likelihood-Cut based haplotype assembly algorithm\n");
     optimization_using_maxcut(data);
 
     // POST PROCESSING OF HAPLOTYPES 
-    fprintf_time(stderr, "starting to post-process phased haplotypes to further improve accuracy\n");
-    post_processing(data);
+    post_processing(data);  // only if EA ==1 or SPLIT_BLOCKS ==1 or SKIP_PRUNE ==0
 
-    // PRINT OUTPUT FILES
-    fprintf_time(stderr, "starting to output phased haplotypes\n");
-    print_output_files(data,variantfile,outputfile);
+    // UPDATE phased genotype likelihoods using local updates
+    //if (UNPHASED ==1) unphased_optim(data->snps,data->Flist,data->snpfrag,data->HAP1);
 
+    if (FILTER_HETS ==1) free_fragmentlist(data->Flist,data->fragments);
     return 0;
 }
 
@@ -340,20 +336,29 @@ int main(int argc, char** argv) {
     char VCFfile[10000]; char outfile[10000];
     strcpy(VCFfile, "None"); strcpy(outfile, "None");
     strcpy(HTRANS_DATA_INFILE, "None"); strcpy(HTRANS_DATA_OUTFILE, "None");
+    
+    DATA data; 
 
-    // get parameters
+    // get parameters from command line arguments
     parse_arguments(argc,argv,fragfile,fragfile2,VCFfile,outfile);
 
     // READ INPUT FILES (Fragments and Variants)
-    DATA data; 
     if (read_input_files(fragfile,fragfile2,VCFfile,&data) < 1)  return -1;
-    fprintf_time(stderr, "read fragment file and variant file: fragments %d variants %d\n",data.fragments,data.snps);
+    else fprintf_time(stderr, "read fragment file and variant file: fragments %d variants %d\n",data.full_fragments,data.snps);
+
+    LONG_READS = detect_long_reads(data.full_Flist,data.full_fragments); // detect if data corresponds to long_reads (pacbio/ONT/10X)
+    data.HAP1 = (char*) malloc(data.snps + 1);  // allocate memory for phased haplotype (only het variants)
 
     // CALL MAIN FUNCTION
-    diploid_haplotyping(&data,VCFfile, outfile);
+    diploid_haplotyping(&data);
+    
+    // PRINT OUTPUT FILES
+    fprintf_time(stderr, "starting to output phased haplotypes\n");
+    print_output_files(&data,VCFfile,outfile);
 
     // FREE DATA STRUCTURES
     free_memory(data.snpfrag,data.snps,data.clist,data.components); 
-    free_fragmentlist(data.Flist,data.fragments);
+    free_fragmentlist(data.full_Flist,data.full_fragments);
+    free(data.HAP1);
     return 0;
 }

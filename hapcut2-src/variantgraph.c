@@ -263,22 +263,17 @@ void add_edges(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, 
 // this function updates the data structure snpfrag which links the heterozyous SNPs and the haplotype fragments
 // // it generates a list of fragments (flist) that affect each SNP
 
-void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps) {
-    int f = 0,i = 0, h = 0 , j = 0, s=0, k = 0, calls = 0; //maxdeg=0,avgdeg=0;
-    int prev = 0,curr=0;
-    // find the first fragment whose endpoint lies at snp 'i' or beyond
-    for (i = 0; i < snps; i++) {
-        snpfrag[i].frags = 0;
-        snpfrag[i].post_notsw = 0;
-        snpfrag[i].post_hap = 0;
-        snpfrag[i].pruned_discrete_heuristic = 0;
-    }
-
+void init_variant(struct fragment* Flist,int fragments,struct SNPfrags* snpfrag, int snps) 
+{ 
+    int i=0,j=0,k=0;
+    for (i=0;i<snps;i++) snpfrag[i].frags =0;
+    // calculate number of fragments covering each variant 
     for (i = 0; i < fragments; i++) {
         for (j = 0; j < Flist[i].blocks; j++) {
             for (k = 0; k < Flist[i].list[j].len; k++) snpfrag[Flist[i].list[j].offset + k].frags++;
         }
     }
+
     for (i = 0; i < snps; i++) {
         snpfrag[i].flist = (int*) malloc(snpfrag[i].frags*sizeof (int));
         snpfrag[i].alist = (char*) malloc(snpfrag[i].frags*sizeof(char));
@@ -289,10 +284,21 @@ void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snp
     for (i = 0; i < snps; i++) {
         snpfrag[i].component = -1; // this will automatically be < 0 for homozygous variants
         snpfrag[i].csize = 1;
-        snpfrag[i].frags = 0;
+        snpfrag[i].frags = 0; // reset to 0 since it is used and updated again (see below)
         snpfrag[i].edges = 0; // this will be zero for all homozygous variants
+	snpfrag[i].post_notsw = 0;
+	snpfrag[i].post_hap = 0;
+	snpfrag[i].pruned_discrete_heuristic = 0;
     }
+}
 
+void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps) {
+    int f = 0,i = 0, h = 0 , j = 0, s=0, k = 0, calls = 0; //maxdeg=0,avgdeg=0;
+    int prev = 0,curr=0;
+
+    init_variant(Flist,fragments,snpfrag,snps);  // calculate number of fragments covering the variant and allocate space for lists
+
+    // find the first fragment whose endpoint lies at snp 'i' or beyond
     for (f = 0; f < fragments; f++) {
         calls = 0;
         for (j = 0; j < Flist[f].blocks; j++) {
@@ -313,29 +319,21 @@ void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snp
             }
         }
 
-        if (LONG_READS == 1) // long reads
-        {
-            // 2 edges for every node in fragment ( 00000----0---[1]----10011 ) adjacent left and right
+        // calculate the number of edges per variant 
 	    prev = -1; curr = -1;
             for (j = 0; j < Flist[f].blocks; j++) {
                 for (k = 0; k < Flist[f].list[j].len; k++) 
 		{
 			if (snpfrag[Flist[f].list[j].offset+k].ignore == '1') continue; 
 			curr = Flist[f].list[j].offset+k;
-			if (prev >= 0 && curr >= 0) snpfrag[prev].edges += 1;
-			if (prev >= 0 && curr >= 0) snpfrag[curr].edges += 1;
+			if (LONG_READS ==0) snpfrag[Flist[f].list[j].offset + k].edges += calls - 1;
+			else // long reads, therefore only maximum of 2 edges for every node in fragment
+			{
+				if (prev >= 0 && curr >= 0) { snpfrag[prev].edges += 1; snpfrag[curr].edges += 1; } 
+			}
 			prev = curr; 
 		}
             }
-        } else {
-            for (j = 0; j < Flist[f].blocks; j++) {
-                for (k = 0; k < Flist[f].list[j].len; k++) 
-		{
-			if (snpfrag[Flist[f].list[j].offset+k].ignore == '1') continue; 
-			snpfrag[Flist[f].list[j].offset + k].edges += calls - 1;
-		}
-            }
-        }
     }
     //for (i=0;i<snps;i++) { fprintf(stdout,"SNP %d firstfrag %d start snp %d \n",i,snpfrag[i].frags,i); }
 }

@@ -37,6 +37,7 @@ void print_fragment(struct fragment* FRAG,FILE* OUTFILE)
    fprintf(OUTFILE,"\n");
 }
 
+// current output format is different, no blocks but list of variants, bad results for Hi-C (understandable)
 int filter_fragments(struct fragment* Flist,int fragments,struct SNPfrags* snpfrag,struct fragment* nFlist)
 {
    int j=0,k=0,snp_ix=0,i=0;
@@ -53,7 +54,7 @@ int filter_fragments(struct fragment* Flist,int fragments,struct SNPfrags* snpfr
 		for (k = 0; k < FRAG->list[j].len; k++) 
 		{
 			snp_ix = FRAG->list[j].offset + k; // index of current position
-			if (snpfrag[snp_ix].genotypes[0] != snpfrag[snp_ix].genotypes[2]) het++;
+			if (snpfrag[snp_ix].ignore == '0') het++;
 			total++;
 		}
 	   }
@@ -70,7 +71,7 @@ int filter_fragments(struct fragment* Flist,int fragments,struct SNPfrags* snpfr
 		for (k = 0; k < FRAG->list[j].len; k++)
 		{
 			snp_ix = FRAG->list[j].offset + k; // index of current position
-			if (snpfrag[snp_ix].genotypes[0] != snpfrag[snp_ix].genotypes[2]) 
+			if (snpfrag[snp_ix].ignore == '0') 
 			{
 				nFlist[n].list[q].offset = snp_ix; nFlist[n].list[q].len = 1;
 				nFlist[n].list[q].hap = calloc(sizeof(char),2); nFlist[n].list[q].hap[0] = FRAG->list[j].hap[k];

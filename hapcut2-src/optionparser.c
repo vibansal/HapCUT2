@@ -5,6 +5,8 @@
 // Printing related
 int VERBOSE = 0;
 int PRINT_FRAGMENT_SCORES = 0; // output the MEC/switch error score of erroneous reads/fragments to a file for evaluation
+int OUTPUT_HAPLOTAGS =0; // read-haplotype assignments
+int OUTPUT_VCF =0;     // output phased VCF or not 
 
 // Quality-score related parameters
 int QVoffset = 33;
@@ -26,8 +28,6 @@ int ERROR_ANALYSIS_MODE = 0;
 int SKIP_PRUNE = 0;
 int UNPHASED = 1;  // if set to 1, consider the option of leaving some variants unphased 
 int SNVS_BEFORE_INDELS = 0; // ??? 
-int OUTPUT_HAPLOTAGS =0; // read-haplotype assignments
-int OUTPUT_VCF =0;     // output phased VCF or not 
 
 int AUTODETECT_LONGREADS = 1;
 int LONG_READS = 0; // if this variable is 1, the data contains long read data
