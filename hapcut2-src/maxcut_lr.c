@@ -1,14 +1,11 @@
 
 /*
 CODE for likelihood based cut calculation that preserves long reads and operates on fragments rather than edges
-
 code first implemented 03/02/15 | likelihood based model for initializing two shores of the cut (startnode... secondnode)
-
 ##for each read store 4 floats  P(R | H), P(R | complement(H)) and P(R | H_new), P(R | complement(H_new)) where likelihood is only for nodes added to the cut till now
                                 scores[0] scores[1]                scores[2]     scores[3]
 
 where H_new is new haplotype formed by flipping the phase of vertices in shore2 relative to shore1
-
 score of a variant snpfrag[node].score = log10( P(R|H) + P(R | complement(H)) - log10( P(R|H_new) + P(R | complement(H_new) )
  */
 #include "common.h"

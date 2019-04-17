@@ -12,7 +12,7 @@ struct SNPfrags { // single variant, also holds all information for node in grap
     int* flist;
     int* jlist; // list of j indexes used to index into Flist[f].list
     int* klist; // list of k indexes used to index into Flist[f].list[j]
-    int frags;
+    int frags; // number of fragments covering this vairant 
     char* alist; // alist is the alleles corresponding to each fragment that covers this SNP
     int component;
     int edges; // those that span the interval between this snp and the next snp
@@ -25,13 +25,15 @@ struct SNPfrags { // single variant, also holds all information for node in grap
     float score;
     float htscore; // htrans
     int heaploc;
+
+    // changed on feb 1 2012 to be pointers (char* id, char* chrom)
+    char* chromosome;
+    int position;
     char* id;
     char* allele0;
     char* allele1;
-    char* chromosome;
-    int position;
-    // changed on feb 1 2012 to be pointers (char* id, char* chrom)
     char* genotypes; // VCF genotypes 0|1 1|0 or 0/1 added feb 1 2012
+
     char  ignore; // ignore this variant for all hapcut computations, 12/17/2018
     float post_notsw;
     float post_hap;

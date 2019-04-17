@@ -339,3 +339,4 @@ void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snp
     }
     //for (i=0;i<snps;i++) { fprintf(stdout,"SNP %d firstfrag %d start snp %d \n",i,snpfrag[i].frags,i); }
 }
+

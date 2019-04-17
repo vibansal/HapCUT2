@@ -37,4 +37,13 @@ void calculate_fragscore1(struct fragment* Flist, int f, char* h, float* ll);
 void update_fragscore1(struct fragment* Flist, int f, char* h);
 float fragment_ll1(struct fragment* Flist, int f, char* h, int homozygous, int switch_ix);
 
+void print_fragment(struct fragment* FRAG,FILE* OUTFILE);
+
+int filter_fragment(struct fragment* FRAG,struct SNPfrags* snpfrag,FILE* OUTFILE);
+
+void free_fragmentlist(struct fragment* Flist, int fragments); // freememory
+
+
+//void filter_fragmentlist(struct fragment* Flist,int fragments,struct SNPfrags* snpfrag);
+
 #endif

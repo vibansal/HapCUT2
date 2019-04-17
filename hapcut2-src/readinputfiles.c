@@ -22,8 +22,7 @@ int get_num_fragments(char* fragmentfile)
     return fragments;
 }
 
-
-int fragment_compare(const void *a, const void *b) {
+int fragment_compare(const void *a, const void *b) { // used for sorting fragment list by position
     const struct fragment *ia = (const struct fragment*) a;
     const struct fragment *ib = (const struct fragment*) b;
     if (ia->list[0].offset == ib->list[0].offset) {
