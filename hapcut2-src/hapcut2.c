@@ -20,7 +20,6 @@
 #include "pointerheap.h"  // heap for max-cut greedy algorithm
 #include "find_maxcut.c"   // function compute_good_cut
 #include "post_processing.c"  // post-process haplotypes to remove SNVs with low-confidence phasing, split blocks 
-#include "phased_genotyping.c" // update genotype of each variant, unphase some variants
 #include "hic.h"  // HiC relevant functions
 
 // output related
@@ -43,6 +42,7 @@ typedef struct
 } DATA;
 
 #include "aux_hapcut2.c" // some functions moved here
+#include "phased_genotyping.c" // update genotype of each variant, unphase some variants
 
 void init_random_hap(struct SNPfrags* snpfrag,int snps,char* HAP1)
 {
@@ -119,7 +119,7 @@ int diploid_haplotyping(DATA* data) {
     post_processing(data);  // only if EA ==1 or SPLIT_BLOCKS ==1 or SKIP_PRUNE ==0
 
     // UPDATE phased genotype likelihoods using local updates
-    //if (UNPHASED ==1) unphased_optim(data->snps,data->Flist,data->snpfrag,data->HAP1);
+    local_optimization(data);
 
     // FREE DATA STRUCTURES
     if (FILTER_HETS ==1) free_fragmentlist(data->Flist,data->fragments);

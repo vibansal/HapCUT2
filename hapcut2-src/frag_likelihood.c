@@ -185,11 +185,11 @@ float fragment_ll1(struct fragment* Flist, int f, char* h, int homozygous, int s
                 // this is likelihood based calculation
                 switched = (switch_ix != -1 && snp_ix >= switch_ix);
                 if ((h[snp_ix] == FRAG->list[j].hap[k]) != switched) { // true if match, or not match but switched
-                    p0 += prob2;
+                    p0 += prob2; 
 	            if (snp_ix != homozygous) p1 += prob;
 		    else p1 += prob2;
                 } else {
-                    p0 += prob;
+                    p0 += prob; 
                     if (snp_ix != homozygous) p1 += prob2;
                     else p1 += prob;
                 }
@@ -215,7 +215,7 @@ float fragment_ll1(struct fragment* Flist, int f, char* h, int homozygous, int s
                 //else bad += prob1;
 
                 if (h[snp_ix] == FRAG->list[j].hap[k]) { // true if match, or not match but switched
-                    p0 += prob2;
+                    p0 += prob2; 
                     if (snp_ix != homozygous)
                         p1 += prob;
                     else
@@ -248,6 +248,7 @@ float fragment_ll1(struct fragment* Flist, int f, char* h, int homozygous, int s
         ll = addlogs(addlogs(p0, p1)+subtractlogs(0,FRAG->htrans_prob), addlogs(p0h, p1h)+FRAG->htrans_prob);
 
     }
+    //if (ll > 0.31) fprintf(stdout,"ERROR, likelihood should always be less than 2, frag %d %d %f\n",f,homozygous,ll);
     return ll;
 }
 
