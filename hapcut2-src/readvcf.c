@@ -72,6 +72,7 @@ int read_vcffile(char* vcffile, struct SNPfrags* snpfrag, int snps) {
         for (j = s; j < e; j++) snpfrag[var].allele0[j - s] = buffer[j];
         snpfrag[var].allele0[j - s] = '\0';
 
+
         while (buffer[i] == ' ' || buffer[i] == '\t') i++;
         s = i;
         while (buffer[i] != ' ' && buffer[i] != '\t') i++;
@@ -79,6 +80,10 @@ int read_vcffile(char* vcffile, struct SNPfrags* snpfrag, int snps) {
         snpfrag[var].allele1 = (char*) malloc(e - s + 1);
         for (j = s; j < e; j++) snpfrag[var].allele1[j - s] = buffer[j];
         snpfrag[var].allele1[j - s] = '\0';
+        
+	// set INDEL flag
+	if (strlen(snpfrag[var].allele0) != 1 || strlen(snpfrag[var].allele1) != 1) snpfrag[var].is_indel = '1';
+	else snpfrag[var].is_indel = '0'; 
 
         while (buffer[i] == ' ' || buffer[i] == '\t') i++;
         s = i;

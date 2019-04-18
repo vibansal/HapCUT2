@@ -54,7 +54,7 @@ int filter_fragments(struct fragment* Flist,int fragments,struct SNPfrags* snpfr
 		for (k = 0; k < FRAG->list[j].len; k++) 
 		{
 			snp_ix = FRAG->list[j].offset + k; // index of current position
-			if (snpfrag[snp_ix].ignore == '0') het++;
+			if (snpfrag[snp_ix].phase == '1') het++;
 			total++;
 		}
 	   }
@@ -71,7 +71,7 @@ int filter_fragments(struct fragment* Flist,int fragments,struct SNPfrags* snpfr
 		for (k = 0; k < FRAG->list[j].len; k++)
 		{
 			snp_ix = FRAG->list[j].offset + k; // index of current position
-			if (snpfrag[snp_ix].ignore == '0') 
+			if (snpfrag[snp_ix].phase == '1') 
 			{
 				nFlist[n].list[q].offset = snp_ix; nFlist[n].list[q].len = 1;
 				nFlist[n].list[q].hap = calloc(sizeof(char),2); nFlist[n].list[q].hap[0] = FRAG->list[j].hap[k];

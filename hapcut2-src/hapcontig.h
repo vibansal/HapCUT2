@@ -32,6 +32,6 @@ void generate_contigs(struct fragment* Flist, int fragments, struct SNPfrags* sn
 
 int print_contigs(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* outfile);
 
-float calculate_N50(struct BLOCK* clist, int blocks, char* h1); // and other statistics, TBD
+float calculate_N50(struct BLOCK* clist, int blocks, struct SNPfrags* snpfrag, char* h1); // and other statistics, TBD
 
 #endif

@@ -31,6 +31,7 @@ int SNVS_BEFORE_INDELS = 0; // ???
 
 int AUTODETECT_LONGREADS = 1;
 int LONG_READS = 0; // if this variable is 1, the data contains long read data
+int PLOIDY =2; // diploid
 
 // HiC-related global variables
 int HIC = 0;

@@ -33,8 +33,9 @@ struct SNPfrags { // single variant, also holds all information for node in grap
     char* allele0;
     char* allele1;
     char* genotypes; // VCF genotypes 0|1 1|0 or 0/1 added feb 1 2012
-
-    char  ignore; // ignore this variant for all hapcut computations, 12/17/2018
+    char is_indel;
+    
+    char  phase; // ignore this variant for all hapcut computations, 12/17/2018
     float post_notsw;
     float post_hap;
     int pruned_discrete_heuristic; // for error analysis mode

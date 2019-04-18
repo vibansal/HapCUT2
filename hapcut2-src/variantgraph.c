@@ -127,7 +127,7 @@ void add_edges_longreads(struct fragment* Flist, int fragments, struct SNPfrags*
         vars = 0;
         for (j = 0; j < Flist[i].blocks; j++) {
             for (k = 0; k < Flist[i].list[j].len; k++) {
-		if (snpfrag[Flist[i].list[j].offset + k].ignore == '1') continue; // filter for homozygous variants 
+		if (snpfrag[Flist[i].list[j].offset + k].phase == '0') continue; // filter for homozygous variants 
                 varlist[vars] = Flist[i].list[j].offset + k;
                 allelelist[vars] = Flist[i].list[j].hap[k];
                 vars++;
@@ -200,7 +200,7 @@ void add_edges(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, 
                 for (t = 0; t < Flist[i].blocks; t++) {
                     for (iter = 0; iter < Flist[i].list[t].len; iter++) {
                         if (Flist[i].list[j].offset + k == Flist[i].list[t].offset + iter) continue;
-			if (snpfrag[Flist[i].list[j].offset + k].ignore == '1' || snpfrag[Flist[i].list[t].offset + iter].ignore == '1') continue;  // filter for homozygous
+			if (snpfrag[Flist[i].list[j].offset + k].phase == '0' || snpfrag[Flist[i].list[t].offset + iter].phase == '0') continue;  // filter for homozygous
                         if (Flist[i].list[j].offset + k - Flist[i].list[t].offset + iter > mdelta) mdelta = Flist[i].list[j].offset + k - Flist[i].list[t].offset + iter;
                         snpfrag[Flist[i].list[t].offset + iter].elist[snpfrag[Flist[i].list[t].offset + iter].edges].snp = Flist[i].list[j].offset + k;
                         snpfrag[Flist[i].list[j].offset + k].elist[snpfrag[Flist[i].list[j].offset + k].edges].frag = i;
@@ -315,7 +315,7 @@ void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snp
                 snpfrag[s].alist[h] = Flist[f].list[j].hap[k];
 
                 snpfrag[s].frags++;
-                if (snpfrag[s].ignore == '0') calls +=1;  // only non-homozygous variants 
+                if (snpfrag[s].phase == '1') calls +=1;  // only non-homozygous variants 
             }
         }
 
@@ -324,7 +324,7 @@ void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snp
             for (j = 0; j < Flist[f].blocks; j++) {
                 for (k = 0; k < Flist[f].list[j].len; k++) 
 		{
-			if (snpfrag[Flist[f].list[j].offset+k].ignore == '1') continue; 
+			if (snpfrag[Flist[f].list[j].offset+k].phase == '0') continue; 
 			curr = Flist[f].list[j].offset+k;
 			if (LONG_READS ==0) snpfrag[Flist[f].list[j].offset + k].edges += calls - 1;
 			else // long reads, therefore only maximum of 2 edges for every node in fragment
