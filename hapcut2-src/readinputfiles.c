@@ -22,6 +22,7 @@ int get_num_fragments(char* fragmentfile)
     return fragments;
 }
 
+/*
 int fragment_compare(const void *a, const void *b) { // used for sorting fragment list by position
     const struct fragment *ia = (const struct fragment*) a;
     const struct fragment *ib = (const struct fragment*) b;
@@ -29,7 +30,7 @@ int fragment_compare(const void *a, const void *b) { // used for sorting fragmen
         return ia->list[ia->blocks - 1].offset + ia->list[ia->blocks - 1].len - ib->list[ib->blocks - 1].offset - ib->list[ib->blocks - 1].len;
         //return ia->blocks - ib->blocks;
     } else return ia->list[0].offset - ib->list[0].offset;
-}
+}*/
 
 
 int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragments,int OFFSET_flist) {

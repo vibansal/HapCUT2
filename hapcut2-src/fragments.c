@@ -21,6 +21,16 @@ void free_fragmentlist(struct fragment* Flist, int fragments)
     free(Flist);
 }
 
+int fragment_compare(const void *a, const void *b) { // used for sorting fragment list by position
+    const struct fragment *ia = (const struct fragment*) a;
+    const struct fragment *ib = (const struct fragment*) b;
+    if (ia->list[0].offset == ib->list[0].offset) {
+        return ia->list[ia->blocks - 1].offset + ia->list[ia->blocks - 1].len - ib->list[ib->blocks - 1].offset - ib->list[ib->blocks - 1].len;
+        //return ia->blocks - ib->blocks;
+    } else return ia->list[0].offset - ib->list[0].offset;
+}
+
+
 // simply print in the same format as the input file
 void print_fragment(struct fragment* FRAG,FILE* OUTFILE)
 {
@@ -61,7 +71,12 @@ int filter_fragments(struct fragment* Flist,int fragments,struct SNPfrags* snpfr
 	   if (het < 2) continue; 
            //fprintf(stdout,"stats %d %d \n",total,het); 
 
+	   // copy the ID, insert size, data_type and mate2_ix from original fragment
 	   nFlist[n].id = calloc(sizeof(char),strlen(FRAG->id)+1); strcpy(nFlist[n].id,FRAG->id);
+	   nFlist[n].isize = FRAG->isize; 
+	   nFlist[n].data_type = FRAG->data_type;
+	   nFlist[n].mate2_ix = FRAG->mate2_ix;
+
    	   nFlist[n].list = calloc(sizeof(struct block),het); 
    	   nFlist[n].blocks = het; nFlist[n].data_type = FRAG->data_type;
 	   q=0;
@@ -98,7 +113,7 @@ int filter_fragments(struct fragment* Flist,int fragments,struct SNPfrags* snpfr
    */
 
 // output the block-ID (first SNP in block), haplotype-assignment and probability of assignment  | only for long-reads or linked reads
-int fragment_assignment(struct fragment* FRAG, struct SNPfrags* snpfrag,char* h)
+int assign_fragment_2hap(struct fragment* FRAG, struct SNPfrags* snpfrag,char* h)
 {
     int f=0,j = 0, k = 0,alleles=0,offset=0,component;
     float p0 = 0, p1 = 0, prob = 0, prob2 = 0;
@@ -149,7 +164,7 @@ void fragment_assignments(struct fragment* Flist,int fragments, struct SNPfrags*
 
     for (f=0;f<fragments;f++)
     {
-	valid = fragment_assignment(&Flist[f], snpfrag,h);
+	valid = assign_fragment_2hap(&Flist[f], snpfrag,h);
         if (valid ==1) fprintf(OUTFILE,"%s %d %c %d\n",Flist[f].id,Flist[f].PS,Flist[f].HP,Flist[f].PQ);
     }
     fclose(OUTFILE);

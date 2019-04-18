@@ -9,6 +9,13 @@ extern int VERBOSE;
 extern int LONG_READS;
 //////////////////////////////////////// edge list is only used in the two functions below add_edges (Feb 4 2013) //////////////////////////////
 
+
+void print_variant(struct SNPfrags* snpfrag,int i,FILE* OUTFILE)
+{ 
+ fprintf(OUTFILE,"VAR %d %d %s %s %s %d\n",i,snpfrag[i].position,snpfrag[i].allele0,snpfrag[i].allele1,snpfrag[i].genotypes,snpfrag[i].frags);
+}
+
+
 float edge_weight(char* hap, int i, int j, char* p, struct fragment* Flist, int f) {
     float q1 = 1, q2 = 1;
     int k = 0, l = 0;

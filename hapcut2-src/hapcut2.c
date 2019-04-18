@@ -20,6 +20,7 @@
 #include "pointerheap.h"  // heap for max-cut greedy algorithm
 #include "find_maxcut.c"   // function compute_good_cut
 #include "post_processing.c"  // post-process haplotypes to remove SNVs with low-confidence phasing, split blocks 
+#include "phased_genotyping.c" // update genotype of each variant, unphase some variants
 #include "hic.h"  // HiC relevant functions
 
 // output related
@@ -70,7 +71,7 @@ int build_readvariant_graph(DATA* data)
     data->graph_ready = '1';
 }
 
-int FILTER_HETS=0;
+int FILTER_HETS=1;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -87,11 +88,12 @@ int diploid_haplotyping(DATA* data) {
 	if (SNVS_BEFORE_INDELS && data->snpfrag[i].is_indel == '1') data->snpfrag[i].phase = '0';
     }
 
-    // Generate reduced fragment list for 'to-be-phased' variants, also removes singleton fragments
+    // Generate reduced fragment list, 'snpfrag[i].phase' needs to be set, also removes singleton fragments
     if (FILTER_HETS ==1) {
     	    data->Flist = calloc(sizeof(struct fragment),data->full_fragments);
 	    data->fragments = filter_fragments(data->full_Flist,data->full_fragments,data->snpfrag,data->Flist);
 	    fprintf(stderr,"filtering fragments for hets: %d %d removed %d \n",data->full_fragments,data->fragments,data->full_fragments-data->fragments);
+            qsort(data->Flist, data->fragments, sizeof (struct fragment), fragment_compare);
     }
     else
     {

@@ -23,4 +23,7 @@ void add_edges_longreads(struct fragment* Flist, int fragments, struct SNPfrags*
 void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps);
 int edge_compare(const void *a, const void *b);
 
+
+void print_variant(struct SNPfrags* snpfrag,int i,FILE* OUTFILE);
+
 #endif
