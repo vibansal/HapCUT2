@@ -8,6 +8,7 @@ extern int QVoffset;
 extern int MINQ;
 
 #define MAXBUF 100000
+#define LOG_HALF log10(0.5)
 
 // given a=log10(x) and b=log10(y), returns log10(x+y)
 #define addlogs(a, b) (((a) > (b)) ? ((a) + log10(1.0 + pow(10.0, (b) - (a)))) : ((b) + log10(1.0 + pow(10.0, (a) - (b)))))
