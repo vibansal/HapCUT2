@@ -44,4 +44,20 @@ struct SNPfrags { // single variant, also holds all information for node in grap
     float hetLL; // unphased heterozygous 0/1 likelihood of genotype
 };
 
+// similar to SNPfrag but only for genotype likelihoods
+typedef struct
+{
+        int frags;
+        int* flist;
+        float* PGLL; // phased genotype likelihoods, 0/0, 0/1, 1/1, 0|1, 1|0 
+        float* GLL;  // unphased genotype likelihoods
+	int16_t AC0,AC1;
+        float postp;
+        char phased; // phased or unphased
+        int16_t genotype; // one of 5 possible genotypes, we can add 0/2, 1/2, 2/2 for three alleles if needed
+        int16_t bestgeno;
+
+} PVAR;
+
+
 #endif

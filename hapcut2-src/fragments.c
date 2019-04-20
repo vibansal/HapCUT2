@@ -6,10 +6,10 @@ void free_fragment(struct fragment* FRAG)
 {
     int j=0;
     for (j = 0; j < FRAG->blocks; j++){
-    free(FRAG->list[j].hap);
-            free(FRAG->list[j].qv);
-            free(FRAG->list[j].pv);
-            free(FRAG->list[j].p1);
+    	free(FRAG->list[j].hap);
+        free(FRAG->list[j].qv);
+        free(FRAG->list[j].pv);
+        free(FRAG->list[j].p1);
     }
     free(FRAG->list); free(FRAG->id);
 }
@@ -47,7 +47,7 @@ void print_fragment(struct fragment* FRAG,FILE* OUTFILE)
    fprintf(OUTFILE,"\n");
 }
 
-// current output format is different, no blocks but list of variants, bad results for Hi-C (understandable)
+// filter the full fragment list to only keep fragments covering heterozygous variants and having at least 2 alleles covered
 int filter_fragments(struct fragment* Flist,int fragments,struct SNPfrags* snpfrag,struct fragment* nFlist)
 {
    int j=0,k=0,snp_ix=0,i=0;
@@ -64,13 +64,13 @@ int filter_fragments(struct fragment* Flist,int fragments,struct SNPfrags* snpfr
 		for (k = 0; k < FRAG->list[j].len; k++) 
 		{
 			snp_ix = FRAG->list[j].offset + k; // index of current position
+	    		if ( (int)FRAG->list[j].qv[k] - QVoffset < MINQ) continue;
 			if (snpfrag[snp_ix].phase == '1') het++;
 			total++;
 		}
 	   }
 	   if (het < 2) continue; 
            //fprintf(stdout,"stats %d %d \n",total,het); 
-
 	   // copy the ID, insert size, data_type and mate2_ix from original fragment
 	   nFlist[n].id = calloc(sizeof(char),strlen(FRAG->id)+1); strcpy(nFlist[n].id,FRAG->id);
 	   nFlist[n].isize = FRAG->isize; 
@@ -86,6 +86,7 @@ int filter_fragments(struct fragment* Flist,int fragments,struct SNPfrags* snpfr
 		for (k = 0; k < FRAG->list[j].len; k++)
 		{
 			snp_ix = FRAG->list[j].offset + k; // index of current position
+	    		if ( (int)FRAG->list[j].qv[k] - QVoffset < MINQ) continue;
 			if (snpfrag[snp_ix].phase == '1') 
 			{
 				nFlist[n].list[q].offset = snp_ix; nFlist[n].list[q].len = 1;
@@ -104,7 +105,6 @@ int filter_fragments(struct fragment* Flist,int fragments,struct SNPfrags* snpfr
    return n;
 }
    
-
 
 /*
    fprintf(OUTFILE,"%s %d %c %d\n",FRAG->id,FRAG->PS,FRAG->HP,FRAG->PQ);

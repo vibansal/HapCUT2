@@ -33,12 +33,13 @@ typedef struct
 	struct fragment* Flist; int fragments;
 	struct fragment* full_Flist; int full_fragments; // full fragment list
 	struct SNPfrags* snpfrag; int snps;
-	char* phased; // variant is part of heterozygous set of phased variants (all variants with genotype = 0/0, 1/1, 0/1 are not)  
 	char* HAP1; // single haplotype for het variants, remaining variants are set to '-' (missing)
 	char** fullhaps; // haplotypes for all variants and ploidy
 	struct BLOCK* clist; int components;
 	int filtered; // whether fragment list used for phasing is filtered or identical to full_Flist
 	char graph_ready; // has read-variant graph been constructed or not
+	PVAR* varlist;
+	int MINQ; // minimum quality value filter
 } DATA;
 
 #include "aux_hapcut2.c" // some functions moved here
@@ -144,6 +145,8 @@ int main(int argc, char** argv) {
     else fprintf_time(stderr, "read fragment file and variant file: fragments %d variants %d\n",data.full_fragments,data.snps);
     data.HAP1 = (char*) malloc(data.snps + 1);  // allocate memory for phased haplotype (only het variants)
     data.fullhaps = calloc(sizeof(char*),PLOIDY);
+    data.varlist = calloc(sizeof(PVAR),data.snps); 
+    data.MINQ = MINQ;
     for (i=0;i<PLOIDY;i++) data.fullhaps[i] = calloc(sizeof(char),data.snps+1); 
 
     LONG_READS = detect_long_reads(data.full_Flist,data.full_fragments); // detect if data corresponds to long_reads (pacbio/ONT/10X)
@@ -161,5 +164,6 @@ int main(int argc, char** argv) {
     free_fragmentlist(data.full_Flist,data.full_fragments);
     for (i=0;i<PLOIDY;i++) free(data.fullhaps[i]);
     free(data.HAP1); free(data.fullhaps[i]);
+    free(data.varlist);
     return 0;
 }

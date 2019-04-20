@@ -1,4 +1,3 @@
-
 /* specification of the command line arguments for HapCUT2 and I/O of these
  */
 
