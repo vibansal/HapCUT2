@@ -31,7 +31,7 @@ int read_input_files(char* fragmentfile,char* fragmentfile2,char* variantfile,DA
 
     int new_fragments = 0;
     struct fragment* new_Flist;
-    int i=0;
+    int i=0,j=0;
 
     if (MAX_IS != -1){
         // we are going to filter out some insert sizes, some memory being lost here, need to FIX
@@ -56,6 +56,18 @@ int read_input_files(char* fragmentfile,char* fragmentfile2,char* variantfile,DA
     {
 	   data->snpfrag = (struct SNPfrags*) malloc(sizeof (struct SNPfrags)*data->snps);
     	   read_vcffile(variantfile, data->snpfrag, data->snps);
+    }
+    // check consistency of fragments with variant list (if maximum # listed in fragments is > # of variants)
+    for (i=0;i<data->full_fragments;i++)
+    {
+	for (j=0;j<data->full_Flist[i].blocks;j++) 
+	{
+		if (data->full_Flist[i].list[j].offset + data->full_Flist[i].list[j].len > data->snps) 
+		{
+			fprintf(stderr,"ERROR, maximum variant index in fragment exceeds number of variants %d \n",data->snps);
+			return -1;
+		}
+	}
     }
     return 1;	
 }

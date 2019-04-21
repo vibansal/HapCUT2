@@ -56,6 +56,7 @@ typedef struct
         char phased; // phased or unphased
         int16_t genotype; // one of 5 possible genotypes, we can add 0/2, 1/2, 2/2 for three alleles if needed
         int16_t bestgeno;
+	float maxhet; // best genotype likelihood for heterozygous genotype 0/1
 
 } PVAR;
 

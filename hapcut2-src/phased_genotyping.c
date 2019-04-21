@@ -15,6 +15,7 @@ void init_varlist(PVAR* varlist,int snps,struct fragment* Flist,int fragments) /
 	varlist[i].PGLL = calloc(5,sizeof(float));
 	varlist[i].GLL = calloc(3,sizeof(float));
 	for (j=0;j<3;j++) varlist[i].GLL[j] = 0.0; 
+	varlist[i].maxhet = 0.0; // what is the best genotype likelihood for '0/1' genotype, useful for filtering
     }
     // calculate number of fragments covering each variant 
     for (i = 0; i < fragments; i++) {
@@ -38,6 +39,7 @@ void init_varlist(PVAR* varlist,int snps,struct fragment* Flist,int fragments) /
 		if (Flist[i].list[j].hap[k] == '0') 	
 		{
 			varlist[s].GLL[0] += Flist[i].list[j].p1[k];
+			varlist[s].maxhet += Flist[i].list[j].p1[k];
 			prob = QVoffset - (int) Flist[i].list[j].qv[k]; prob /= 10;
 			varlist[s].GLL[2] += prob;
 			varlist[s].AC0 +=1;
@@ -46,6 +48,7 @@ void init_varlist(PVAR* varlist,int snps,struct fragment* Flist,int fragments) /
 		if (Flist[i].list[j].hap[k] == '1') 
 		{
 			varlist[s].GLL[2] += Flist[i].list[j].p1[k];
+			varlist[s].maxhet += Flist[i].list[j].p1[k];
 			prob = QVoffset - (int) Flist[i].list[j].qv[k]; prob /= 10;
 			varlist[s].GLL[0] += prob;
 			varlist[s].AC1 +=1;
@@ -132,12 +135,12 @@ void calculate_geno_likelihoods(PVAR* varlist,int i,char* HAP1,struct fragment* 
 
 void print_variant_GLL(struct SNPfrags* snpfrag,PVAR* varlist,char* HAP1,int i)
 {
-	fprintf(stdout,"SNP %d %9d %s %s (%.3s) ",i,snpfrag[i].position,snpfrag[i].allele0,snpfrag[i].allele1,snpfrag[i].genotypes);
+	fprintf(stdout,"VAR %d %9d %s %s (%.8s) %s ",i,snpfrag[i].position,snpfrag[i].allele0,snpfrag[i].allele1,snpfrag[i].genotypes,snpfrag[i].id);
+	fprintf(stdout,"%s ",GTYPES[varlist[i].genotype]);
 	fprintf(stdout," %c %3d %3.2f ",HAP1[i],varlist[i].frags,varlist[i].PGLL[1]);
 	fprintf(stdout,"het: %3.2f %3.2f ",varlist[i].PGLL[3],varlist[i].PGLL[4]);
 	fprintf(stdout,"0/0:%3.2f 1/1:%3.2f ",varlist[i].PGLL[0],varlist[i].PGLL[2]);
-	fprintf(stdout,"%0.1f,%0.1f,%0.1f %d:%d ",varlist[i].GLL[0],varlist[i].GLL[1],varlist[i].GLL[2],varlist[i].AC0,varlist[i].AC1);
-	if(varlist[i].bestgeno != varlist[i].genotype) fprintf(stdout,"change %s->%s %f ",GTYPES[varlist[i].genotype],GTYPES[varlist[i].bestgeno],varlist[i].postp);
+	fprintf(stdout,"%0.1f,%0.1f,%0.1f %0.1f %d:%d\n",varlist[i].GLL[0],varlist[i].GLL[1],varlist[i].GLL[2],varlist[i].AC0,varlist[i].AC1);
 }
 
 // what about filtering low-quality allele calls, this is not being done currently, use MINQ
@@ -157,7 +160,7 @@ int local_optimization(DATA* data)
     init_varlist(varlist,data->snps,data->full_Flist,data->full_fragments); 
     init_genotypes(data);
 
-    int changes=0; int iter=0;
+    int changes=0; int iter=0; int flag=0;
 
     for (iter=0;iter < 4;iter++) {
 	changes=0;
@@ -168,8 +171,12 @@ int local_optimization(DATA* data)
 	varlist[i].bestgeno = best_genotype(varlist[i].PGLL,priors,&varlist[i].postp);
 	delta = varlist[i].PGLL[varlist[i].bestgeno]+priors[varlist[i].bestgeno]-varlist[i].PGLL[varlist[i].genotype]-priors[varlist[i].genotype];
 
-	if (varlist[i].bestgeno == varlist[i].genotype || delta < 0) continue;
+	flag =0;
+	if (varlist[i].bestgeno != varlist[i].genotype && delta > 0) flag =1;
+	if (iter ==0 || flag ==1) print_variant_GLL(data->snpfrag,data->varlist,data->HAP1,i);
+	if (flag ==0) continue;
 
+	if(varlist[i].bestgeno != varlist[i].genotype) fprintf(stdout,"change %s->%s %f ",GTYPES[varlist[i].genotype],GTYPES[varlist[i].bestgeno],varlist[i].postp);
 	if (varlist[i].phased == '1')
 	{
 		if ( delta > 0 && (varlist[i].bestgeno ==0 || varlist[i].bestgeno == 1 || varlist[i].bestgeno ==2)) // phased to unphased
@@ -177,7 +184,7 @@ int local_optimization(DATA* data)
 			varlist[i].genotype = varlist[i].bestgeno;
 			data->HAP1[i] = '-'; 
 			varlist[i].phased = '0'; 
-			fprintf(stdout,"unphasing variant");
+			fprintf(stdout,"phased2unphase");
 			changes +=1;
 		}
 		else // phased to phased, 0|1 to 1|0 or vice versa
@@ -201,21 +208,14 @@ int local_optimization(DATA* data)
 			if (varlist[i].bestgeno == 3) data->HAP1[i] = '0';
 			else if (varlist[i].bestgeno == 4) data->HAP1[i] = '1';
 			varlist[i].phased = '1';
-			fprintf(stdout,"unphased -> phased! %c",data->HAP1[i]);
+			fprintf(stdout,"unphased2phased");
 			changes +=1;
 		}
 	}
-	print_variant_GLL(data->snpfrag,data->varlist,data->HAP1,i);
-	fprintf(stdout,"iter %d \n",iter+1);
+	fprintf(stdout," iter:%d\n \n",iter+1);
     }
     fprintf(stderr,"phased genotype likelihood updates for data %d changes %d\n",data->snps,changes);
     // should run one round of HapCUT2 to update phased variant haplotype
     if (changes ==0) break;
     }
 }
-
-
-
-//if (delta >= 1 && varlist[i].phased == '1' && varlist[i].bestgeno ==1) fprintf(stdout,"unphase_genotype delta %0.2f",delta);
-//else if (delta > 0 && varlist[i].bestgeno != varlist[i].genotype && varlist[i].bestgeno ==0) fprintf(stdout,"non-variant delta %0.2f",delta);
-//else if (delta > 1 && varlist[i].bestgeno != varlist[i].genotype) fprintf(stdout,"update_genotype delta %0.2f",delta);
