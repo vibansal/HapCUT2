@@ -55,7 +55,7 @@ int read_vcffile(char* vcffile, struct SNPfrags* snpfrag, int snps) {
 	}
 	if (k > 10 && var ==0) 
 	{
-		fprintf(stderr,"more than 10 columns in VCF file %s, HapCUT2 will use the genotypes in column 10 to phase the sample\n",vcffile); 
+		fprintf(stderr,"more than 10 columns in VCF file %s:%d, HapCUT2 will use the genotypes in column 10 to phase the sample\n",vcffile,k); 
 	}
 	l0 = strlen(string_list[3]);  l1 = strlen(string_list[4]);  // length of alleles
 	snpfrag[var].chromosome = (char*)malloc(strlen(string_list[0])+1); strcpy(snpfrag[var].chromosome,string_list[0]); 

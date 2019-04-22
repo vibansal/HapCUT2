@@ -57,14 +57,14 @@ void init_random_hap(struct SNPfrags* snpfrag,int snps,char* HAP1)
     }
 }
 
-int build_readvariant_graph(DATA* data,int pairwise) // pairwise = 1-LONG_READS
+int build_readvariant_graph(DATA* data,int long_reads) 
 {
     int i=0; int components=0;
     update_snpfrags(data->Flist, data->fragments, data->snpfrag, data->snps);
     // 10/25/2014, edges are only added between adjacent nodes in each fragment and used for determining connected components...
    // for (i = 0; i < snps; i++) snpfrag[i].elist = (struct edge*) malloc(sizeof (struct edge)*(snpfrag[i].edges+1)); // # of edges calculated in update_snpfrags function  
     //for(i=0;i<data->snps;i++) fprintf(stdout,"%d %d \n",i,data->snpfrag[i].edges);
-    if (pairwise  ==1)  add_edges(data->Flist,data->fragments,data->snpfrag,data->snps,&components); // add all edges
+    if (long_reads  ==0)  add_edges(data->Flist,data->fragments,data->snpfrag,data->snps,&components); // add all edges
     else add_edges_longreads(data->Flist,data->fragments,data->snpfrag,data->snps,&components);
     // length of telist is smaller since it does not contain duplicates, calculated in add_edges 
     for (i = 0; i < data->snps; i++) data->snpfrag[i].telist = (struct edge*) malloc(sizeof (struct edge)*(data->snpfrag[i].edges+1));
@@ -103,7 +103,7 @@ int diploid_haplotyping(DATA* data) {
 
     // BUILD FRAGMENT-VARIANT GRAPH for to-be-phased variants
     fprintf_time(stderr, "building read-variant graph for phasing\n");
-    build_readvariant_graph(data,1-LONG_READS); 
+    build_readvariant_graph(data,LONG_READS); 
     
     // INITIALIZE HAPLOTYPES, this should be changed to only updating 'phased' set and set HAP1[x] = '-' 
     init_random_hap(data->snpfrag,data->snps,data->HAP1);
@@ -144,10 +144,8 @@ int main(int argc, char** argv) {
     if (read_input_files(fragfile,fragfile2,VCFfile,&data) < 1)  return -1;
     else fprintf_time(stderr, "read fragment file and variant file: fragments %d variants %d\n",data.full_fragments,data.snps);
     data.HAP1 = (char*) malloc(data.snps + 1);  // allocate memory for phased haplotype (only het variants)
-    data.fullhaps = calloc(sizeof(char*),PLOIDY);
     data.varlist = calloc(sizeof(PVAR),data.snps); 
     data.MINQ = MINQ;
-    for (i=0;i<PLOIDY;i++) data.fullhaps[i] = calloc(sizeof(char),data.snps+1); 
 
     LONG_READS = detect_long_reads(data.full_Flist,data.full_fragments); // detect if data corresponds to long_reads (pacbio/ONT/10X)
 
@@ -162,8 +160,7 @@ int main(int argc, char** argv) {
     free_memory(data.snpfrag,data.snps,data.clist,data.components);  // only frees the graph-relevant parts of snpfrag
     data.graph_ready = '0';
     free_fragmentlist(data.full_Flist,data.full_fragments);
-    for (i=0;i<PLOIDY;i++) free(data.fullhaps[i]);
-    free(data.HAP1); free(data.fullhaps[i]);
-    free(data.varlist);
+    free(data.HAP1); 
+    free_varlist(data.varlist,data.snps);
     return 0;
 }
