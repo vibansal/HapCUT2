@@ -47,7 +47,7 @@ $(B)/hapfragments.o: $(H)/hapfragments.c $(H)/hapfragments.h $(H)/readvariant.h 
 	$(CC) -c $(H)/hapfragments.c -o $(B)/hapfragments.o
 
 $(B)/readvariant.o: $(H)/readvariant.c $(H)/readvariant.h $(H)/hashtable.h $(H)/hashtable.c | $(B)
-	$(CC) -c $(H)/readvariant.c -o $(B)/readvariant.o
+	$(CC) -c -I$(HTSLIB) $(H)/readvariant.c -o $(B)/readvariant.o
 
 $(B)/bamread.o: $(H)/bamread.h $(H)/bamread.c $(H)/readfasta.h $(H)/readfasta.c $(SAMTOOLS)/libbam.a $(HTSLIB)/libhts.a | $(B)
 	$(CC) -I$(SAMTOOLS) -I$(HTSLIB) -c $(H)/bamread.c -o $(B)/bamread.o
