@@ -18,11 +18,12 @@ void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfr
     char temp1;
     float P_data_H, P_data_Hf, P_data_H00, P_data_H11, total, log_hom_prior, log_het_prior;
     float post_hap, post_hapf, post_00, post_11,ll;
+    float PGLL[5]; 
 
     for (i = 0; i < snps; i++) {
 
         // "unmask" indel variant
-        if (SNVS_BEFORE_INDELS && (strlen(snpfrag[i].allele0) != 1 || strlen(snpfrag[i].allele1) != 1)) HAP1[i] = '0';
+        if (SNVS_BEFORE_INDELS && snpfrag[i].is_indel == '1') HAP1[i] = '0';
 
         // we only care about positions that are haplotyped
         if (!(HAP1[i] == '1' || HAP1[i] == '0')) continue;
@@ -34,7 +35,7 @@ void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfr
         P_data_Hf = 0;
         P_data_H00 = 0;
         P_data_H11 = 0;
-	for (j=0;j<5;j++) snpfrag[i].PGLL[j] = 0; 
+	for (j=0;j<5;j++) PGLL[j] = 0; 
 
         //looping over fragments overlapping i and sum up read probabilities
         for (j = 0; j < snpfrag[i].frags; j++) {
@@ -52,14 +53,14 @@ void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfr
                 HAP1[i] = '1';
                 P_data_H11 += fragment_ll1(Flist,f, HAP1, i, -1);
             }
-            HAP1[i] = '0'; snpfrag[i].PGLL[0] += fragment_ll1(Flist,f, HAP1, i, -1); // added 03/12/2018
-            HAP1[i] = '1'; snpfrag[i].PGLL[3] += fragment_ll1(Flist,f, HAP1, i, -1); // homozygous genotypes 00,11
+            HAP1[i] = '0'; PGLL[0] += fragment_ll1(Flist,f, HAP1, i, -1); // added 03/12/2018
+            HAP1[i] = '1'; PGLL[3] += fragment_ll1(Flist,f, HAP1, i, -1); // homozygous genotypes 00,11
             //return haplotype to original value
             HAP1[i] = temp1;
 	    ll = fragment_ll1(Flist,f, HAP1, i, 10); // variant 'i' ignored for likelihood calculation if last parameter = 10
-	    if (ll < 0) snpfrag[i].PGLL[4] +=ll;
+	    if (ll < 0) PGLL[4] +=ll;
         }
-	snpfrag[i].PGLL[1] = P_data_H; snpfrag[i].PGLL[2] = P_data_Hf;
+	PGLL[1] = P_data_H; PGLL[2] = P_data_Hf;
 
 
         if (call_homozygous){

@@ -283,7 +283,7 @@ void init_variant(struct fragment* Flist,int fragments,struct SNPfrags* snpfrag,
 
     for (i = 0; i < snps; i++) {
         snpfrag[i].flist = (int*) malloc(snpfrag[i].frags*sizeof (int));
-        snpfrag[i].alist = (char*) malloc(snpfrag[i].frags*sizeof(char));
+        //snpfrag[i].alist = (char*) malloc(snpfrag[i].frags*sizeof(char));
         snpfrag[i].jlist = (int*) malloc(snpfrag[i].frags *sizeof(int));
         snpfrag[i].klist = (int*) malloc(snpfrag[i].frags *sizeof(int));
     }
@@ -293,9 +293,13 @@ void init_variant(struct fragment* Flist,int fragments,struct SNPfrags* snpfrag,
         snpfrag[i].csize = 1;
         snpfrag[i].frags = 0; // reset to 0 since it is used and updated again (see below)
         snpfrag[i].edges = 0; // this will be zero for all homozygous variants
+        snpfrag[i].tedges = 0; 
+	snpfrag[i].parent = -1; 
+	snpfrag[i].score = 0.0;
 	snpfrag[i].post_notsw = 0;
 	snpfrag[i].post_hap = 0;
 	snpfrag[i].pruned_discrete_heuristic = 0;
+	
     }
 }
 
@@ -319,7 +323,7 @@ void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snp
                 snpfrag[s].flist[h] = f;
                 snpfrag[s].jlist[h] = j;
                 snpfrag[s].klist[h] = k;
-                snpfrag[s].alist[h] = Flist[f].list[j].hap[k];
+ //               snpfrag[s].alist[h] = Flist[f].list[j].hap[k];
 
                 snpfrag[s].frags++;
                 if (snpfrag[s].phase == '1') calls +=1;  // only non-homozygous variants 

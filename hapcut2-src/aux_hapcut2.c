@@ -80,7 +80,7 @@ void free_memory(struct SNPfrags* snpfrag,int snps,struct BLOCK* clist,int compo
     int component = 0;
     for (i = 0; i < snps; i++) {
         free(snpfrag[i].flist);
-        free(snpfrag[i].alist);
+        //free(snpfrag[i].alist);
         free(snpfrag[i].jlist);
         free(snpfrag[i].klist);
 

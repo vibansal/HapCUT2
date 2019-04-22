@@ -5,7 +5,7 @@
 int VERBOSE = 0;
 int PRINT_FRAGMENT_SCORES = 0; // output the MEC/switch error score of erroneous reads/fragments to a file for evaluation
 int OUTPUT_HAPLOTAGS =0; // read-haplotype assignments
-int OUTPUT_VCF =0;     // output phased VCF or not 
+int OUTPUT_VCF =1;     // output phased VCF or not 
 
 // Quality-score related parameters
 int QVoffset = 33;
