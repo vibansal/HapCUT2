@@ -92,8 +92,8 @@ int read_vcffile(char* vcffile, struct SNPfrags* snpfrag, int snps) {
 	for (i=0;i<k2;i++) free(geno_list[i]); // free array of split strings
 	for (i=0;i<k;i++) free(string_list[i]); // free array of split strings
 	var++;
-	if (var > snps) fprintf(stderr,"ERROR, variant count exceeds snps %d %d \n",var,snps); 
     }
+    if (var != snps) fprintf(stderr,"ERROR, variant count does not equal to expected %d %d \n",var,snps); 
     fclose(fp);
     free(string_list); free(format_list); free(geno_list);
     free(buffer);
