@@ -22,4 +22,11 @@ float phred(float x);
 float unphred(float x);
 void check_input_0_or_1(char* x);
 
+char* concatStrings(char** string_list,int n,char sep); // S1:S2:S3 where sep = ':'
+
+// split a string using a single separator, '\n' and '\0' are also delimitors at end of string
+int splitString(char* input,char sep,char** string_list); // return value = no of strings, string_list is output array
+
+int splitString_full(char* input,char sep,char** out); // allocates all memory within function
+
 #endif

@@ -113,10 +113,10 @@ void print_output_files(DATA* data,char* variantfile, char* outputfile)
     }
 }
 
-void optimization_using_maxcut(DATA* data)
+void optimization_using_maxcut(DATA* data,int max_global_iter,int maxcut_iter)
 {
     fprintf_time(stderr, "starting Max-Likelihood-Cut based haplotype assembly algorithm\n");
-    int iter=0; int hic_iter=0; int k=0; int i=0;
+    int iter=0; int global_iter=0; int k=0; int i=0;
     int* slist = (int*) malloc(sizeof (int)*data->snps);
     int converged_count=0;
 
@@ -141,9 +141,9 @@ void optimization_using_maxcut(DATA* data)
     float OLD_HIC_LL_SCORE = -80;
 
     OLD_HIC_LL_SCORE = bestscore;
-    for (hic_iter = 0; hic_iter < MAX_HIC_EM_ITER; hic_iter++){ // single iteration except for HiC 
+    for (global_iter = 0; global_iter < max_global_iter; global_iter++){ // single iteration except for HiC 
         if (VERBOSE)
-            fprintf_time(stdout, "HIC ITER %d\n", hic_iter);
+            fprintf_time(stdout, "HIC ITER %d\n", global_iter);
         for (k = 0; k < data->components; k++){
             data->clist[k].iters_since_improvement = 0;
         }
@@ -151,7 +151,7 @@ void optimization_using_maxcut(DATA* data)
             data->snpfrag[i].post_hap = 0;
         }
         // RUN THE MAX_CUT ALGORITHM ITERATIVELY TO IMPROVE LIKELIHOOD
-        for (iter = 0; iter < MAXITER; iter++) {
+        for (iter = 0; iter < maxcut_iter; iter++) {
             if (VERBOSE)
                 fprintf_time(stdout, "PHASING ITER %d\n", iter);
             converged_count = 0;
@@ -170,7 +170,7 @@ void optimization_using_maxcut(DATA* data)
         }
 
         // H-TRANS ESTIMATION FOR HIC
-        if (MAX_HIC_EM_ITER > 1){
+        if (max_global_iter > 1){
 
             // Possibly break if we're done improving
             HIC_LL_SCORE = 0;
@@ -190,7 +190,7 @@ void optimization_using_maxcut(DATA* data)
     free(slist);
 }
 
-void post_processing(DATA* data) // block splitting and pruning individual variants
+void post_processing(DATA* data,int split_blocks) // block splitting and pruning individual variants
 {
     fprintf_time(stderr, "starting to post-process phased haplotypes to further improve accuracy\n");
     // BLOCK SPLITTING
@@ -198,7 +198,7 @@ void post_processing(DATA* data) // block splitting and pruning individual varia
     int k=0;
     new_components = data->components;
 
-    if (SPLIT_BLOCKS){
+    if (split_blocks ==1){
         split_count = 0;
         for (k=0; k<data->components; k++){
             split_count += split_block(data->HAP1, data->clist,k, data->Flist, data->snpfrag, &new_components); // attempt to split block

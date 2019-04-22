@@ -14,167 +14,94 @@ int count_variants_vcf(char* vcffile) {
     int variants = 0;
     char buffer[10000];
     while (fgets(buffer, 10000, fp)) {
-        if (buffer[0] == '#') {
+
+        if (buffer[0] == '#') { // only for header lines, keep reading until we get an endline character
             while (buffer[strlen(buffer) - 1] != '\n') fgets(buffer, 10000, fp);
             continue;
         }
-        if (buffer[strlen(buffer) - 1] == '\n') variants++;
+        if (buffer[strlen(buffer) - 1] == '\n') variants++; // count only when we get an endline character
     }
     fclose(fp);
     fprintf_time(stderr, "read %d variants from %s file \n", variants, vcffile);
     return variants;
 }
 
-// 1000 genomes file have large deletions, need to allow longer VCF line
-// this function is distinct from the function used to read VCF file for parsing haplotype informative reads, why ???
-// read variants from VCF file, this code doesn't check the vcf file and assumes that column 10 contains the genotypes for the individual we are interested in phasing
+// read variants from VCF file, this code  assumes that column 10 contains the genotypes for the individual we are interested in phasing
 
 int read_vcffile(char* vcffile, struct SNPfrags* snpfrag, int snps) {
-    char buffer[500000];
-    char temp[1000];
-    char GQ[100];
-    char* gen;
-    int i = 0, j = 0, k=0, s = 0, e = 0, var = 0, GQ_ix, format_ix;
+    char* buffer = (char*)malloc(1000000);
+    int i = 0, j = 0, k=0,k1=0,k2=0, var = 0;
+    int GQ_ix, format_ix,GT_ix;
+    int l0=0,l1=0;
     FILE* fp = fopen(vcffile, "r");
-    while (fgets(buffer, 500000, fp)) {
-        if (buffer[0] == '#') continue;
-        i = 0;
-        while (buffer[i] == ' ' || buffer[i] == '\t') i++;
-        s = i;
-        while (buffer[i] != ' ' && buffer[i] != '\t') i++;
-        e = i;
-        snpfrag[var].chromosome = (char*) malloc(e - s + 1);
-        for (j = s; j < e; j++) snpfrag[var].chromosome[j - s] = buffer[j];
-        snpfrag[var].chromosome[j - s] = '\0';
-        while (buffer[i] == ' ' || buffer[i] == '\t') i++;
-        s = i;
-        while (buffer[i] != ' ' && buffer[i] != '\t') i++;
-        e = i;
-        for (j = s; j < e; j++) temp[j - s] = buffer[j];
-        temp[j - s] = '\0';
-        snpfrag[var].position = atoi(temp);
+    char** string_list = (char**)malloc(sizeof(char*)*4096); // if VCF file has more than 4096 columns... 
+    char** format_list = (char**)malloc(sizeof(char*)*4096);
+    char** geno_list = (char**)malloc(sizeof(char*)*4096);
+    char* format; 
+    int header_lines =0;
+    while (fgets(buffer, 1000000, fp)) {
+        if (buffer[0] == '#') 
+	{
+		header_lines++;
+		continue;
+	}
+	if (header_lines ==0) fprintf(stderr,"VCF file has no header\n");
 
-        while (buffer[i] == ' ' || buffer[i] == '\t') i++;
-        s = i;
-        while (buffer[i] != ' ' && buffer[i] != '\t') i++;
-        e = i;
-        snpfrag[var].id = (char*) malloc(e - s + 1);
-        for (j = s; j < e; j++) snpfrag[var].id[j - s] = buffer[j];
-        snpfrag[var].id[j - s] = '\0';
-        //strcpy(snpfrag[var].id,".");
-        //variant->id = (char*)malloc(e-s+1); for (j=s;j<e;j++) variant->id[j-s] = buffer[j]; variant->id[j-s] = '\0';
-
-        while (buffer[i] == ' ' || buffer[i] == '\t') i++;
-        s = i;
-        while (buffer[i] != ' ' && buffer[i] != '\t') i++;
-        e = i;
-        snpfrag[var].allele0 = (char*) malloc(e - s + 1);
-        for (j = s; j < e; j++) snpfrag[var].allele0[j - s] = buffer[j];
-        snpfrag[var].allele0[j - s] = '\0';
-
-
-        while (buffer[i] == ' ' || buffer[i] == '\t') i++;
-        s = i;
-        while (buffer[i] != ' ' && buffer[i] != '\t') i++;
-        e = i;
-        snpfrag[var].allele1 = (char*) malloc(e - s + 1);
-        for (j = s; j < e; j++) snpfrag[var].allele1[j - s] = buffer[j];
-        snpfrag[var].allele1[j - s] = '\0';
-        
-	// set INDEL flag
-	if (strlen(snpfrag[var].allele0) != 1 || strlen(snpfrag[var].allele1) != 1) snpfrag[var].is_indel = '1';
-	else snpfrag[var].is_indel = '0'; 
-
-        while (buffer[i] == ' ' || buffer[i] == '\t') i++;
-        s = i;
-        while (buffer[i] != ' ' && buffer[i] != '\t') i++;
-        e = i;
-        //variant->quality = (char*)malloc(e-s+1); for (j=s;j<e;j++) variant->quality[j-s] = buffer[j]; variant->quality[j-s] = '\0';
-        while (buffer[i] == ' ' || buffer[i] == '\t') i++;
-        s = i;
-        while (buffer[i] != ' ' && buffer[i] != '\t') i++;
-        e = i;
-        //variant->filter = (char*)malloc(e-s+1); for (j=s;j<e;j++) variant->filter[j-s] = buffer[j]; variant->filter[j-s] = '\0';
-        while (buffer[i] == ' ' || buffer[i] == '\t') i++;
-        s = i;
-        while (buffer[i] != ' ' && buffer[i] != '\t') i++;
-        e = i;
-        //variant->info = (char*)malloc(e-s+1); for (j=s;j<e;j++) variant->info[j-s] = buffer[j]; variant->info[j-s] = '\0';
-        while (buffer[i] == ' ' || buffer[i] == '\t') i++;
-        s = i;
-        while (buffer[i] != ' ' && buffer[i] != '\t') i++;
-        e = i;
-
-        // assert that GT field is the first field
-        assert(buffer[s] == 'G' && buffer[s+1] == 'T' && (buffer[s+2] == ':' || buffer[s+2] == '\t'));
-
-        // check format string for presence of GQ
-        format_ix = 0;
-        GQ_ix = -1; // the index of format field for GQ
-        for (j=s;j<e;j++){
-            if (buffer[j] == ':')
-                format_ix++;
-            else if((j+1 < e) && buffer[j] == 'G' && buffer[j+1] == 'Q'){
-                GQ_ix = format_ix;
-            }
-        }
-
-        while (buffer[i] == ' ' || buffer[i] == '\t') i++;
-        s = i;
-        while (buffer[i] != ' ' && buffer[i] != '\t' && buffer[i] != '\n') i++;
-        e = i;
-
-        snpfrag[var].genotypes = (char*) malloc(e - s + 1);
-        for (j = s; j < e; j++) snpfrag[var].genotypes[j - s] = buffer[j];
-        snpfrag[var].genotypes[j - s] = '\0';
-        //len = j-s;
-        gen = snpfrag[var].genotypes; //  for convenience
+	k = splitString(buffer,'\t',string_list); 
+	if (k < 10) 
+	{
+		fprintf(stderr,"ERROR reading VCF file: less than 10 columns in VCF file %s\n",vcffile); 
+		return -1;
+	}
+	if (k > 10 && var ==0) 
+	{
+		fprintf(stderr,"more than 10 columns in VCF file %s, HapCUT2 will use the genotypes in column 10 to phase the sample\n",vcffile); 
+	}
+	l0 = strlen(string_list[3]);  l1 = strlen(string_list[4]);  // length of alleles
+	snpfrag[var].chromosome = (char*)malloc(strlen(string_list[0])+1); strcpy(snpfrag[var].chromosome,string_list[0]); 
+	snpfrag[var].position = atoi(string_list[1]); 
+	snpfrag[var].id = (char*)malloc(strlen(string_list[2])+1); strcpy(snpfrag[var].id,string_list[2]); 
+	snpfrag[var].allele0 = (char*)malloc(l0+1); strcpy(snpfrag[var].allele0,string_list[3]); 
+	snpfrag[var].allele1 = (char*)malloc(l1+1); strcpy(snpfrag[var].allele1,string_list[4]); 
+	snpfrag[var].genotypes = (char*)malloc(strlen(string_list[9])+1); strcpy(snpfrag[var].genotypes,string_list[9]); 
         snpfrag[var].homozygous_prior = HOMOZYGOUS_PRIOR; // default value
-        int no_gq = 0;
-        if (GQ_ix != -1) {
+	if (l0 != 1 || l1 !=1) snpfrag[var].is_indel = '1';
+	else snpfrag[var].is_indel = '0'; 
+	
+        GT_ix = -1; GQ_ix = -1; // the index of format field for GQ
+	k1 = splitString(string_list[8],':',format_list); 
+	for (i=0;i<k1;i++)
+	{
+		if (strcmp(format_list[i],"GT") ==0) GT_ix = i;
+		else if (strcmp(format_list[i],"GQ") ==0) GQ_ix = i; 
+	}
+	k2 = splitString(string_list[9],':',geno_list); 
+	if (GQ_ix >= 0)
+	{
+        	snpfrag[var].homozygous_prior = atof(geno_list[GQ_ix]) / -10.0; // log prior probability of homozygousity if GQ is present
+	}
+	if (GT_ix == -1 || k1 != k2)  // k1 should be equal to k2
+	{
+		fprintf(stderr,"ERROR reading VCF file: no GT field found or mismatch between FORMAT and GQ cols %s\n",vcffile); 
+		return -1;
+	}
+	//for (i=0;i<k;i++) fprintf(stdout,"%d %s\t",i,string_list[i]); fprintf(stdout,"\n");
+	//for (i=0;i<k1;i++) fprintf(stdout,"%d %s\t",i,format_list[i]); fprintf(stdout,"\n\n");
 
-            // get to the index where GQ is located.
-            k = 0; // where we are in gen
-            for (j=0; j<GQ_ix; j++){
-                if (no_gq){
-                  break;
-                }
-
-                while(gen[k] != ':') {
-                    k++;
-                    if (gen[k] == '\n' || gen[k] == '\0') {
-                        no_gq = 1;
-                        break;
-                    }
-                }
-                k++; // step past the ':'
-
-                if (gen[k] == '\n' || gen[k] == '\0') {
-                    no_gq = 1;
-                    break;
-                }
-            }
-
-            // reached GQ field. read it in.
-            if (!no_gq) {
-                j=0;
-
-                while (gen[k] != '\0' && gen[k] != ':') {
-                    GQ[j] = gen[k];
-                    k++;
-                    j++;
-                }
-                GQ[j] = '\0';
-
-                snpfrag[var].homozygous_prior = atof(GQ) / -10.0; // log prior probability of homozygousity
-            }
-        }
-
-        var++;
+	for (i=0;i<k1;i++) free(format_list[i]); // free array of split strings
+	for (i=0;i<k2;i++) free(geno_list[i]); // free array of split strings
+	for (i=0;i<k;i++) free(string_list[i]); // free array of split strings
+	var++;
+	if (var > snps) fprintf(stderr,"ERROR, variant count exceeds snps %d %d \n",var,snps); 
     }
     fclose(fp);
+    free(string_list); free(format_list); free(geno_list);
+    free(buffer);
     return 1;
 }
+
+
+/////////////////////////////// OLD functions /////////////////////////////////////////////////////////////////////////////
 
 int count_variants(char* variantfile) {
     int snps = 0;

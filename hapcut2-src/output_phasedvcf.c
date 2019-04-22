@@ -12,43 +12,6 @@ void print_VCF_header(FILE* outfile)
 
 }
 
-char* concatStrings(char** var_list,int n,char sep)
-{
-	// concatenate string GT + ':' + DP + ':' from an array 
-	int i=0,l=0,j=0,k=0;
-	for (i=0;i<n;i++) l += strlen(var_list[i]) +1; 
-	char* concat = calloc(l+1,sizeof(char)); 
-	for (i=0;i<n;i++)
-	{
-		for (j=0;j<strlen(var_list[i]);j++) concat[k++] = var_list[i][j];
-		concat[k++] = sep; 	
-	}	
-	concat[k] = '\0';
-	return concat; 
-}
-
-// split a string using a single separator, '\n' and '\0' are also delimitors at end of string
-int splitString(char* input,char sep,char** var_list)
-{
-	int n=0,i=0,s=0,e=0,j=0;
-	while (1)
-	{
-		if (input[i] == sep || input[i] == '\n' || input[i] == '\0')
-		{
-			if (i-s > 0) {
-				var_list[n] = malloc(i-s+1); 
-				for (j = s; j < i; j++) var_list[n][j - s] = input[j]; var_list[n][j-s] = '\0';
-				n +=1;
-			}
-			s = i+1; // start of next string
-		}
-		if (input[i] =='\n' || input[i] == '\0') break;
-		i++;
-	}
-	return n;	
-}
-
-
 // print VCF header copied from original VCF file 
 // PS tag for each variant based on position of first SNP in component 
 // 1/2 genotypes or 0/2 genotypes need to be handled properly 

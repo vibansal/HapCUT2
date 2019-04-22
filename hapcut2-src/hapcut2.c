@@ -57,15 +57,15 @@ void init_random_hap(struct SNPfrags* snpfrag,int snps,char* HAP1)
     }
 }
 
-int build_readvariant_graph(DATA* data)
+int build_readvariant_graph(DATA* data,int pairwise) // pairwise = 1-LONG_READS
 {
     int i=0; int components=0;
     update_snpfrags(data->Flist, data->fragments, data->snpfrag, data->snps);
     // 10/25/2014, edges are only added between adjacent nodes in each fragment and used for determining connected components...
    // for (i = 0; i < snps; i++) snpfrag[i].elist = (struct edge*) malloc(sizeof (struct edge)*(snpfrag[i].edges+1)); // # of edges calculated in update_snpfrags function  
     //for(i=0;i<data->snps;i++) fprintf(stdout,"%d %d \n",i,data->snpfrag[i].edges);
-    if (LONG_READS ==0)  add_edges(data->Flist,data->fragments,data->snpfrag,data->snps,&components);
-    else if (LONG_READS >=1) add_edges_longreads(data->Flist,data->fragments,data->snpfrag,data->snps,&components);
+    if (pairwise  ==1)  add_edges(data->Flist,data->fragments,data->snpfrag,data->snps,&components); // add all edges
+    else add_edges_longreads(data->Flist,data->fragments,data->snpfrag,data->snps,&components);
     // length of telist is smaller since it does not contain duplicates, calculated in add_edges 
     for (i = 0; i < data->snps; i++) data->snpfrag[i].telist = (struct edge*) malloc(sizeof (struct edge)*(data->snpfrag[i].edges+1));
     data->components = components;
@@ -103,7 +103,7 @@ int diploid_haplotyping(DATA* data) {
 
     // BUILD FRAGMENT-VARIANT GRAPH for to-be-phased variants
     fprintf_time(stderr, "building read-variant graph for phasing\n");
-    build_readvariant_graph(data); 
+    build_readvariant_graph(data,1-LONG_READS); 
     
     // INITIALIZE HAPLOTYPES, this should be changed to only updating 'phased' set and set HAP1[x] = '-' 
     init_random_hap(data->snpfrag,data->snps,data->HAP1);
@@ -114,13 +114,13 @@ int diploid_haplotyping(DATA* data) {
     fprintf_time(stderr, "fragments %d snps %d component(blocks) %d\n", data->fragments,data->snps,data->components);
 
     // MAX-CUT OPTIMIZATION
-    optimization_using_maxcut(data);
+    optimization_using_maxcut(data,MAX_HIC_EM_ITER,MAXITER);
 
-    // POST PROCESSING OF HAPLOTYPES 
-    post_processing(data);  // only if EA ==1 or SPLIT_BLOCKS ==1 or SKIP_PRUNE ==0
+    // POST PROCESSING OF HAPLOTYPES, pass all options as arguments rather than use global variables 
+    post_processing(data,SPLIT_BLOCKS);  // only if EA ==1 or SPLIT_BLOCKS ==1 or SKIP_PRUNE ==0
 
     // UPDATE phased genotype likelihoods using local updates
-    local_optimization(data);
+    //local_optimization(data);
 
     // FREE DATA STRUCTURES
     if (FILTER_HETS ==1) free_fragmentlist(data->Flist,data->fragments);
