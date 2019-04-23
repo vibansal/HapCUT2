@@ -37,6 +37,8 @@ int OUTPUT_VCF =0;
 
 int AUTODETECT_LONGREADS = 1;
 int LONG_READS = 0; // if this variable is 1, the data contains long read data
+char ONLY_CHROM[10000];
+int HELPER_SCRIPT_MODE = 0;
 
 // HiC-related global variables
 int HIC = 0;
@@ -52,7 +54,7 @@ int MAX_IS = -1;
 
 #include "find_maxcut.c"   // function compute_good_cut
 #include "post_processing.c"  // post-processing functions
-     
+
 
 int get_num_fragments(char* fragmentfile)
 {
@@ -110,7 +112,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
     struct fragment* new_Flist;
 
     // READ FRAGMENT MATRIX
-    fragments = get_num_fragments(fragmentfile); 
+    fragments = get_num_fragments(fragmentfile);
     struct fragment* Flist;
     Flist     = (struct fragment*) malloc(sizeof (struct fragment)* fragments);
     flag = read_fragment_matrix(fragmentfile, Flist, fragments);
@@ -140,7 +142,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
 
     snpfrag = (struct SNPfrags*) malloc(sizeof (struct SNPfrags)*snps);
     update_snpfrags(Flist, fragments, snpfrag, snps, &components);
-    
+
     detect_long_reads(Flist,fragments);
 
     // 10/25/2014, edges are only added between adjacent nodes in each fragment and used for determining connected components...
@@ -302,13 +304,18 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
     }
     // PRINT OUTPUT FILE
     fprintf_time(stderr, "OUTPUTTING PRUNED HAPLOTYPE ASSEMBLY TO FILE %s\n", outputfile);
-    print_hapfile(clist, components, HAP1, Flist, fragments, snpfrag, variantfile, miscalls, outputfile);
-    char assignfile[4096];  sprintf(assignfile,"%s.fragments",outputfile);
-    if (OUTPUT_RH_ASSIGNMENTS ==1) fragment_assignments(Flist,fragments,snpfrag,HAP1,assignfile); // added 03/10/2018 to output read-haplotype assignments
-    char outvcffile[4096];  sprintf(outvcffile,"%s.phased.VCF",outputfile);
-    if (OUTPUT_VCF ==1) {
-    	fprintf_time(stderr, "OUTPUTTING PHASED VCF TO FILE %s\n", outvcffile);
-	output_vcf(variantfile,snpfrag,snps,HAP1,Flist,fragments,outvcffile,0);
+    if (HELPER_SCRIPT_MODE) {
+      fprintf_time(stderr, "OUTPUTTING PHASED VCF TO FILE %s\n", outputfile);
+      output_vcf(variantfile,snpfrag,snps,HAP1,Flist,fragments,outputfile,0,ONLY_CHROM);
+    } else {
+      print_hapfile(clist, components, HAP1, Flist, fragments, snpfrag, variantfile, miscalls, outputfile);
+      char assignfile[4096];  sprintf(assignfile,"%s.fragments",outputfile);
+      if (OUTPUT_RH_ASSIGNMENTS ==1) fragment_assignments(Flist,fragments,snpfrag,HAP1,assignfile); // added 03/10/2018 to output read-haplotype assignments
+      char outvcffile[4096];  sprintf(outvcffile,"%s.phased.VCF",outputfile);
+      if (OUTPUT_VCF ==1) {
+      	fprintf_time(stderr, "OUTPUTTING PHASED VCF TO FILE %s\n", outvcffile);
+    	  output_vcf(variantfile,snpfrag,snps,HAP1,Flist,fragments,outvcffile,0,ONLY_CHROM);
+      }
     }
 
     // FREE UP MEMORY
@@ -358,6 +365,7 @@ int main(int argc, char** argv) {
     strcpy(hapfile, "None");
     strcpy(HTRANS_DATA_INFILE, "None");
     strcpy(HTRANS_DATA_OUTFILE, "None");
+    strcpy(ONLY_CHROM, "None");
 
     if (argc % 2 != 1){
         fprintf(stderr, "\nERROR: Invalid number of arguments specified.\n");
@@ -451,6 +459,11 @@ int main(int argc, char** argv) {
             SKIP_PRUNE = atoi(argv[i + 1]);
         }else if (strcmp(argv[i], "--max_IS") == 0 || strcmp(argv[i], "--mi") == 0){
             MAX_IS = atoi(argv[i + 1]);
+        }else if (strcmp(argv[i], "--only_chrom") == 0){
+            strcpy(ONLY_CHROM, argv[i + 1]);
+        }else if (strcmp(argv[i], "--helper_script_mode") == 0){
+          check_input_0_or_1(argv[i + 1]);
+          HELPER_SCRIPT_MODE = atoi(argv[i + 1]);
         }else{
             fprintf(stderr, "\nERROR: Invalid Option \"%s\" specified.\n",argv[i]);
             exit(1);
