@@ -6,6 +6,7 @@ import sys
 import subprocess
 import tempfile
 from collections import defaultdict
+from concurrent.futures import ProcessPoolExecutor
 
 SPACER = "---------------------------------------------------------------------------------"
 
@@ -56,8 +57,14 @@ def parseargs():
 # prints the PID and the command before running
 # pid: the PID of the current process
 # cmd: the command to run
-def run_command(pid, cmd):
+def run_command(cmd):
+    pid = os.getpid()
+
     prog = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    #except subprocess.CalledProcessError as e:
+    #    print("ERROR: PID {} returned non-zero return code {}".format(pid, e.returncode), file=sys.stderr)
+    #    print(e.output,file=sys.stderr)
+
     out, err = prog.communicate()
     o = out.decode("ISO-8859-1")
     e = err.decode("ISO-8859-1")
@@ -68,6 +75,14 @@ def run_command(pid, cmd):
         print("[PID {}] {}".format(pid, line),file=sys.stdout)
     for line in e.split('\n'):
         print("[PID {}] {}".format(pid, line),file=sys.stderr)
+
+    if prog.returncode != 0:
+
+        #print(SPACER)
+        print("ERROR: Job on PID {} ended with non-zero return code {}".format(pid,prog.returncode))
+        exit(1)
+
+    return o+'\n'+e
 
 # build a string representing an extractHAIRS command
 # args: the argparse object holding the command line options
@@ -111,24 +126,40 @@ def main():
                 chromset.add(chrom)
                 chroms.append(chrom)
 
-    # create a multiprocessing queue to pass of jobs to
-    # based on https://stackoverflow.com/questions/17241663/filling-a-queue-and-managing-multiprocessing-in-python
-    the_queue = multiprocessing.JoinableQueue()
-
-    # the function that different processes will run
-    # basically, waits for jobs to get put on the queue,
-    # takes jobs off and completes them
-    def worker_main(queue):
-        print ("PID", os.getpid(),"starting")
-        while True:
-            cmd = queue.get(True)
-            run_command(os.getpid(), cmd)
-            queue.task_done()
-
-    the_pool = multiprocessing.Pool(args.processes, worker_main,(the_queue,))
-
+    task_list = []
     # frag_files[chrom] contains the list of fragment files for that chomosome
     frag_files = defaultdict(list)
+    # phased_vcf_files[chrom] contains the HapCUT2 phased VCF file for that chromosome
+    phased_vcf_files = dict()
+    combined_fragment_files = dict()
+
+    files_to_remove = []
+
+    def process_tasks(cmd_lst):
+        futures = []
+        with ProcessPoolExecutor(max_workers=args.processes) as executor:
+            for cmd in cmd_lst:
+                futures.append(executor.submit(run_command, cmd))
+
+        job_failed = False
+        for f in futures:
+            if f.exception() != None:
+                job_failed = True
+
+        if job_failed:
+            print("Exception encountered in subprocess. Exiting...", file=sys.stderr)
+            # clean up files
+            for file in files_to_remove:
+                os.remove(file)
+            for file in phased_vcf_files.values():
+                os.remove(file)
+            for file in combined_fragment_files.values():
+                os.remove(file)
+            for file_lst in frag_files.values():
+                for file in file_lst:
+                    os.remove(file)
+            exit(1)
+
 
     # for each chromosome and each bam,
     # use extractHAIRS to extract haplotype fragments into temp files
@@ -140,7 +171,7 @@ def main():
             os.close(handle)
             frag_files[chrom].append(frag_filename)
             cmd = build_extractHAIRS_command(args, chrom, bam, frag_filename, "--nf 1");
-            the_queue.put(cmd)
+            task_list.append(cmd)
 
         # illumina BAMs
         for bam in args.illumina_bams:
@@ -148,7 +179,7 @@ def main():
             os.close(handle)
             frag_files[chrom].append(frag_filename)
             cmd = build_extractHAIRS_command(args, chrom, bam, frag_filename, "--nf 1");
-            the_queue.put(cmd)
+            task_list.append(cmd)
 
         # 10X genomics BAMs
         for bam in args.tenX_bams:
@@ -159,11 +190,11 @@ def main():
             cmd = build_extractHAIRS_command(args, chrom, bam, frag_filename_unlinked, "--10X 1");
 
             cmd += "; python3 LinkFragments.py -f {} -v {} -b {} -d {} -o {}".format(frag_filename_unlinked, args.vcf, bam, args.tenX_distance, frag_filename_linked)
-            os.remove(frag_filename_unlinked)
+            files_to_remove.append(frag_filename_unlinked)
 
             frag_files[chrom].append(frag_filename_linked)
 
-            the_queue.put(cmd)
+            task_list.append(cmd)
 
         # HiC BAMs
         for bam in args.hic_bams:
@@ -171,7 +202,7 @@ def main():
             os.close(handle)
             frag_files[chrom].append(frag_filename)
             cmd = build_extractHAIRS_command(args, chrom, bam, frag_filename, "--hic 1");
-            the_queue.put(cmd)
+            task_list.append(cmd)
 
         # PacBio BAMs
         for bam in args.pacbio_bams:
@@ -179,7 +210,7 @@ def main():
             os.close(handle)
             frag_files[chrom].append(frag_filename)
             cmd = build_extractHAIRS_command(args, chrom, bam, frag_filename, "--pacbio 1 --nf 1");
-            the_queue.put(cmd)
+            task_list.append(cmd)
 
         # Oxford Nanopore BAMs
         for bam in args.ont_bams:
@@ -187,25 +218,30 @@ def main():
             os.close(handle)
             frag_files[chrom].append(frag_filename)
             cmd = build_extractHAIRS_command(args, chrom, bam, frag_filename, "--ont 1 --nf 1");
-            the_queue.put(cmd)
+            task_list.append(cmd)
 
-    # wait for all of those extractHAIRS jobs to finish up
-    the_queue.join()
-
-    # phased_vcf_files[chrom] contains the HapCUT2 phased VCF file for that chromosome
-    phased_vcf_files = dict()
-    combined_frag_files = []
+    # process extractHAIRS jobs
+    process_tasks(task_list)
+    task_list.clear()
 
     # for each chromosome,
-    # merge the fragment files for that chromosome into one big file and
-    # phase it with HapCUT2. Write the output to the final output VCF.
+    # merge the fragment files for that chromosome into one big file
     for chrom in chroms:
 
         # combine the fragment files into one big fragment file
         (handle, combined_frag_filename) = tempfile.mkstemp()
         os.close(handle)
         cmd = "cat " + " ".join(frag_files[chrom]) + " > " + combined_frag_filename
-        run_command(os.getpid(), cmd);
+        combined_fragment_files[chrom] = combined_frag_filename
+        task_list.append(cmd)
+
+    # process cat jobs
+    process_tasks(task_list)
+    task_list.clear()
+
+    # for each chromosome,
+    # phase the fragment files with HapCUT2. Write the output to the final output VCF.
+    for chrom in chroms:
 
         # temp file to write HapCUT2 output to
         (handle, out_vcf_filename) = tempfile.mkstemp()
@@ -218,12 +254,13 @@ def main():
 
         # run HAPCUT2
         cmd = ("./build/HAPCUT2 --f {} --vcf {} --out {} --only_chrom {} --helper_script_mode 1 --converge {} --verbose {} --qo {} --long_reads {} --hic {} --nf 1"
-               .format(combined_frag_filename, args.vcf, out_vcf_filename, chrom, args.converge, int(args.verbose), args.qvoffset, long_reads, hic))
-        the_queue.put(cmd)
-        combined_frag_files.append(combined_frag_filename)
+               .format(combined_fragment_files[chrom], args.vcf, out_vcf_filename, chrom, args.converge, int(args.verbose), args.qvoffset, long_reads, hic))
 
-    # wait for the HapCUT2 jobs to finish up
-    the_queue.join()
+        task_list.append(cmd)
+
+    # process HapCUT2 jobs
+    process_tasks(task_list)
+    task_list.clear()
 
     print(SPACER)
     print("Combining VCFs from each chromosome into a single VCF...")
@@ -234,16 +271,17 @@ def main():
                 for line in inf:
                     print(line.strip(),file=outfile)
 
-            os.remove(phased_vcf_files[chrom])
-
-    # clean up fragment files
-    for file in combined_frag_files:
+    # clean up files
+    for file in files_to_remove:
         os.remove(file)
-    for chrom in chroms:
-        for file in frag_files[chrom]:
+    for file in phased_vcf_files.values():
+        os.remove(file)
+    for file in combined_fragment_files.values():
+        os.remove(file)
+    for file_lst in frag_files.values():
+        for file in file_lst:
             os.remove(file)
 
-    the_queue.close()
     print("Done! Phased VCF written to: {}".format(args.out))
 
 
