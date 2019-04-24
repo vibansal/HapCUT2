@@ -93,7 +93,7 @@ int diploid_haplotyping(DATA* data) {
     if (FILTER_HETS ==1) {
     	    data->Flist = calloc(sizeof(struct fragment),data->full_fragments);
 	    data->fragments = filter_fragments(data->full_Flist,data->full_fragments,data->snpfrag,data->Flist);
-	    fprintf(stderr,"filtering fragments for hets: %d %d removed %d \n",data->full_fragments,data->fragments,data->full_fragments-data->fragments);
+	    fprintf(stderr,"constructing reduced fragment list for phasing heterozygous variant, initial fragments: %d removed %d\n",data->full_fragments,data->full_fragments-data->fragments);
             qsort(data->Flist, data->fragments, sizeof (struct fragment), fragment_compare);
     }
     else

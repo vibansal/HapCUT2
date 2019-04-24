@@ -103,13 +103,18 @@ void print_output_files(DATA* data,char* variantfile, char* outputfile)
 
     float N50length = calculate_N50(data->clist,data->components,data->snpfrag,data->HAP1);
 
-    char assignfile[4096];  sprintf(assignfile,"%s.tags",outputfile);
-    if (OUTPUT_HAPLOTAGS ==1) fragment_assignments(data->Flist,data->fragments,data->snpfrag,data->HAP1,assignfile); // added 03/10/2018 to output read-haplotype assignments
-
     char outvcffile[4096];  sprintf(outvcffile,"%s.phased.VCF",outputfile);
     if (OUTPUT_VCF ==1) {
     	fprintf_time(stderr, "OUTPUTTING PHASED VCF TO FILE %s\n", outvcffile);
 	output_vcf(variantfile,data->snpfrag,data->snps,data->HAP1,data->Flist,data->fragments,outvcffile,0);
+    }
+
+    char assignfile[4096];  sprintf(assignfile,"%s.tags",outputfile);
+    if (OUTPUT_HAPLOTAGS ==1) {
+	fprintf_time(stderr,"OUTPUTTING read-haplotype assignments to file %s \n",assignfile);
+	// even singleton fragments can be potentially assigned.. should we pass full_fragment_list
+	// segfault if we use reduced fragment list... format issue
+	fragment_assignments(data->full_Flist,data->full_fragments,data->snpfrag,data->HAP1,assignfile); // added 03/10/2018 to output read-haplotype assignments
     }
 }
 

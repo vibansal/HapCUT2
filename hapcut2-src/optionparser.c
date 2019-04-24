@@ -10,6 +10,7 @@ int OUTPUT_VCF =1;     // output phased VCF or not
 // Quality-score related parameters
 int QVoffset = 33; // for fragment quality values
 int MINQ = 6; // additional base quality filter in hapcut added april 18 2012
+int MAXQ = 40; // maximum quality score, if quality score in input fragment is > MAXQ, it will be capped
 
 // Number of iterations
 int MAXITER = 10000;     // maximum number of global iterations
@@ -76,6 +77,7 @@ int parse_arguments(int argc,char* argv[],char* fragfile,char* fragfile2,char* V
         }else if ((strcmp(argv[i], "--converge") == 0) || (strcmp(argv[i], "--c") == 0)) {
             CONVERGE = atoi(argv[i + 1]);
         }else if ((strcmp(argv[i], "--rh") == 0) || (strcmp(argv[i], "--tags") == 0)) { // read-haplotype assignments
+            check_input_0_or_1(argv[i + 1]);
             OUTPUT_HAPLOTAGS = atoi(argv[i + 1]);
         }else if ((strcmp(argv[i], "--outvcf") == 0) ) { // output VCF or not, default is 1
             OUTPUT_VCF = atoi(argv[i + 1]);
@@ -139,6 +141,8 @@ int parse_arguments(int argc,char* argv[],char* fragfile,char* fragfile2,char* V
             PRINT_FRAGMENT_SCORES = atoi(argv[i + 1]);
         }else if (strcmp(argv[i], "--mbq") == 0){
             MINQ = atoi(argv[i + 1]);
+        }else if (strcmp(argv[i], "--maxbq") == 0){
+            MAXQ = atoi(argv[i + 1]);
         }else if (strcmp(argv[i], "--skip_prune") == 0 || strcmp(argv[i], "--sp") == 0){
             check_input_0_or_1(argv[i + 1]);
             SKIP_PRUNE = atoi(argv[i + 1]);
