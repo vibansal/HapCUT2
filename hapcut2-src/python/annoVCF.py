@@ -81,7 +81,9 @@ def out_vcf(varlist,VARIANTS,header):
 ###########################################################################################################
 	
 parser = argparse.ArgumentParser(); add_program_options(parser); r = parser.parse_args();
-	
+if r.vcf == "": 
+	parser.print_help(sys.stderr)
+	sys.exit();	
 [varlist,VARIANTS,header] = read_vcf(r.vcf);
 anno_vars(varlist,VARIANTS,r.chrom,r.giab_vcf,r.bed);
 out_vcf(varlist,VARIANTS,header);

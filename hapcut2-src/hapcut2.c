@@ -120,7 +120,7 @@ int diploid_haplotyping(DATA* data) {
     post_processing(data,SPLIT_BLOCKS);  // only if EA ==1 or SPLIT_BLOCKS ==1 or SKIP_PRUNE ==0
 
     // UPDATE phased genotype likelihoods using local updates
-    //local_optimization(data);
+    if (GENOTYPING ==1) local_optimization(data);
 
     // FREE DATA STRUCTURES
     if (FILTER_HETS ==1) free_fragmentlist(data->Flist,data->fragments);

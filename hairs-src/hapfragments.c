@@ -30,7 +30,8 @@ int print_fragment(FRAGMENT* fragment, VARIANT* varlist, FILE* outfile) {
     for (i = 0; i < fragment->variants - 1; i++) {
         if (fragment->alist[i + 1].varid - fragment->alist[i].varid != 1) fragment->blocks++;
     }
-    fprintf(outfile, "%d %c:%s", fragment->blocks, fragment->strand,fragment->id);
+    fprintf(outfile, "%d %s", fragment->blocks,fragment->id);
+    //fprintf(outfile, "%d %c:%s", fragment->blocks, fragment->strand,fragment->id);
 
     //new format prints col 3 as data type (0 for normal, 1 for HiC) and col 4 as mate 2 index
     if (DATA_TYPE == 2){
@@ -57,7 +58,7 @@ int print_fragment(FRAGMENT* fragment, VARIANT* varlist, FILE* outfile) {
 	}
     else // individual variant format, for debugging
 	{
-    	    fprintf(outfile,":%c",fragment->strand);
+    	    //fprintf(outfile,":%c",fragment->strand);
 	    for (i = 0; i < fragment->variants; i++) fprintf(outfile, " %d:%c:%d",fragment->alist[i].varid+1,fragment->alist[i].allele,(char)fragment->alist[i].qv-33);
 	}
 	    fprintf(outfile, "\n");

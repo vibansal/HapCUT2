@@ -15,18 +15,30 @@ void init_varlist(PVAR* varlist,int snps,struct fragment* Flist,int fragments) /
 	varlist[i].PGLL = calloc(5,sizeof(float));
 	varlist[i].GLL = calloc(3,sizeof(float));
 	for (j=0;j<3;j++) varlist[i].GLL[j] = 0.0; 
-	varlist[i].maxhet = 0.0; // what is the best genotype likelihood for '0/1' genotype, useful for filtering
     }
     // calculate number of fragments covering each variant 
     for (i = 0; i < fragments; i++) {
         for (j = 0; j < Flist[i].blocks; j++) {
-            for (k = 0; k < Flist[i].list[j].len; k++) varlist[Flist[i].list[j].offset + k].frags++;
+            for (k = 0; k < Flist[i].list[j].len; k++) 
+		{
+			s = Flist[i].list[j].offset + k; 
+			if (s < 0 || s >= snps) 
+			{
+				fprintf(stderr,"ERROR: variant index out of bounds %d %d\n",s,snps);
+				print_fragment(&Flist[i],stderr);
+				exit(0);
+			}
+			varlist[Flist[i].list[j].offset + k].frags++;
+		}
         }
     }
     for (i = 0; i < snps; i++) {
-        varlist[i].flist = (int*) malloc(varlist[i].frags*sizeof (int));
+        if (varlist[i].frags > 0) varlist[i].flist = (int*) malloc(varlist[i].frags*sizeof (int));
+	else varlist[i].flist = NULL; 
         varlist[i].frags = 0;
+	
     }
+
     for (i = 0; i < fragments; i++) {
         for (j = 0; j < Flist[i].blocks; j++) {
             for (k = 0; k < Flist[i].list[j].len; k++)
@@ -39,7 +51,6 @@ void init_varlist(PVAR* varlist,int snps,struct fragment* Flist,int fragments) /
 		if (Flist[i].list[j].hap[k] == '0') 	
 		{
 			varlist[s].GLL[0] += Flist[i].list[j].p1[k];
-			varlist[s].maxhet += Flist[i].list[j].p1[k];
 			prob = QVoffset - (int) Flist[i].list[j].qv[k]; prob /= 10;
 			varlist[s].GLL[2] += prob;
 			varlist[s].AC0 +=1;
@@ -48,7 +59,6 @@ void init_varlist(PVAR* varlist,int snps,struct fragment* Flist,int fragments) /
 		if (Flist[i].list[j].hap[k] == '1') 
 		{
 			varlist[s].GLL[2] += Flist[i].list[j].p1[k];
-			varlist[s].maxhet += Flist[i].list[j].p1[k];
 			prob = QVoffset - (int) Flist[i].list[j].qv[k]; prob /= 10;
 			varlist[s].GLL[0] += prob;
 			varlist[s].AC1 +=1;

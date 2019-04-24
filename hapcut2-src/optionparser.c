@@ -8,7 +8,7 @@ int OUTPUT_HAPLOTAGS =0; // read-haplotype assignments
 int OUTPUT_VCF =1;     // output phased VCF or not 
 
 // Quality-score related parameters
-int QVoffset = 33;
+int QVoffset = 33; // for fragment quality values
 int MINQ = 6; // additional base quality filter in hapcut added april 18 2012
 
 // Number of iterations
@@ -25,7 +25,7 @@ int CALL_HOMOZYGOUS = 0;
 int SPLIT_BLOCKS = 0;
 int ERROR_ANALYSIS_MODE = 0;  
 int SKIP_PRUNE = 0;
-int UNPHASED = 1;  // if set to 1, consider the option of leaving some variants unphased 
+int GENOTYPING = 0;  // if set to 1, do genotyping of variants
 int SNVS_BEFORE_INDELS = 0; // ??? 
 
 int AUTODETECT_LONGREADS = 1;
@@ -142,6 +142,9 @@ int parse_arguments(int argc,char* argv[],char* fragfile,char* fragfile2,char* V
         }else if (strcmp(argv[i], "--skip_prune") == 0 || strcmp(argv[i], "--sp") == 0){
             check_input_0_or_1(argv[i + 1]);
             SKIP_PRUNE = atoi(argv[i + 1]);
+        }else if (strcmp(argv[i], "--genotyping") == 0 || strcmp(argv[i], "--geno") == 0){
+            check_input_0_or_1(argv[i + 1]);
+            GENOTYPING = atoi(argv[i + 1]);
         }else if (strcmp(argv[i], "--max_IS") == 0 || strcmp(argv[i], "--mi") == 0){
             MAX_IS = atoi(argv[i + 1]);
         }else{
@@ -160,11 +163,11 @@ int parse_arguments(int argc,char* argv[],char* fragfile,char* fragfile2,char* V
     }
 
 	fprintf(stderr, "\n\n");
-    fprintf_time(stderr, "fragment file: %s\n", fragfile);
-    fprintf_time(stderr, "variantfile (VCF format):%s\n", VCFfile);
+    fprintf_time(stderr, "input fragment file: %s\n", fragfile);
+    fprintf_time(stderr, "input variantfile (VCF format):%s\n", VCFfile);
     fprintf_time(stderr, "haplotypes will be output to file: %s\n", hapfile);
     fprintf_time(stderr, "solution convergence cutoff: %d\n", CONVERGE);
-    fprintf_time(stderr, "QVoffset: %d\n\n", QVoffset);
+    //fprintf_time(stderr, "QVoffset: %d\n\n", QVoffset);
     return 0;
 }
 
