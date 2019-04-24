@@ -7,8 +7,26 @@ import subprocess
 import tempfile
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
+import gzip
+import random
+import string
+import shutil
 
 SPACER = "---------------------------------------------------------------------------------"
+DEBUG = True
+
+def open_maybe_gz(file, mode):
+    assert(mode in 'rw')
+    if mode == 'r':
+        if file[-3:] == '.gz':
+            return gzip.open(file,mode='rt')
+        else:
+            return open(file,mode='r')
+    else:
+        if file[-3:] == '.gz':
+            return gzip.open(file,mode='wb')
+        else:
+            return open(file,mode='w')
 
 # parse HapCUT2 program input.
 def parseargs():
@@ -117,7 +135,7 @@ def main():
     # build the ordered list of chromosomes in the source VCF
     chromset = set()
     chroms = []
-    with open(args.vcf, 'r') as infile:
+    with open_maybe_gz(args.vcf, 'r') as infile:
         for line in infile:
             if line[0] == '#':
                 continue
@@ -148,16 +166,32 @@ def main():
 
         if job_failed:
             print("Exception encountered in subprocess. Exiting...", file=sys.stderr)
-            # clean up files
-            for file in files_to_remove:
-                os.remove(file)
-            for file in phased_vcf_files.values():
-                os.remove(file)
-            for file in combined_fragment_files.values():
-                os.remove(file)
-            for file_lst in frag_files.values():
-                for file in file_lst:
+            if DEBUG:
+                s = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
+                dirname = "hapcut2_temp_file_dump_"+s+"/"
+                os.mkdir(dirname)
+                # clean up files
+                for file in files_to_remove:
+                    shutil.move(file, dirname)
+                for file in phased_vcf_files.values():
+                    shutil.move(file, dirname)
+                for file in combined_fragment_files.values():
+                    shutil.move(file, dirname)
+                for file_lst in frag_files.values():
+                    for file in file_lst:
+                        shutil.move(file, dirname)
+                print("Temp files dumped to {}".format(dirname))
+            else:
+                # clean up files
+                for file in files_to_remove:
                     os.remove(file)
+                for file in phased_vcf_files.values():
+                    os.remove(file)
+                for file in combined_fragment_files.values():
+                    os.remove(file)
+                for file_lst in frag_files.values():
+                    for file in file_lst:
+                        os.remove(file)
             exit(1)
 
 
@@ -265,7 +299,7 @@ def main():
     print(SPACER)
     print("Combining VCFs from each chromosome into a single VCF...")
     # combine the HapCUT2 phased VCFs into one big VCF
-    with open(args.out, 'w') as outfile:
+    with open_maybe_gz(args.out, 'w') as outfile:
         for chrom in chroms:
             with open(phased_vcf_files[chrom], 'r') as inf:
                 for line in inf:

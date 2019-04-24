@@ -1,6 +1,7 @@
 #include "readinputfiles.h"
 #include "common.h"
 #include <assert.h>
+#include <zlib.h>
 
 extern float HOMOZYGOUS_PRIOR;
 extern int NEW_FRAGFILE_FORMAT;
@@ -191,21 +192,21 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
 
 // counts # of variants in VCF file, allows for arbitrary long lines
 int count_variants_vcf(char* vcffile) {
-    FILE* fp = fopen(vcffile, "r");
+    gzFile fp = gzopen(vcffile, "r");
     if (fp == NULL) {
         fprintf_time(stderr, "could not open file %s \n", vcffile);
         return -1;
     }
     int variants = 0;
     char buffer[10000];
-    while (fgets(buffer, 10000, fp)) {
+    while (gzgets(fp, buffer, 10000)) {
         if (buffer[0] == '#') {
-            while (buffer[strlen(buffer) - 1] != '\n') fgets(buffer, 10000, fp);
+            while (buffer[strlen(buffer) - 1] != '\n') gzgets(fp, buffer, 10000);
             continue;
         }
         if (buffer[strlen(buffer) - 1] == '\n') variants++;
     }
-    fclose(fp);
+    gzclose(fp);
     fprintf_time(stderr, "read %d variants from %s file \n", variants, vcffile);
     return variants;
 }
@@ -220,8 +221,8 @@ int read_vcffile(char* vcffile, struct SNPfrags* snpfrag, int snps) {
     char GQ[100];
     char* gen;
     int i = 0, j = 0, k=0, s = 0, e = 0, var = 0, GQ_ix, format_ix;
-    FILE* fp = fopen(vcffile, "r");
-    while (fgets(buffer, 500000, fp)) {
+    gzFile fp = gzopen(vcffile, "r");
+    while (gzgets(fp, buffer, 500000)) {
         if (buffer[0] == '#') continue;
         i = 0;
         while (buffer[i] == ' ' || buffer[i] == '\t') i++;
@@ -352,20 +353,20 @@ int read_vcffile(char* vcffile, struct SNPfrags* snpfrag, int snps) {
 
         var++;
     }
-    fclose(fp);
+    gzclose(fp);
     return 1;
 }
 
 int count_variants(char* variantfile) {
     int snps = 0;
     char buffer[MAXBUF];
-    FILE* ff = fopen(variantfile, "r");
+    gzFile ff = gzopen(variantfile, "r");
     if (ff == NULL) {
         fprintf_time(stderr, "couldn't open variant file %s\n", variantfile);
         exit(0);
     }
-    while (fgets(buffer, MAXBUF, ff) != NULL) snps++;
-    fclose(ff);
+    while (gzgets(ff, buffer, MAXBUF) != NULL) snps++;
+    gzclose(ff);
     return snps;
 }
 
@@ -473,4 +474,3 @@ int read_htrans_file(char* htrans_file, float* htrans_probs, int num_bins) {
 
     return 0;
 }
-

@@ -15,7 +15,7 @@ extern int VERBOSE;
 int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1);
 float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, struct BLOCK* component, struct fragment* Flist);
 
-// likelihood function is -1*LL 
+// likelihood function is -1*LL
 
 void single_variant_flips(struct fragment* Flist, struct SNPfrags* snpfrag, struct BLOCK* clist, int k, int* slist, char* HAP1) {
     int t = 0, i = 0, f = 0;
@@ -259,7 +259,7 @@ float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, struct BL
     pinitheap(&pheap, N); // heap for maxcut
 
     /*****************************Maintain two clusters and add each vertex to one of these two ******************/
-    bestmincut = (char*) malloc(N);
+    bestmincut = (char*) malloc((unsigned int)N);
     for (i = 0; i < N; i++) bestmincut[i] = '0';
     //for (iter=0;iter<totaledges*(int)(log2(totaledges));iter++)
     for (iter = 0; iter < maxiter + K; iter++) {
@@ -354,7 +354,7 @@ float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, struct BL
                 if (DEBUG) fprintf(stdout, "score %d %f hap %c \n", slist[i], snpfrag[slist[i]].score, hap[slist[i]]);
             }
             if (DEBUG) fprintf(stdout, "init frag-scores %d...%d new node added %d parent %d\n\n", startnode, secondnode, slist[snp_add], snpfrag[slist[snp_add]].parent);
-            
+
 
             if (fixheap == 1) pbuildmaxheap(&pheap, snpfrag, slist);
         }

@@ -1,4 +1,6 @@
 #include "common.h"
+#include <zlib.h>
+
 extern int DISCRETE_PRUNING;
 extern int ERROR_ANALYSIS_MODE;
 extern int SPLIT_BLOCKS;
@@ -54,7 +56,7 @@ int print_hapfile(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
     char c=0, c1=0, c2=0;
     //char fn[200]; sprintf(fn,"%s-%d.phase",fname,score);
     FILE* fp;
-    int edgelist[4096];
+    //int edgelist[4096];
     fp = fopen(outfile, "w");
 
     for (i = 0; i < blocks; i++) {
@@ -182,14 +184,16 @@ char* concatStrings(char** var_list,int n,char sep)
 // split a string using a single separator, '\n' and '\0' are also delimitors at end of string
 int splitString(char* input,char sep,char** var_list)
 {
-	int n=0,i=0,s=0,e=0,j=0;
+	int n=0,i=0,s=0,j=0;
 	while (1)
 	{
 		if (input[i] == sep || input[i] == '\n' || input[i] == '\0')
 		{
 			if (i-s > 0) {
 				var_list[n] = malloc(i-s+1);
-				for (j = s; j < i; j++) var_list[n][j - s] = input[j]; var_list[n][j-s] = '\0';
+				for (j = s; j < i; j++) var_list[n][j - s] = input[j];
+
+        var_list[n][j-s] = '\0';
 				n +=1;
 			}
 			s = i+1; // start of next string
@@ -207,11 +211,11 @@ int splitString(char* input,char sep,char** var_list)
 int output_vcf(char* vcffile, struct SNPfrags* snpfrag, int snps,char* H1,struct fragment* Flist, int fragments,char* outvcf,int BARCODES, char* ONLY_CHROM) {
     char* buffer= malloc(500000);
     FILE* out = fopen(outvcf,"w");
-    FILE* fp = fopen(vcffile, "r");
+    gzFile fp = gzopen(vcffile, "r");
     int var=0;
 
     char h1='0',h2='0';
-    int phased=0,component=0,PS=0,PQ=100,PD=0,thirdallele=0;
+    int phased=0,component=0,PS=0,PQ=100,PD=0;
     char PGT[4];
 
     char** var_list = calloc(1024,sizeof(char*)); char** info_list = calloc(1024,sizeof(char*)); char** geno_list = calloc(1024,sizeof(char*));
@@ -220,10 +224,10 @@ int output_vcf(char* vcffile, struct SNPfrags* snpfrag, int snps,char* H1,struct
     char* temp = malloc(10024); char* seek;
     int i=0,vn=0,in=0,gn=0,j=0,k=0;
     float snp_conf_fl;
-    int b0=0,b1=0,b=0;
+    int b0=0,b1=0;
 
     int lines=0,formatline=0,infolines=0;
-    while (fgets(buffer, 500000, fp)) {
+    while (gzgets(fp, buffer, 500000)) {
 	lines +=1;
         if (buffer[0] == '#') {
 
@@ -255,8 +259,8 @@ int output_vcf(char* vcffile, struct SNPfrags* snpfrag, int snps,char* H1,struct
 	in = splitString(var_list[8],':',info_list); // split INFO column (9)
 	gn = splitString(var_list[9],':',geno_list); // split GENOTYPE column (10)
 
-	thirdallele =0;
-	if (geno_list[0][0] == '2' || geno_list[0][2] =='2') thirdallele = 1; // need to fix phased genotype, hapcut only uses two alleles labeled 0 & 1
+	//thirdallele =0;
+	//if (geno_list[0][0] == '2' || geno_list[0][2] =='2') thirdallele = 1; // need to fix phased genotype, hapcut only uses two alleles labeled 0 & 1
 	if (H1[var] == '0') { h1 = '0'; h2 = '1'; }
 	else if (H1[var] == '1') { h1 = '1'; h2 = '0'; }
 	else {h1 = '.'; h2 = '.'; } // unphased by hapcut2
@@ -357,6 +361,6 @@ int output_vcf(char* vcffile, struct SNPfrags* snpfrag, int snps,char* H1,struct
 	for (i=0;i<gn;i++) free(geno_list[i]);
 	for (i=0;i<in;i++) free(info_list[i]);
     }
-    fclose(fp); fclose(out); free(buffer); free(barcodes_0); free(barcodes_1); free(barcodes_2);
+    gzclose(fp); fclose(out); free(buffer); free(barcodes_0); free(barcodes_1); free(barcodes_2);
     return 1;
 }

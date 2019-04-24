@@ -6,15 +6,15 @@
 
 // can do without log-space since sum will not be very small...
 
-// 11/28/2018 
+// 11/28/2018
 // translated from https://github.com/pjedge/longshot/blob/master/src/realignment.rs
 
-//define states of HMM, emission probability vector and transition probability matrix 
-// states = match, insertion, deletion 
-// simple dynamic programming over 2-D matrix between v and w (read and haplotype) 
+//define states of HMM, emission probability vector and transition probability matrix
+// states = match, insertion, deletion
+// simple dynamic programming over 2-D matrix between v and w (read and haplotype)
 
 int ALLOW_END_GAPS = 0; // for anchored alignment...
-int BAND_WIDTH = 20; // default 
+int BAND_WIDTH = 20; // default
 
 //#define logsum(a, b) (((a) > (b)) ? ((a) + log(1.0 + exp(b-a))) : ((b) + log(1.0 + exp( (a) - (b)))))
 #define logsum(a, b) (((a) > (b)) ? ((a) + log10(1.0 + pow(10.0, (b) - (a)))) : ((b) + log10(1.0 + pow(10.0, (a) - (b)))))
@@ -25,7 +25,7 @@ double logsum1(double a, double b)
 	else return b + log10(1.0+pow(10,a-b));
 }
 
-// do we need anchors, just require the read-seq to be aligned end-2-end while allowing end-gaps for reference haplotype 
+// do we need anchors, just require the read-seq to be aligned end-2-end while allowing end-gaps for reference haplotype
 double sum_all_alignments_logspace(char* v, char* w,Align_Params* params, int min_band_width)
 {
 	int lv = strlen(v),lw = strlen(w);
@@ -53,7 +53,7 @@ double sum_all_alignments_logspace(char* v, char* w,Align_Params* params, int mi
 	//if (ALLOW_END_GAPS ==1)
 	{
 		upper_prev[1] = params->lTRS[0][2];
-		for (j=2;j<lw+1;j++) 
+		for (j=2;j<lw+1;j++)
 		{
 			upper_prev[j] = upper_prev[j-1] + params->lTRS[2][2];
 			middle_prev[j] = log0;
@@ -80,8 +80,8 @@ double sum_all_alignments_logspace(char* v, char* w,Align_Params* params, int mi
 
 		for (j=band_start;j<band_end+1;j++)
 		{
-			double lower_continue = lower_prev[j] + params->lTRS[1][1]; // insertion to insertion 
-			double lower_from_middle = middle_prev[j] + params->lTRS[0][1]; // match to insertion 
+			double lower_continue = lower_prev[j] + params->lTRS[1][1]; // insertion to insertion
+			double lower_from_middle = middle_prev[j] + params->lTRS[0][1]; // match to insertion
 			lower_curr[j] = params->linsertion + logsum(lower_continue,lower_from_middle);
 
 			double upper_continue = upper_curr[j-1] + params->lTRS[2][2];
@@ -95,11 +95,11 @@ double sum_all_alignments_logspace(char* v, char* w,Align_Params* params, int mi
 			double s = logsum(middle_from_lower,middle_continue);
 			double match_emission = params->lmatch;
 			if (v[i-1] != w[j-1]) match_emission = params->lmismatch;
-			b1 = BTI[v[i-1]]-1; b2 = BTI[w[j-1]]-1; 
-			if (b1 >= 0 && b2 < 4 && b2 >= 0 && b2 < 4) 
+			b1 = BTI[(unsigned char)v[i-1]]-1; b2 = BTI[(unsigned char)w[j-1]]-1;
+			if (b1 >= 0 && b2 < 4 && b2 >= 0 && b2 < 4)
 			{
 				//fprintf(stdout,"match %d %d %f \n",b1,b2,params->MEM[b1][b2]);
-				match_emission = params->lMEM[b1][b2]; 
+				match_emission = params->lMEM[b1][b2];
 			}
 			middle_curr[j] = match_emission + logsum(s,middle_from_upper);
 		}
@@ -117,7 +117,7 @@ double sum_all_alignments_logspace(char* v, char* w,Align_Params* params, int mi
 	return ll;
 }
 
-// direct multiplication instead of logspace, double limited to 
+// direct multiplication instead of logspace, double limited to
 double sum_all_alignments_fast(char* v, char* w,Align_Params* params, int min_band_width)
 {
 	int lv = strlen(v),lw = strlen(w);
@@ -145,7 +145,7 @@ double sum_all_alignments_fast(char* v, char* w,Align_Params* params, int min_ba
 	//if (ALLOW_END_GAPS ==1)
 	{
 		upper_prev[1] = params->TRS[0][2];
-		for (j=2;j<lw+1;j++) 
+		for (j=2;j<lw+1;j++)
 		{
 			upper_prev[j] = upper_prev[j-1] * params->TRS[2][2];
 			middle_prev[j] =log0;
@@ -164,7 +164,7 @@ double sum_all_alignments_fast(char* v, char* w,Align_Params* params, int min_ba
 		{
 			if (band_start ==1)
 			{
-				middle_curr[0] = log0; upper_curr[0] = log0; // different between two functions ?? check 
+				middle_curr[0] = log0; upper_curr[0] = log0; // different between two functions ?? check
 				if (i==1) lower_curr[0] = params->TRS[0][1];
 				else lower_curr[0] = lower_prev[0] * params->TRS[1][1];
 			}
@@ -172,8 +172,8 @@ double sum_all_alignments_fast(char* v, char* w,Align_Params* params, int min_ba
 
 		for (j=band_start;j<band_end+1;j++)
 		{
-			double lower_continue = lower_prev[j] * params->TRS[1][1]; // insertion to insertion 
-			double lower_from_middle = middle_prev[j] * params->TRS[0][1]; // match to insertion 
+			double lower_continue = lower_prev[j] * params->TRS[1][1]; // insertion to insertion
+			double lower_from_middle = middle_prev[j] * params->TRS[0][1]; // match to insertion
 			lower_curr[j] = params->insertion * (lower_continue+lower_from_middle);
 
 			double upper_continue = upper_curr[j-1] * params->TRS[2][2];
@@ -187,11 +187,11 @@ double sum_all_alignments_fast(char* v, char* w,Align_Params* params, int min_ba
 			double s = (middle_from_lower+middle_continue);
 			double match_emission = params->match;
 			if (v[i-1] != w[j-1]) match_emission = params->mismatch;
-			b1 = BTI[v[i-1]]-1; b2 = BTI[w[j-1]]-1; 
-			if (b1 >= 0 && b2 < 4 && b2 >= 0 && b2 < 4) 
+			b1 = BTI[(unsigned char)v[i-1]]-1; b2 = BTI[(unsigned char)w[j-1]]-1;
+			if (b1 >= 0 && b2 < 4 && b2 >= 0 && b2 < 4)
 			{
 				//fprintf(stdout,"match %d %d %f \n",b1,b2,params->MEM[b1][b2]);
-				match_emission = params->MEM[b1][b2]; 
+				match_emission = params->MEM[b1][b2];
 			}
 			middle_curr[j] = match_emission * (s+middle_from_upper);
 		}
@@ -221,22 +221,22 @@ double sum_all_alignments_fast(char* v, char* w,Align_Params* params, int min_ba
 }
 
 /*
-   int main(int argc, char** argv) 
+   int main(int argc, char** argv)
    {
    test_realignment();
    return 0;
    }
 void test_realignment()
 {
-	Align_Params AP; 
-	AP.states = 3; 
+	Align_Params AP;
+	AP.states = 3;
 	AP.TRS = calloc(sizeof(double*),AP.states); // match =0, ins =1, del = 2
 	int i=0,j=0;
 	for (i=0;i<AP.states;i++) AP.TRS[i] = calloc(sizeof(double),AP.states);
-	AP.match = log10(0.979); AP.mismatch = log10(0.007); AP.deletion = log10(1); AP.insertion =log10(1); 
-	AP.TRS[0][0] = log10(0.879); AP.TRS[0][1] = log10(0.076); AP.TRS[0][2] = log10(0.045); 
-	AP.TRS[1][0] = log10(0.865); AP.TRS[1][1] = log10(0.135); 
-	AP.TRS[2][0] = log10(0.730); AP.TRS[2][2] = log10(0.27); 
+	AP.match = log10(0.979); AP.mismatch = log10(0.007); AP.deletion = log10(1); AP.insertion =log10(1);
+	AP.TRS[0][0] = log10(0.879); AP.TRS[0][1] = log10(0.076); AP.TRS[0][2] = log10(0.045);
+	AP.TRS[1][0] = log10(0.865); AP.TRS[1][1] = log10(0.135);
+	AP.TRS[2][0] = log10(0.730); AP.TRS[2][2] = log10(0.27);
 	AP.MEM = calloc(4,sizeof(double*)); for (i=0;i<4;i++) AP.MEM[i] = calloc(4,sizeof(double));
         for (i=0;i<4;i++)
         {
@@ -257,7 +257,7 @@ void test_realignment()
 	double score1 =  sum_all_alignments(alt,read,&AP,BAND_WIDTH);
 	double scoreS = logsum(score0,score1);
 	double phred;
-	if (score0 > score1)  phred = -10.0*(score1-scoreS); 
+	if (score0 > score1)  phred = -10.0*(score1-scoreS);
 	else phred = -10.0*(score0-scoreS);
 	fprintf(stdout,"match %f %f %f \n",AP.TRS[0][0],AP.TRS[0][1],AP.TRS[0][2]);
 	fprintf(stdout,"ins %f %f del %f %f\n",AP.TRS[1][0],AP.TRS[1][1],AP.TRS[2][0],AP.TRS[2][2]);

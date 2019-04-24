@@ -33,7 +33,7 @@ int PARSEINDELS = 0;
 int SINGLEREADS = 0;
 int LONG_READS = 0;
 int REALIGN_VARIANTS = 0;
-int ESTIMATE_PARAMS = 0; // estimate realignment parameters from BAM 
+int ESTIMATE_PARAMS = 0; // estimate realignment parameters from BAM
 //int QVoffset = 33; declared in samread.h
 FILE* logfile;
 int PFLAG = 1;
@@ -41,9 +41,9 @@ int PRINT_FRAGMENTS = 1;
 FILE* fragment_file;
 int TRI_ALLELIC = 0;
 int VERBOSE = 0;
-int PACBIO = 0; 
+int PACBIO = 0;
 int USE_SUPP_ALIGNMENTS =0; // use supplementary alignments, flag = 2048
-int SUM_ALL_ALIGN =0; // if set to 1, use sum of all alignments scoring forr local realignment 
+int SUM_ALL_ALIGN =0; // if set to 1, use sum of all alignments scoring forr local realignment
 
 int* fcigarlist; // global variable
 
@@ -147,31 +147,31 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
     samfile_t *fp;
     bam1_t *b;
     int ref=-1,beg=0,end=0;
-    int ret; // for reading indexed bam files 
+    int ret; // for reading indexed bam files
     bam_index_t *idx; // bam file index
-    bam_iter_t iter; 
-    
+    bam_iter_t iter = NULL;
+
     if ((fp = samopen(bamfile, "rb", 0)) == 0) {
         fprintf(stderr, "Fail to open BAM file %s\n", bamfile);
         return -1;
     }
     if (regions != NULL &&  (idx = bam_index_load(bamfile)) ==0) { fprintf(stderr,"unable to load bam index for file %s\n",bamfile); return -1; }
     if (regions == NULL) b = bam_init1();  // samread(fp,b)
-    else 
+    else
     {
-    	bam_parse_region(fp->header,regions,&ref,&beg,&end);   
-        if (ref < 0) { fprintf(stderr,"invalid region for bam file %s \n",regions); return -1; } 
+    	bam_parse_region(fp->header,regions,&ref,&beg,&end);
+        if (ref < 0) { fprintf(stderr,"invalid region for bam file %s \n",regions); return -1; }
 	fprintf(stderr,"parsing region %s of bam file %d %d-%d\n",regions,ref,beg,end); //return -1;
         b = bam_init1();
-        iter = bam_iter_query(idx,ref,beg,end); 
+        iter = bam_iter_query(idx,ref,beg,end);
     }
 
 
     while (1) {
-	if (ref < 0) ret = samread(fp,b);  // read full bam file 
-	else ret = bam_iter_read(fp->x.bam,iter,b);  // specific region 
+	if (ref < 0) ret = samread(fp,b);  // read full bam file
+	else ret = bam_iter_read(fp->x.bam,iter,b);  // specific region
 	//fprintf(stderr,"here %d %d\n",ret,iter);
-	if (ret < 0) break;  
+	if (ret < 0) break;
         fetch_func(b, fp, read);
         if ((read->flag & (BAM_FUNMAP | BAM_FSECONDARY | BAM_FQCFAIL | BAM_FDUP)) || read->mquality < MIN_MQ || (USE_SUPP_ALIGNMENTS == 0 && (read->flag & 2048))) {
             free_readmemory(read);
@@ -247,7 +247,7 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
         }
 
         reads += 1;
-        if ( (reads % 2000000 == 0 && chrom >=0) || (PACBIO ==1 && reads % 20000==0 && chrom >= 0) ) { 
+        if ( (reads % 2000000 == 0 && chrom >=0) || (PACBIO ==1 && reads % 20000==0 && chrom >= 0) ) {
             fprintf(stderr, "processed %d reads", reads);
             if (DATA_TYPE != 2) fprintf(stderr, " PE-fragments %d SE-fragments %d %d", fragments,VOfragments[0],VOfragments[1]);
             fprintf(stderr, "\n");
@@ -274,7 +274,7 @@ int main(int argc, char** argv) {
     char bamfile[1024];
     char variantfile[1024];
     char fastafile[1024];
-    char* regions= NULL;  
+    char* regions= NULL;
     strcpy(samfile, "None");
     strcpy(bamfile, "None");
     strcpy(variantfile, "None");
@@ -284,7 +284,7 @@ int main(int argc, char** argv) {
     sampleid[0] = '-';
     sampleid[1] = '\0';
     int samplecol = 10; // default if there is a single sample in the VCF file
-    int i = 0, variants = 0, hetvariants = 0,j=0;
+    int i = 0, variants = 0, hetvariants = 0;
     char** bamfilelist = NULL;
     int bamfiles = 0;
 
@@ -305,18 +305,18 @@ int main(int argc, char** argv) {
         else if (strcmp(argv[i], "--VCF") == 0 || strcmp(argv[i], "--vcf") == 0) {
             strcpy(variantfile, argv[i + 1]);
             VCFformat = 1;
-	    int l=strlen(variantfile); 
-            if (variantfile[l-1] == 'z' && variantfile[l-2] == 'g' && variantfile[l-3] == '.') 
-	    {
-		fprintf(stderr,"The input VCF file appears to be gzipped (.gz extension), hapcut only accepts unzipped VCF files as input\n Please provide an unzipped VCF file or make sure that the file doesn't have the .gz extension\n\n");
-		exit(0);
-	    }
+	    //int l=strlen(variantfile);
+      //      if (variantfile[l-1] == 'z' && variantfile[l-2] == 'g' && variantfile[l-3] == '.')
+	   // {
+		//fprintf(stderr,"The input VCF file appears to be gzipped (.gz extension), hapcut only accepts unzipped VCF files as input\n Please provide an unzipped VCF file or make sure that the file doesn't have the .gz extension\n\n");
+		//exit(1);
+	   // }
         } else if (strcmp(argv[i], "--sorted") == 0){
             check_input_0_or_1(argv[i + 1]);
             readsorted = atoi(argv[i + 1]);
         }
 	else if (strcmp(argv[i],"--region") ==0 || strcmp(argv[i],"--regions") ==0) { // added 11/30/17
-	    regions = (char*)malloc(strlen(argv[i+1])+1); strcpy(regions,argv[i+1]); 
+	    regions = (char*)malloc(strlen(argv[i+1])+1); strcpy(regions,argv[i+1]);
         }
         else if (strcmp(argv[i], "--mmq") == 0) MIN_MQ = atoi(argv[i + 1]);
         else if (strcmp(argv[i], "--HiC") == 0 || strcmp(argv[i], "--hic") == 0){
@@ -343,7 +343,7 @@ int main(int argc, char** argv) {
             check_input_0_or_1(argv[i + 1]);
             if (atoi(argv[i + 1])){
                 REALIGN_VARIANTS = 1; PACBIO =1; MINQ = 7;
-		SUM_ALL_ALIGN = 1; 
+		SUM_ALL_ALIGN = 1;
             }
 
             // scores based on https://www.researchgate.net/figure/230618348_fig1_Characterization-of-Pacific-Biosciences-dataa-Base-error-mode-rate-for-deletions
@@ -368,7 +368,7 @@ int main(int argc, char** argv) {
             INSERTION_EXTEND = log10(0.25); // this number has no basis in anything
             DELETION_OPEN = log10(0.078);
             DELETION_EXTEND = log10(0.25); // this number also has no basis in anything
-	    SUM_ALL_ALIGN = 1; 
+	    SUM_ALL_ALIGN = 1;
 
         }else if (strcmp(argv[i], "--verbose") == 0 || strcmp(argv[i], "--v") == 0){
             check_input_0_or_1(argv[i + 1]);
@@ -410,11 +410,11 @@ int main(int argc, char** argv) {
         }else if (strcmp(argv[i], "--fosmids") == 0 || strcmp(argv[i], "--fosmid") == 0){
             check_input_0_or_1(argv[i + 1]);
             LONG_READS = 1;
-        }else if (strcmp(argv[i], "--sumall") == 0) { 
-	   SUM_ALL_ALIGN = atoi(argv[i+1]); 
+        }else if (strcmp(argv[i], "--sumall") == 0) {
+	   SUM_ALL_ALIGN = atoi(argv[i+1]);
             if (SUM_ALL_ALIGN >=1) fprintf(stderr, "\nusing sum of all alignments for scoring \n");
-        }else if (strcmp(argv[i], "--ep") == 0) { 
-	   ESTIMATE_PARAMS = atoi(argv[i+1]); 
+        }else if (strcmp(argv[i], "--ep") == 0) {
+	   ESTIMATE_PARAMS = atoi(argv[i+1]);
         }else{
             fprintf(stderr, "\nERROR: Invalid Option \"%s\" specified.\n",argv[i]);
             exit(1);
@@ -476,8 +476,8 @@ int main(int argc, char** argv) {
             for (i = 0; i < reflist->ns; i++) {
 		reflist->sequences[i] = calloc(reflist->lengths[i] + 1, sizeof (char));
 		int chrom = getindex(&ht, reflist->names[i]); reflist->used[i] = 1;
-		if (chrom >=0) fprintf(stderr,"found match for reference contig %s in VCF file index \n",reflist->names[i]); 
-		else reflist->used[i] = 0; // memory for this chromosome will be freed 
+		if (chrom >=0) fprintf(stderr,"found match for reference contig %s in VCF file index \n",reflist->names[i]);
+		else reflist->used[i] = 0; // memory for this chromosome will be freed
                 if (i < 5) fprintf(stderr, "contig %s length %d\n", reflist->names[i], reflist->lengths[i]);
             }
             read_fasta(fastafile, reflist);

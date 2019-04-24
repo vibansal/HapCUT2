@@ -244,7 +244,7 @@ int extract_variants_read(struct alignedread* read, HASHTABLE* ht, CHROMVARS* ch
             ss++;
         }
     }
-   
+
     //fprintf(stderr,"chrom %d variants %d ss %d first %d-%d span %d-%d\n",chrom,VARIANTS,ss,chromvars[chrom].first,chromvars[chrom].last,start,end);
     //fprintf(stderr,"ov %d %d\n",ov,firstvar);
     if ((paired == 0 && ov < 2 && SINGLEREADS == 0) || (paired == 0 && ov < 1 && SINGLEREADS == 1) || (paired == 1 && ov < 1)) return 0;
@@ -252,26 +252,28 @@ int extract_variants_read(struct alignedread* read, HASHTABLE* ht, CHROMVARS* ch
 
     int l1 = 0, l2 = 0; // l1 is advance on read, l2 is advance on reference genome
     int op = 0, ol = 0;
- 
+
     // filter for HiC reads with soft/hard clipping near ligation junction, added 03/03/2018
-    int pclip=0; // is read soft or hard clipped at beginning or end
-    i=0; op = read->cigarlist[i]&0xf; if (op == BAM_CSOFT_CLIP || op == BAM_CHARD_CLIP) pclip = 1; // first part is clipped 
-    i=read->cigs-1; op = read->cigarlist[i]&0xf; if (op == BAM_CSOFT_CLIP || op == BAM_CHARD_CLIP) pclip = 2; // last part is clipped 
+    //int pclip=0; // is read soft or hard clipped at beginning or end
+    i=0; op = read->cigarlist[i]&0xf;
+    //if (op == BAM_CSOFT_CLIP || op == BAM_CHARD_CLIP) pclip = 1; // first part is clipped
+    i=read->cigs-1; op = read->cigarlist[i]&0xf;
+    //if (op == BAM_CSOFT_CLIP || op == BAM_CHARD_CLIP) pclip = 2; // last part is clipped
     int margin = 1; // 2 bases from clip location
-    int offset=0;	
+    int offset=0;
 
     for (i = 0; i < read->cigs; i++) {
         //fprintf(stdout,"%c %d \t",(char)read->cigarlist[i+1],read->cigarlist[i]);
         while (varlist[ss].position < start + l2 && ss <= chromvars[chrom].last) ss++;
         op = read->cigarlist[i]&0xf;
         ol = read->cigarlist[i] >> 4;
-        if (op == BAM_CMATCH || op == BAM_CEQUAL || op == BAM_CDIFF) 
+        if (op == BAM_CMATCH || op == BAM_CEQUAL || op == BAM_CDIFF)
 	{
             while (ss <= chromvars[chrom].last && varlist[ss].position >= start + l2 && varlist[ss].position < start + l2 + ol) {
 
-		offset = margin+1; 
+		offset = margin+1;
 		if (DATA_TYPE ==1) // for HiC reads, if snp allele is located close to clipped position (4-5 bases) in the read, don't use it
-		{ 
+		{
 	              //if (i==1 && pclip ==1) offset = varlist[ss].position - start - l2; // how far is variant from boundary of clip
 	              //if (i==read->cigs-2 && pclip ==2) offset = start+l2+ol-varlist[ss].position; // how far is variant from boundary of clip
 		}

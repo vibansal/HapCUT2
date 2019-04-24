@@ -3,21 +3,21 @@
 #include "readfasta.h"
 #include <assert.h>
 #include "htslib/hts.h" // read bgzipped VCF files
-
+#include <zlib.h>
 
 // count the # of variants in VCF file to allocate space for VCF variant array
 
 int count_variants(char* vcffile, char* sampleid, int* samplecol) {
-    FILE* fp = fopen(vcffile, "r");
+    gzFile fp = gzopen(vcffile, "r");
     if (fp == NULL) {
         fprintf(stderr, "could not open file %s\n\n", vcffile);
         return -1;
     }
     int variants = 0;
     char buffer[500000];
-    int i = 0, j = 0, cols = 0,n=0;
+    int i = 0, j = 0, cols = 0;
 
-    while (fgets(buffer, 500000, fp)) {
+    while (gzgets(fp, buffer, 500000)) {
         if (buffer[0] != '#') variants++; // this should work for non-VCF files as well.
         else if (buffer[0] == '#' && buffer[1] == '#') continue;
         else if (buffer[0] == '#' && buffer[1] == 'C' && buffer[2] == 'H' && buffer[3] == 'R' && buffer[4] == 'O' && buffer[5] == 'M') {
@@ -32,7 +32,7 @@ int count_variants(char* vcffile, char* sampleid, int* samplecol) {
             }
         }
     }
-    fclose(fp);
+    gzclose(fp);
     fprintf(stderr, "VCF file %s has %d variants \n", vcffile, variants);
     return variants;
 }
@@ -217,7 +217,7 @@ int parse_variant(VARIANT* variant, char* buffer, int samplecol) {
 // change this to VCF file now
 
 int read_variantfile(char* vcffile, VARIANT* varlist, HASHTABLE* ht, int* hetvariants, int samplecol) {
-    FILE* fp = fopen(vcffile, "r");
+    gzFile fp = gzopen(vcffile, "r");
     char buffer[500000];
     int i = 0;
     //	char allele1[256]; char allele2[256]; char genotype[256]; int quality;
@@ -227,7 +227,7 @@ int read_variantfile(char* vcffile, VARIANT* varlist, HASHTABLE* ht, int* hetvar
     *hetvariants = 0;
     int het = 0;
 
-    while (fgets(buffer, 500000, fp)) {
+    while (gzgets(fp, buffer, 500000)) {
         if (buffer[0] == '#') continue;
         else {
             het = parse_variant(&varlist[i], buffer, samplecol);
@@ -245,7 +245,7 @@ int read_variantfile(char* vcffile, VARIANT* varlist, HASHTABLE* ht, int* hetvar
             i++;
         }
     }
-    fclose(fp); //chromosomes--;
+    gzclose(fp); //chromosomes--;
     fprintf(stderr, "vcffile %s chromosomes %d hetvariants %d %d\n", vcffile, chromosomes, *hetvariants, i);
     return chromosomes;
 
