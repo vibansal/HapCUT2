@@ -41,7 +41,7 @@ def parseargs():
 
     parser.add_argument('-v', '--vcf', nargs='?', type = str, help='VCF file with variants to phase',required=True)
     parser.add_argument('-b', '--bams', nargs='+', type = str, help='generic bamfile(s)', default=[])
-    parser.add_argument('-o', '--out', nargs='?', type = str, help='output VCF file',required=True)
+    parser.add_argument('-o', '--out', nargs='?', type = str, help='output (phased) VCF file',required=True)
     parser.add_argument('-p', '--processes', nargs='?', type = int, help='number of processes to use', default=4)
     parser.add_argument('-il', '--illumina_bams', nargs='+', type = str, help='illumina bamfile(s)', default=[])
     parser.add_argument('-hic', '--hic_bams', nargs='+', type = str, help='Hi-C bamfile(s)', default=[])
