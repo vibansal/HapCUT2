@@ -251,7 +251,9 @@ int output_vcf(char* vcffile, struct SNPfrags* snpfrag, int snps,char* H1,struct
 		continue;
 	}
 
+
   if (strcmp(ONLY_CHROM,"None")!=0 && strcmp(ONLY_CHROM,snpfrag[var].chromosome)!=0) {
+      var++;
       continue;
   }
 

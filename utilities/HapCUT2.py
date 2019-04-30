@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import multiprocessing
 import os
 import time
@@ -13,7 +15,7 @@ import string
 import shutil
 
 SPACER = "---------------------------------------------------------------------------------"
-DEBUG = True
+DEBUG = False
 
 def open_maybe_gz(file, mode):
     assert(mode in 'rw')
@@ -24,7 +26,7 @@ def open_maybe_gz(file, mode):
             return open(file,mode='r')
     else:
         if file[-3:] == '.gz':
-            return gzip.open(file,mode='wb')
+            return gzip.open(file,mode='wt')
         else:
             return open(file,mode='w')
 
@@ -40,7 +42,7 @@ def parseargs():
     parser.add_argument('-v', '--vcf', nargs='?', type = str, help='VCF file with variants to phase',required=True)
     parser.add_argument('-b', '--bams', nargs='+', type = str, help='generic bamfile(s)', default=[])
     parser.add_argument('-o', '--out', nargs='?', type = str, help='output VCF file',required=True)
-    parser.add_argument('-p', '--processes', nargs='?', type = str, help='number of processes to use', default=4)
+    parser.add_argument('-p', '--processes', nargs='?', type = int, help='number of processes to use', default=4)
     parser.add_argument('-il', '--illumina_bams', nargs='+', type = str, help='illumina bamfile(s)', default=[])
     parser.add_argument('-hic', '--hic_bams', nargs='+', type = str, help='Hi-C bamfile(s)', default=[])
     parser.add_argument('-tenX', '--tenX_bams', nargs='+', type = str, help='10x genomics bamfile(s)', default=[])
@@ -109,7 +111,7 @@ def run_command(cmd):
 # out: the fragment file to write to
 # mode_str: a string with sequencing-technology-specific flags
 def build_extractHAIRS_command(args, chrom, bam, out, mode_str):
-    cmd = ("./build/extractHAIRS {} --region {} --bam {} --vcf {} --out {} --ref {} --indels {} --qvoffset {} --mbq {} --maxIS {} --minIS {} --PEonly {} --noquality {} --ep {}"
+    cmd = ("extractHAIRS {} --region {} --bam {} --vcf {} --out {} --ref {} --indels {} --qvoffset {} --mbq {} --maxIS {} --minIS {} --PEonly {} --noquality {} --ep {}"
     .format(mode_str, chrom, bam, args.vcf, out, args.ref, int(args.indels), args.qvoffset, args.mbq, args.maxIS,
     args.minIS, int(args.PEonly), args.noquality, int(args.ep)))
     return cmd
@@ -170,7 +172,7 @@ def main():
                 s = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
                 dirname = "hapcut2_temp_file_dump_"+s+"/"
                 os.mkdir(dirname)
-                # clean up files
+                # move files
                 for file in files_to_remove:
                     shutil.move(file, dirname)
                 for file in phased_vcf_files.values():
@@ -223,7 +225,7 @@ def main():
             os.close(handle)
             cmd = build_extractHAIRS_command(args, chrom, bam, frag_filename_unlinked, "--10X 1");
 
-            cmd += "; python3 LinkFragments.py -f {} -v {} -b {} -d {} -o {}".format(frag_filename_unlinked, args.vcf, bam, args.tenX_distance, frag_filename_linked)
+            cmd += "; LinkFragments -f {} -v {} -b {} -d {} -o {}".format(frag_filename_unlinked, args.vcf, bam, args.tenX_distance, frag_filename_linked)
             files_to_remove.append(frag_filename_unlinked)
 
             frag_files[chrom].append(frag_filename_linked)
@@ -287,7 +289,7 @@ def main():
         hic = int(len(args.hic_bams) > 1)
 
         # run HAPCUT2
-        cmd = ("./build/HAPCUT2 --f {} --vcf {} --out {} --only_chrom {} --helper_script_mode 1 --converge {} --verbose {} --qo {} --long_reads {} --hic {} --nf 1"
+        cmd = ("HAPCUT2PHASE --f {} --vcf {} --out {} --only_chrom {} --helper_script_mode 1 --converge {} --verbose {} --qo {} --long_reads {} --hic {} --nf 1"
                .format(combined_fragment_files[chrom], args.vcf, out_vcf_filename, chrom, args.converge, int(args.verbose), args.qvoffset, long_reads, hic))
 
         task_list.append(cmd)
@@ -298,23 +300,56 @@ def main():
 
     print(SPACER)
     print("Combining VCFs from each chromosome into a single VCF...")
+
+    header = ''
+
+    # get original VCF header
+    with open_maybe_gz(args.vcf, 'r') as infile:
+        for line in infile:
+            if line[0] == '#':
+                if line[0:6] == "#CHROM":
+                    command_line = " ".join(sys.argv[:])
+                    header += '''##INFO=<ID=hapcut2,Number=1,Type=Integer,Description="phased by HapCUT2 or not">\n'''
+                    header += '''##CL="{}"\n'''.format(command_line)
+                header += line
+            else:
+                break
+
     # combine the HapCUT2 phased VCFs into one big VCF
     with open_maybe_gz(args.out, 'w') as outfile:
+        print(header, file=outfile, end='')
         for chrom in chroms:
             with open(phased_vcf_files[chrom], 'r') as inf:
                 for line in inf:
+                    #print(chrom, line)
                     print(line.strip(),file=outfile)
 
-    # clean up files
-    for file in files_to_remove:
-        os.remove(file)
-    for file in phased_vcf_files.values():
-        os.remove(file)
-    for file in combined_fragment_files.values():
-        os.remove(file)
-    for file_lst in frag_files.values():
-        for file in file_lst:
+    if DEBUG:
+        s = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
+        dirname = "hapcut2_temp_file_dump_"+s+"/"
+        os.mkdir(dirname)
+        # move files
+        for file in files_to_remove:
+            shutil.move(file, dirname)
+        for file in phased_vcf_files.values():
+            shutil.move(file, dirname)
+        for file in combined_fragment_files.values():
+            shutil.move(file, dirname)
+        for file_lst in frag_files.values():
+            for file in file_lst:
+                shutil.move(file, dirname)
+        print("Temp files dumped to {}".format(dirname))
+    else:
+        # clean up files
+        for file in files_to_remove:
             os.remove(file)
+        for file in phased_vcf_files.values():
+            os.remove(file)
+        for file in combined_fragment_files.values():
+            os.remove(file)
+        for file_lst in frag_files.values():
+            for file in file_lst:
+                os.remove(file)
 
     print("Done! Phased VCF written to: {}".format(args.out))
 
