@@ -154,6 +154,33 @@ def parse_vcf_phase(vcf_file, CHROM, indels = False):
 
     with open(vcf_file, 'r') as vcf:
 
+        for line in vcf:
+            if line[0] == '#':
+                continue
+
+            el = line.strip().split('\t')
+            if len(el) < 10:
+                continue
+            if len(el) != 10:
+                print("VCF file must be single-sample.")
+                exit(1)
+
+            # get the index where the PS information is
+            for i,f in enumerate(el[8].split(':')):
+                if i == 0:
+                    assert(f == 'GT')
+                if f == 'PS':
+                    if PS_index == None:
+                        PS_index = i
+                    else:
+                        assert(PS_index == i)
+                    break
+
+    if PS_index == None:
+        print("WARNING: PS flag is missing from VCF. Assuming that all phased variants are in the same phase block.")
+
+    with open(vcf_file, 'r') as vcf:
+
         snp_ix = 0
 
         for line in vcf:
@@ -182,17 +209,6 @@ def parse_vcf_phase(vcf_file, CHROM, indels = False):
                 else:
                     consider = False
 
-            # get the index where the PS information is
-            for i,f in enumerate(el[8].split(':')):
-                if i == 0:
-                    assert(f == 'GT')
-                if f == 'PS':
-                    if PS_index == None:
-                        PS_index = i
-                    else:
-                        assert(PS_index == i)
-                    break
-
             dat = el[9].split(':')
             genotype = dat[0]
 
@@ -208,12 +224,12 @@ def parse_vcf_phase(vcf_file, CHROM, indels = False):
                 consider = False
 
             ps = None
-            if consider and PS_index != None and len(dat) > PS_index:
+            if PS_index == None:
+                ps = 1    # put everything in one block
+            elif consider and len(dat) > PS_index:
                 ps = dat[PS_index]
                 if ps == '.':
                     consider = False
-            else:
-                ps = None
 
             chrom = el[0]
 
@@ -418,7 +434,6 @@ class error_result():
     def get_switch_rate(self):
         switch_count = self.get_switch_count()
         poss_sw = self.get_poss_sw()
-
         if poss_sw > 0:
             return float(switch_count)/poss_sw
         else:
@@ -816,6 +831,9 @@ def error_rate_calc(t_blocklist, a_blocklist, vcf_file, indels=False, phase_set=
         print("WARNING: {} positions had different ref,alt pairs and were skipped.".format(different_alleles))
 
     poss_flat  = poss_mm
+
+    if poss_sw == 0 and poss_mm == 0:
+        print('WARNING: Possible switch positions and possible mismatch positions are both 0, it is likely that something is very wrong.',file=sys.stderr)
 
     total_error = error_result(ref=ref_name,
              switch_count=switch_count,poss_sw=poss_sw, mismatch_count=mismatch_count,
