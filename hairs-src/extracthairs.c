@@ -499,7 +499,12 @@ int main(int argc, char** argv) {
 		free(reflist->names[i]);
 		if (reflist->used[i] ==1) free(reflist->sequences[i]);
 	}
-	free(reflist->names); free(reflist->sequences); free(reflist->lengths); free(reflist->used);
+	if (reflist->ns > 0) { 
+		free(reflist->names); 
+        	free(reflist->sequences); 
+	        free(reflist->lengths);  
+        	free(reflist->used);
+	}
 	//free(reflist->offsets);
 	for (i=0;i<variants;i++){
 		free(varlist[i].genotype); free(varlist[i].RA); 	free(varlist[i].AA);free(varlist[i].chrom);
