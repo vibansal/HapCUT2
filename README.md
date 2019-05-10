@@ -45,7 +45,7 @@ sudo make uninstall-hapcut2
 ## Input:
 HapCUT2 requires the following input:
 - BAM file for an individual containing reads aligned to a reference genome
-- VCF file containing **diploid** SNVs (and short indel calls) for the individual with respect to the reference genome
+- VCF file containing short variant calls (SNVs and indels) and **diploid** genotypes for the same individual with respect to the reference genome
 
 **Note: the program does not accept gzipped VCF files**
 
@@ -55,12 +55,12 @@ Assembling haplotypes requires two steps:
 
 (1) use extractHAIRS to convert BAM file to the compact fragment file format containing only haplotype-relevant information. This is a necessary precursor step to running HapCUT2.
 ```
-./build/extractHAIRS [options] --bam reads.sorted.bam --VCF variants.VCF --out fragment_file
+./build/extractHAIRS [options] --bam reads.sorted.bam --VCF variants.vcf --out fragment_file
 ```
 
 (2) use HAPCUT2 to assemble fragment file into haplotype blocks.
 ```
-./build/HAPCUT2 --fragments fragment_file --VCF variantcalls.vcf --output haplotype_output_file
+./build/HAPCUT2 --fragments fragment_file --VCF variants.vcf --output haplotype_output_file
 ```
 
 Run the programs without arguments to see all options.
