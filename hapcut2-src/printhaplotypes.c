@@ -214,10 +214,12 @@ int output_vcf(char* vcffile, struct SNPfrags* snpfrag, int snps,char* H1,struct
     int phased=0,component=0,PS=0,PQ=100,PD=0,thirdallele=0; 
     char PGT[4];
 
-    char** var_list = calloc(1024,sizeof(char*)); char** info_list = calloc(1024,sizeof(char*)); char** geno_list = calloc(1024,sizeof(char*));
-    char* newC9 = malloc(4096); char* newC10 = malloc(4096); // column 9 and 10 of new VCF file 
+    char** var_list = calloc(1024,sizeof(char*)); 
+    char** info_list = calloc(1024,sizeof(char*)); 
+    char** geno_list = calloc(1024,sizeof(char*));
+    char* newC9 = malloc(64000); char* newC10 = malloc(64000); // column 9 and 10 of new VCF file 
     char* barcodes_0 = malloc(1024*64); char* barcodes_1 = malloc(1024*64); char* barcodes_2 = malloc(1024*64);
-    char* temp = malloc(10024); char* seek;
+    char* temp = malloc(10000); char* seek;
     int i=0,vn=0,in=0,gn=0,j=0,k=0;
     float snp_conf_fl;	
     int b0=0,b1=0,b=0;
@@ -325,20 +327,19 @@ int output_vcf(char* vcffile, struct SNPfrags* snpfrag, int snps,char* H1,struct
 				}
 			}
 		}
-
 		// print PS,BQ,PQ,PD tags
-		strcat(newC9,":PS"); strcat(newC10,":"); sprintf(temp,"%d",PS); strcat(newC10,temp);
-		strcat(newC9,":PQ"); strcat(newC10,":"); sprintf(temp,"%d",PQ); strcat(newC10,temp);
-		strcat(newC9,":PD"); strcat(newC10,":"); sprintf(temp,"%d",PD); strcat(newC10,temp);
-		if(BARCODES ==1) {  strcat(newC9,":BX"); strcat(newC10,":"); strcat(newC10,barcodes_0); strcat(newC10,","); strcat(newC10,barcodes_1); } 
-		// MEC score for each variant, phased genotype likelihoods 
+		strcat(newC9,":PS:PQ:PD"); 
+		sprintf(temp,":%d",PS); strcat(newC10,temp);
+		sprintf(temp,":%d",PQ); strcat(newC10,temp);
+		sprintf(temp,":%d",PD); strcat(newC10,temp);
+		//if(BARCODES ==1) {  strcat(newC9,":BX"); strcat(newC10,":"); strcat(newC10,barcodes_0); strcat(newC10,","); strcat(newC10,barcodes_1); } 
 	}
 	
 	// HAPCUT = 0/1/2 (pruned, not phased, not considered...)
-	for (i=0;i<7;i++) fprintf(out,"%s\t",var_list[i]); 
-	if (strcmp(var_list[7],".") ==0) sprintf(temp,"hapcut2=%d",phased); 
-	else sprintf(temp,"%s;hapcut2=%d",var_list[7],phased); 
-	fprintf(out,"%s\t%s\t%s\n",temp,newC9,newC10);
+	for (i=0;i<8;i++) fprintf(out,"%s\t",var_list[i]); 
+	//if (strcmp(var_list[7],".") ==0) sprintf(temp,"hapcut2=%d",phased); 
+	//else sprintf(temp,"%s;hapcut2=%d",var_list[7],phased); 
+	fprintf(out,"%s\t%s\n",newC9,newC10);
 	
 	//for (i=0;i<in;i++) fprintf(stdout,"%s ",info_list[i]); fprintf(stdout,"\n");
 	//for (i=0;i<gn;i++) fprintf(stdout,"%s(%s) ",geno_list[i],info_list[i]); fprintf(stdout,"\n\n");
@@ -349,6 +350,10 @@ int output_vcf(char* vcffile, struct SNPfrags* snpfrag, int snps,char* H1,struct
 	for (i=0;i<gn;i++) free(geno_list[i]);
 	for (i=0;i<in;i++) free(info_list[i]);
     }
-    fclose(fp); fclose(out); free(buffer); free(barcodes_0); free(barcodes_1); free(barcodes_2);
+    fclose(fp); fclose(out); 
+    free(newC9); free(newC10);
+    free(buffer); 
+    free(temp);
+    free(barcodes_0); free(barcodes_1); free(barcodes_2);
     return 1;
 }
