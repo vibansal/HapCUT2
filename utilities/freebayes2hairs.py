@@ -5,6 +5,8 @@ import itertools
 import copy
 
 DEBUG=False;
+INDELS=1;
+minbq=10;
 
 """
 first coded June 10 2019, Vikas Bansal
@@ -81,7 +83,7 @@ class Window(object):
 		print (self.haplotypes);
 		#print (self.multiset)
 		if self.v2-self.v1 > 1: print ('multiple variants',self.vars,'indels',self.indels,'\n');
-		else: print ();
+		else: print ('singleton');
 		
 		
 	def find_overlapping_vars(self,varlist,len_varlist,s):
@@ -118,7 +120,7 @@ class Window(object):
 			except KeyError: self.haplotypes[seq] = [binary]
 			#print(seq,hap[1]),
 
-	def create_haplotypes(self,varlist): ## what to do when a single variant has three alleles... 
+	def create_haplotypes(self,varlist): ## not used anymore
 		offset = varlist[self.v1][0]; 
 		binaryset = []
 		e = offset; 
@@ -158,19 +160,19 @@ class Window(object):
 			info = read[4].split(':'); l = len(info); readid = ':'.join(info[1:l-10]);
 			if c ==1: 
 				self.fraglist.append([readid]);
-				for v in range(self.v1,self.v2): self.fraglist[-1].append([v+1,altype[0][v-self.v1],qual,varlist[v][0]]); 
-			if DEBUG: print(readid,self.v1,self.v2,altype,'C',c,qual,hapseq);
-		if missing > 0.1*nreads: 
+				for v in range(self.v1,self.v2): 
+					if qual >= minbq: self.fraglist[-1].append([v+1,altype[0][v-self.v1],qual,varlist[v][0]]); 
+			if DEBUG or c==0: print(readid,self.v1,self.v2,altype,'C',c,qual,hapseq);
+		if missing > 0.2*nreads and missing >= 2: 
 			self.ignore=1;
 			print ('SUMMARY',missing,nreads);
 
 
 ###################################################################################################################
 		
-def parse_logfile(logfile,varlist):
-
-	allelotypes = {}; ## indexed by read-id 
-
+def parse_logfile(logfile,varlist,outfilename='fragments.txt'):
+	outfile = open(outfilename,'w');
+	fragments = {}; ## indexed by read-id 
 	File = open(logfile);
 	len_varlist = len(varlist);
 	v=0;
@@ -185,6 +187,10 @@ def parse_logfile(logfile,varlist):
 				W.allelotype_reads();
 				if W.ignore ==0: 
 					for frag in W.fraglist: print ('FRAGMENT',frag);
+					for frag in W.fraglist: 
+						for var in frag[1:]: 
+							try: fragments[frag[0]].append(var);
+							except KeyError: fragments[frag[0]] = [var];
 				W.print(varlist);
 
 			start = int(read[1])+1; refallele = read[3]; end = start + len(refallele);
@@ -201,9 +207,19 @@ def parse_logfile(logfile,varlist):
 			except KeyError: W.alleles[allele] = 1; 
 			W.reads +=1; 
 			W.readlist.append(read);
-		
 	File.close();
-		
+
+	for frag in fragments.keys(): 	
+		#if len(fragments[frag]) < 2: continue;
+		print (frag,fragments[frag],file=outfile)
+	outfile.close();
+	
+#######################################################################################################################	
+
+# ~/CODE/JOINTCODE-coral/HapCUT2/build/freebayes -f ~/Public/tools/reference-genomes/hg38.giab.fasta --haplotype-basis-alleles longline.vcf.gz -@ longline.vcf.gz output.bam.rg.bam -r chr20 2> chr20.fb.log 1> chr20.fb.vcf
+# python freebayes.py ...
+# add barcode using BAM file for linked-reads 
+# output is same as from 'extracthairs'
 
 if len(sys.argv) < 3: 
 	print >>sys.stderr,'python reduced_matrix.py logfile vcf_file';
