@@ -118,8 +118,11 @@ int test_complexity(char* seq, int k){
 // ALLELOTYPING 
 int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VARIANT* varlist, int* snplst, int n_snps, FRAGMENT* fragment)
 {
-	if ( positions[3]-positions[1] < 15 ||  positions[3]-positions[1] > 200) return -1; // check on length in range (15,200)
-	if ( positions[2]-positions[0] < 15 ||  positions[2]-positions[0] > 200) return -1;
+	if ( positions[3]-positions[1] < 15 ||  positions[3]-positions[1] > 200 || positions[2]-positions[0] < 15 ||  positions[2]-positions[0] > 200) 
+	{
+		if  (VERBOSE) fprintf(stderr,"range check failed \n");
+		return -1; // check on length in range (15,200)
+	}
 
 	int i=0,j=0,k=0;
 
@@ -159,8 +162,12 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 
 	double altscore=0;
 
-    if (VERBOSE) fprintf(stderr,subread);
-    if (VERBOSE) fprintf(stderr,"\n");
+     for (s=0;s<n_snps;s++) {
+         ss = snplst[s];
+         if (VERBOSE) fprintf(stderr,"var %d %d %s %s \n",s,varlist[ss].position,varlist[ss].allele1,varlist[ss].allele2);
+     }
+
+    if (VERBOSE) fprintf(stderr,"%s\n",subread);
 	if (VERBOSE) fprintf(stderr,"read %d:%d:%d ",positions[0],positions[2],positions[2]-positions[0]);
 	if (VERBOSE) fprintf(stderr,"on ref %d:%d:%d\n",positions[1],positions[3],positions[3]-positions[1]);
 	for (h = 0; h < pow(2,n_snps); h++){
@@ -210,13 +217,13 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 
 		althap[k] = '\0';
 
-		if (VERBOSE) fprintf(stdout,"hap%d %s ",h,althap);
+		if (VERBOSE) fprintf(stderr,"hap%d %s ",h,althap);
 
 		if (SUM_ALL_ALIGN ==0) altscore = nw(althap,subread,0);
 		else if (SUM_ALL_ALIGN ==1) altscore = sum_all_alignments_fast(althap,subread,AP,20);
 		else if (SUM_ALL_ALIGN ==2) altscore = sum_all_alignments_logspace(althap,subread,AP,20);  
 
-		if (VERBOSE) fprintf(stdout,"h %d score: %f \n%s\n%s\n",h,altscore,althap,subread);
+		if (VERBOSE) fprintf(stderr,"h %d score: %f \n%s\n%s\n",h,altscore,althap,subread);
 
 		// for an index s in the short haplotype,
 		// maintain the log sum of scores that have a variant at s
@@ -250,7 +257,6 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 
         //free(althap);
 	}
-	if (VERBOSE) fprintf(stdout,"**********************************************\n");
 
 
 	// if the max score is sufficiently high then write alleles to haplotype fragments and calculate quality values from scores
@@ -271,13 +277,14 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 
 		if (max_hap & (int)(pow(2,s))){
 			align_qual = (int) (-10.0 * (ref_score_single[s] - total_score));
-			//fprintf(stdout,"qv %f %f %d \n",ref_score_single[s],total_score,align_qual);
+			if(VERBOSE) fprintf(stderr,"varid %d alt-alele %f %f qv %d \n",ss,ref_score_single[s],total_score,align_qual);
 
 			if (align_qual < MINQ) continue;
 
 			fragment->alist[fragment->variants].allele = '1';
 		}else{
 			align_qual = (int) (-10.0 * (alt_score_single[s] - total_score));
+			if(VERBOSE) fprintf(stderr,"varid %d ref-alele %f %f qv %d \n",ss,ref_score_single[s],total_score,align_qual);
 
 			if (align_qual < MINQ) continue;
 
@@ -294,6 +301,7 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 		if ((read->flag & 16) == 16) varlist[ss].A1 += 1 << 16;
 		else varlist[ss].A1 += 1;
 	}
+	if (VERBOSE) fprintf(stderr,"**********************************************\n");
 
 	free(subread);free(refhap); free(max_haps);free(ref_score_single); free(alt_score_single);
 	free(althap);
@@ -301,13 +309,21 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
     return 0;
 }
 
+// code to find left and right anchors, function should actually be renamed
+/*
+f1 and f2 are indexes in fcigarlist that span the variants 
+algorithm moves left from f1 (f1--) and right from f2 (f2++) to find the left and right anchor sequences
+we want to find anchor seq of length at least MINLEN
+
+*/
 int compare_read_HAPs(struct alignedread* read,VARIANT* varlist,int* snplst, int n_snps, int hap_pos[], int* fcigarlist,int fcigs,int f1, int f2, REFLIST* reflist, FRAGMENT* fragment){
 	int op = fcigarlist[f1+1]&0xf; int ol = fcigarlist[f1+1]>>4;
 	int offset = varlist[snplst[0]].position-hap_pos[1];
     char* anchor_seq = malloc(MINLEN+1);
     int anchor_start = 0, anchor_end = 0, j = 0;
 
-	int positions[4] = {hap_pos[0],hap_pos[1],hap_pos[2],hap_pos[3]}; // left anchor position on read, left pos on ref, right position on read, right position on ref...
+	int positions[4] = {hap_pos[0],hap_pos[1],hap_pos[2],hap_pos[3]}; 
+        // left anchor position on read, left pos on ref, right anchor position on read, right position on ref...
 
 	int flag = 1;
 	if (offset >= MINLEN && (fcigarlist[f1]&0xf) == BAM_CMATCH)
@@ -318,7 +334,7 @@ int compare_read_HAPs(struct alignedread* read,VARIANT* varlist,int* snplst, int
 	while (f1 >= 0 && flag ==1){
 
 		op = fcigarlist[f1]&0xf; ol = fcigarlist[f1]>>4;
-        if (VERBOSE) fprintf(stdout,"%d%c | ",ol,INT_CIGAROP[op]);
+        if (VERBOSE) fprintf(stderr,"%d%c | ",ol,INT_CIGAROP[op]);
 		if (op == BAM_CSOFT_CLIP){
 			break;
 		}else if (op == BAM_CMATCH || op == BAM_CEQUAL || op == BAM_CDIFF){
@@ -356,11 +372,14 @@ int compare_read_HAPs(struct alignedread* read,VARIANT* varlist,int* snplst, int
 	}
 
     if (flag){ // didn't find a left anchor
+	if (VERBOSE) fprintf(stderr,"DID NOT FIND left-anchor\n");
         free(anchor_seq);
         return 0;
     }
-
-	if (VERBOSE) fprintf(stdout," left |");
+    else
+    {
+	if (VERBOSE) fprintf(stderr," found left anchor |");
+    }
 
 	flag = 1;
 	if ((hap_pos[3] +(fcigarlist[f2]>>4)-varlist[snplst[n_snps-1]].position >= MINLEN) && (fcigarlist[f2]&0xf) == BAM_CMATCH)
@@ -375,7 +394,7 @@ int compare_read_HAPs(struct alignedread* read,VARIANT* varlist,int* snplst, int
 
 		op = fcigarlist[f2]&0xf;
 		ol = fcigarlist[f2]>>4;
-		if (VERBOSE) fprintf(stdout,"%d%c | ",ol,INT_CIGAROP[op]);
+		if (VERBOSE) fprintf(stderr,"%d%c | ",ol,INT_CIGAROP[op]);
 
 		if (op == BAM_CSOFT_CLIP){
 			break;
@@ -415,11 +434,12 @@ int compare_read_HAPs(struct alignedread* read,VARIANT* varlist,int* snplst, int
 	}
 
     if (flag){ // didn't find a right anchor
+	if (VERBOSE) fprintf(stderr,"DID NOT FIND right-anchor\n");
         free(anchor_seq);
         return 0;
     }
 
-	if (VERBOSE) fprintf(stdout,"found right-anchor\n");
+	if (VERBOSE) fprintf(stderr,"found right-anchor\n");
 
 	if (positions[0] < 0){
 		positions[0] = 0;
@@ -442,7 +462,8 @@ int compare_read_HAPs(struct alignedread* read,VARIANT* varlist,int* snplst, int
 
 	ss = snplst[n_snps-1];
 	assert(reflist->current >= 0 && (varlist[ss].position > positions[1] && varlist[ss].position < positions[3]));
-
+	if (VERBOSE) fprintf(stderr,"calling realign_HAPS, %d-%d %d-%d\n",positions[0],positions[2],positions[1],positions[3]);
+	// positions is a 4-tuple that defines realignment region between read and haplotype
 	realign_HAPs(read,reflist,positions,varlist, snplst, n_snps, fragment);
 
     free(anchor_seq);
@@ -501,6 +522,7 @@ int realign_and_extract_variants_read(struct alignedread* read,HASHTABLE* ht,CHR
     int len_a1 = 0, len_a2 = 0;
     int left_on_read = 0;
 
+    if(VERBOSE) fprintf(stderr,"\n\n.........processing read start-pos=%d...%d overlapping %d variants, firstvar=%d \n",read->position,end,ov,firstvar+1);
     for (i=0;i<fcigs;i++)
 	{
 		op = fcigarlist[i]&0xf;

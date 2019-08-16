@@ -8,11 +8,8 @@ from fragment import Fragment
 from window import Window
 
 COMPEX_INDELS=1
-SINGLE_READS=1;
 HETS_ONLY=1; # output alleles for heterozygous variants only
-LINKED_READS=1;
 FREEBAYES='~/CODE/JOINTCODE-coral/HapCUT2/build/freebayes'
-runfb=0; # run freebayes
 
 """
 first coded June 10 2019, Vikas Bansal
@@ -58,10 +55,10 @@ def read_vcf(vcf,region):
 def run_freebayes(bamfile,vcf,region,fasta):
 	logfile = 'fb.' + region + '.log';
 	fbfile = 'fb.' + region + '.vcf';
-	command=FREEBAYES + ' -f ' + fasta + ' --haplotype-basis-alleles ' + vcf + ' -@ ' + vcf + ' ' + bamfile + ' -r ' + region + ' 2> ' + logfile + ' 1> ' + fbfile;
+	## added mapping quality 20 filter
+	command=FREEBAYES + ' -m 20  -f ' + fasta + ' --haplotype-basis-alleles ' + vcf + ' -@ ' + vcf + ' ' + bamfile + ' -r ' + region + ' 2> ' + logfile + ' 1> ' + fbfile;
 	print('running command',command,file=sys.stderr);
 	subprocess.call(command,shell=True); 
-	# ~/CODE/JOINTCODE-coral/HapCUT2/build/freebayes -f ~/Public/tools/reference-genomes/hg38.giab.fasta --haplotype-basis-alleles longline.vcf.gz -@ longline.vcf.gz output.bam.rg.bam -r chr20 2> chr20.fb.log 1> chr20.fb.vcf
 	return logfile;
 
 def extract_fragments_logfile(varlist,options):
@@ -110,24 +107,26 @@ def print_fragments(fragments,outfilename='fragments.txt',singlereads=1,linked_r
 	for frag in fragments.keys(): 	
 		fragments[frag].prepare_for_hapcut(outfile);
 		if fragments[frag].unique > 1 or (singlereads==1 and fragments[frag].unique > 0): fragments[frag].print(outfile,linked_reads);
-		print(fragments[frag],frag);
+		#print(fragments[frag],frag);
 	outfile.close();
 
 
-def add_barcodes(bamfile,region,fragments):
+def add_barcodes(bamfile,region,fragments,MIN_MQ=20,MAX_IS=1000): ## also useful to get mapping quality, insert size and other stats for each read
 	print('reading bam file to add barcodes for linked-reads',bamfile,file=sys.stderr)
 	pybamfile=pysam.AlignmentFile(bamfile,'rb');
 	n=0;
 	for read in pybamfile.fetch(region=region):
-		try:
-			barcode =read.get_tag('BX');
-			try: 
-				fragments[read.query_name].barcode = barcode;
-				#print('found match',read.query_name,barcode,file=sys.stderr);
-			except KeyError: pass; 
-			#fragments.update({read.query_name: barcode}); 
-			#print (read.query_name,barcode,file=sys.stderr);
-		except KeyError:pass;
+		try: 
+			F = fragments[read.query_name];
+			F.isize = abs(read.template_length);
+			if F.isize > MAX_IS: F.filter=True;
+			F.mq = read.mapping_quality; 
+			if F.mq < MIN_MQ: F.filter = True;
+			if read.is_secondary or read.is_supplementary: F.filter = True; 
+			F.barcode = read.get_tag('BX');
+			#print('found match',read.query_name,barcode,file=sys.stderr);
+		except KeyError: pass; 
+		#print (read.query_name,barcode,file=sys.stderr);
 		n +=1;
 		if n%1000000==0: print ('processed',n,'reads',file=sys.stderr);
 	pybamfile.close();
@@ -150,6 +149,8 @@ def add_program_options(parser):
 	parser.add_argument('--hets_only', action='store', default=1,type=int,help='output alleles for only heterozygous variants, default=1')
 	parser.add_argument('--linked', action='store', default=0,type=int,help='linked-reads [0/1]')
 	parser.add_argument('--mbq', action='store', default=10,type=int,help='minimum base quality for alleles')
+	parser.add_argument('--mmq', action='store', default=20,type=int,help='minimum mapping quality to consider reads'); 
+	parser.add_argument('--maxIS', action='store', default=1000,type=int,help='maximum insert size to consider paired-end reads, filtered if more than this'); 
 	parser.add_argument('--maxbq', action='store', default=40,type=int,help='maximum base quality for alleles')
 	parser.add_argument('--debug', action='store', default=0,type=int,help='debug, verbose output')
 
@@ -167,10 +168,9 @@ if options.runfb==1: options.logfile = run_freebayes(options.bam,options.VCFfile
 
 fragments=extract_fragments_logfile(varlist,options);
 
-if options.linked ==1: 
-	add_barcodes(options.bam,options.region,fragments);
-	#python3 ~/CODE/JOINTCODE-coral/HapCUT2/utilities/LinkFragments.py --fragments fragments.txt --VCF phasing-40kb/chr20.vcf --bam output.bam.rg.bam --distance  40000 --outfile chr20.linked.fragments.new
-
+add_barcodes(options.bam,options.region,fragments,MIN_MQ=options.mmq,MAX_IS=options.maxIS);
+#if options.linked ==1: 
+#python3 ~/CODE/JOINTCODE-coral/HapCUT2/utilities/LinkFragments.py --fragments fragments.txt --VCF phasing-40kb/chr20.vcf --bam output.bam.rg.bam --distance  40000 --outfile chr20.linked.fragments.new
 print_fragments(fragments,outfilename=options.outfile,singlereads=options.singlereads,linked_reads=options.linked);
 
 
