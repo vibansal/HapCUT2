@@ -33,6 +33,7 @@ typedef struct {
     int depth;
     int A1, A2;
     int H1, H2;
+    int shift; // for indels in low-complexity sequence, rightshift in variant posiiton
     // total reads covering this variant (haploid/diploid, A1-> reads supporting reference allele (single-read)
     //	float L11,L12,L22; // genotype likelihoods for three possible genotypes
 } VARIANT;

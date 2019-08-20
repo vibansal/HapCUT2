@@ -5,7 +5,7 @@
 #include <assert.h>
 #include <stdlib.h>
 
-int MINLEN= 10;
+int MINLEN= 8;
 int COMPLEXITY_K = 5; // anchor sequences must have unique kmers of this length
 int SHORT_HAP_CUTOFF = 20; // separation between variants to be considered part of the same local haplotype for realignment
 extern int VERBOSE;
@@ -50,8 +50,6 @@ unsigned int rand_interval(unsigned int min, unsigned int max){
 int parse_cigar(struct alignedread* read,REFLIST* reflist,int* fcigarlist)
 {
 	int current = reflist->current; if (current < 0) return -1;
-	//fprintf(stdout,"%c \n",reflist->sequences[current][10000]);	//return -1;
-
 	int f=0;
 	int i=0,t=0, l1=0,l2=0; int l=0; int m=0; int op;
 	for (i=0;i<read->cigs;i++)
@@ -59,7 +57,6 @@ int parse_cigar(struct alignedread* read,REFLIST* reflist,int* fcigarlist)
 		op = read->cigarlist[i]&0xf; l = read->cigarlist[i]>>4;
 		if (op == BAM_CMATCH)
 		{
-			//fprintf(stdout,"%.*s | ",l,read->sequence+l1); fprintf(stdout,"%.*s\n",l,reflist->sequences[current]+read->position+l2-1);
 			m=0;
 			for (t=0;t<l;t++)
 			{
@@ -67,7 +64,7 @@ int parse_cigar(struct alignedread* read,REFLIST* reflist,int* fcigarlist)
 				{
 					read->mismatches++;
 					if (m > 0) fcigarlist[f++] = (m<<4)+7; //  m=
-					fcigarlist[f++] = 24; // mismatch 1X
+					fcigarlist[f++] = 16 + 8; // mismatch 1X
 					m=0;
 				}
 				else m++;
@@ -75,8 +72,7 @@ int parse_cigar(struct alignedread* read,REFLIST* reflist,int* fcigarlist)
 			if (m > 0) fcigarlist[f++] = (m<<4)+7;
 		}
 		else fcigarlist[f++] = read->cigarlist[i];  // copy as it is for some cigar operations
-
-		if (op == BAM_CMATCH || op >= 7) { l1 +=l; l2 +=l; }
+		if (op == BAM_CMATCH || op == BAM_CEQUAL || op == BAM_CDIFF)  { l1 +=l; l2 +=l; }
 		else if (op == BAM_CDEL || op == BAM_CREF_SKIP) l2 +=l;
 		else if (op == BAM_CINS || op == BAM_CSOFT_CLIP)  l1 += l;
 	}
@@ -108,8 +104,6 @@ int test_complexity(char* seq, int k){
 			}
 		}
 	}
-	//fprintf(stderr," pass\n");
-
 	return 1;
 }
 
@@ -117,7 +111,7 @@ int test_complexity(char* seq, int k){
 // ALLELOTYPING 
 int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VARIANT* varlist, int* snplst, int n_variants, FRAGMENT* fragment)
 {
-	if ( positions[3]-positions[1] < 15 ||  positions[3]-positions[1] > 200 || positions[2]-positions[0] < 15 ||  positions[2]-positions[0] > 200) 
+	if ( positions[3]-positions[1] < 10 ||  positions[3]-positions[1] > 200 || positions[2]-positions[0] < 10 ||  positions[2]-positions[0] > 200) 
 	{
 		if  (VERBOSE) fprintf(stderr,"range check failed \n");
 		return -1; // check on length in range (15,200)
@@ -260,14 +254,14 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 
 		if (max_hap & (int)(pow(2,s))){
 			align_qual = (int) (-10.0 * (ref_score_single[s] - total_score));
-			if(VERBOSE) fprintf(stderr,"varid %d alt-alele %f %f qv %d \n",ss,ref_score_single[s],total_score,align_qual);
+			if(VERBOSE) fprintf(stderr,"varid %d alt-alele %f qv %d \n",ss,ref_score_single[s],align_qual);
 
 			if (align_qual < MINQ) continue;
 
 			fragment->alist[fragment->variants].allele = '1';
 		}else{
 			align_qual = (int) (-10.0 * (alt_score_single[s] - total_score));
-			if(VERBOSE) fprintf(stderr,"varid %d ref-alele %f %f qv %d \n",ss,ref_score_single[s],total_score,align_qual);
+			if(VERBOSE) fprintf(stderr,"varid %d ref-alele %f qv %d \n",ss,ref_score_single[s],align_qual);
 
 			if (align_qual < MINQ) continue;
 
@@ -303,13 +297,13 @@ int find_left_anchor(int* fcigarlist,int fcigs,int f1,REFLIST* reflist,int offse
 
 	// if current cigar is CEQUAL and the variant position is at least MINLEN bases after the cigar start, we are done
 	op = fcigarlist[f1]&0xf; ol = fcigarlist[f1]>>4;
-	if (offset >= MINLEN && op == BAM_CEQUAL && ol >= offset) 
+	if ((offset >= MINLEN ) && op == BAM_CEQUAL && ol >= offset) 
 	{
 		if (VERBOSE) fprintf(stderr,"done in first pass cigar %d \n",offset);
-		if (offset >= MINLEN*3) // too long
+		if (offset > MINLEN) // too long
 		{
-			*left_anchor_read += offset-2*MINLEN; 
-			*left_anchor_ref +=  offset-2*MINLEN;
+			*left_anchor_read += offset-MINLEN; 
+			*left_anchor_ref +=  offset-MINLEN;
 		}
 		flag =0; // don't need to change anchor positions could be too large ??
 	}
@@ -332,7 +326,7 @@ int find_left_anchor(int* fcigarlist,int fcigs,int f1,REFLIST* reflist,int offse
 		else if (op == BAM_CDEL || op == BAM_CREF_SKIP ) *left_anchor_ref -= ol;
 		if (VERBOSE) fprintf(stderr,"updating leftanchor %d %d f1 %d %d%c\n",*left_anchor_read,*left_anchor_ref,f1,ol,INT_CIGAROP[op]);
 
-		if (op == BAM_CEQUAL && ol >= MINLEN) // found = cigar operation of length at least MINLEN 
+		if ( op == BAM_CEQUAL && (ol >= MINLEN || (f1 ==0 && ol >= 4))) // found = cigar operation of length at least MINLEN or it is the first cigar operation, beginning of read
 		{
 			// don't forget +1 to strlen for end character
 			anchor_start = *left_anchor_ref +ol-MINLEN - COMPLEXITY_K;
@@ -343,7 +337,7 @@ int find_left_anchor(int* fcigarlist,int fcigs,int f1,REFLIST* reflist,int offse
 			anchor_seq[j-anchor_start]  ='\0';
 
 			kmer_test = test_complexity(anchor_seq, COMPLEXITY_K);
-			if (kmer_test >=0)
+			//if (kmer_test >=0)
 			{
 				flag =0;
 				*left_anchor_read += ol-MINLEN; 
@@ -366,26 +360,28 @@ int find_left_anchor(int* fcigarlist,int fcigs,int f1,REFLIST* reflist,int offse
 	}
 }
 
-int find_right_anchor(int* fcigarlist,int fcigs,int f2,REFLIST* reflist,int offset,int* right_anchor_read, int* right_anchor_ref)
+// rightboundary is the rightmost position of variant, different from left_position_variant for indels
+int find_right_anchor(int* fcigarlist,int fcigs,int f2,REFLIST* reflist,int offset,int* right_anchor_read, int* right_anchor_ref,int rightboundary)
 {
 	char* anchor_seq = malloc(MINLEN+1);
 	int anchor_start = 0, anchor_end = 0, j = 0;
 	int kmer_test=0;
 	int flag = 1;
 	int op=fcigarlist[f2]&0xf, ol=fcigarlist[f2]>>4;
-	if (VERBOSE) fprintf(stderr,"op %c ol %d offset %d..... right anchor \n",INT_CIGAROP[op],ol,offset);
+	int delta=0;
+	if (VERBOSE) fprintf(stderr,"op %c ol %d offset %d..... right anchor Rboundary: %d\n",INT_CIGAROP[op],ol,offset,rightboundary);
 
 	if (ol-offset >= MINLEN && op == BAM_CEQUAL) //  offset = last_variant_pos-right_anchor_ref, ol-offset > MINLEN = DONE 
 	{
 		flag =0;
 		if (VERBOSE) fprintf(stderr,"right M cigar ol-offset %d offset %d\n",ol-offset,offset);
-		if (ol < offset+2*MINLEN) 
+		if (ol < offset+MINLEN) 
 		{
 			*right_anchor_read += ol; *right_anchor_ref += ol;
 		}
 		else 
 		{
-			*right_anchor_read += offset+2*MINLEN; *right_anchor_ref += offset+2*MINLEN;
+			*right_anchor_read += offset+MINLEN; *right_anchor_ref += offset+MINLEN;
 		}
 	}
 
@@ -409,7 +405,8 @@ int find_right_anchor(int* fcigarlist,int fcigs,int f2,REFLIST* reflist,int offs
 		}
 		if (VERBOSE) fprintf(stderr,"updating rightanchor %d %d f2 %d %d%c\n",*right_anchor_read,*right_anchor_ref,f2,ol,INT_CIGAROP[op]);
 
-		if (f2 > f2_bak && op == BAM_CEQUAL && ol >= MINLEN) // f2 > f2_bak is needed to avoid selecting the first 'f2' which was already checked in the previous if loop
+		if (f2 > f2_bak && op == BAM_CEQUAL && ol >= MINLEN && *right_anchor_ref - rightboundary >= MINLEN/2+2) 
+		// f2 > f2_bak is needed to avoid selecting the first 'f2' which was already checked in the previous if loop
 		{		
 			// don't forget +1 to strlen for end character
 			anchor_start = *right_anchor_ref - ol - COMPLEXITY_K;
@@ -425,11 +422,18 @@ int find_right_anchor(int* fcigarlist,int fcigs,int f2,REFLIST* reflist,int offs
 			anchor_seq[j-anchor_start]  ='\0';
 
 			kmer_test = test_complexity(anchor_seq, COMPLEXITY_K);
-			if (kmer_test >=0)
+			//if (kmer_test >=0)
 			{
 				flag =0;
 				*right_anchor_read -= ol-MINLEN;
 				*right_anchor_ref -= ol-MINLEN;
+				delta = *right_anchor_ref-rightboundary-(MINLEN/2+2);
+				if (delta < 0)
+				{
+					if (VERBOSE) fprintf(stderr,"need to move anchor to right by delta %d\n",delta);
+					*right_anchor_read -= delta; 
+					*right_anchor_ref -= delta;
+				}
 			}
 		}
 		f2++;
@@ -459,23 +463,26 @@ int compare_read_HAPs(struct alignedread* read,VARIANT* varlist,int* snplst, int
 	int right_anchor_read = hap_pos[2]; int right_anchor_ref = hap_pos[3]; 
 	int ss,s, i;
 
-	if (VERBOSE) 
+	int rightboundary = 0;
+	for (s=0;s<n_variants;s++) 
 	{
-		for (s=0;s<n_variants;s++) 
-		{
-			ss = snplst[s];
-			fprintf(stderr,"var %d %d %s %s \n",ss,varlist[ss].position,varlist[ss].allele1,varlist[ss].allele2);
-		}
-		for (i=f1-2;i<=f2+2;i++) fprintf(stderr,"%d%c ",fcigarlist[i]>>4,INT_CIGAROP[fcigarlist[i]&0xf]); 
+		ss = snplst[s];
+		if (varlist[ss].position + varlist[ss].shift > rightboundary) rightboundary = varlist[ss].position + varlist[ss].shift;
+		if (VERBOSE) fprintf(stderr,"var %d %d %s %s shift %d\n",ss,varlist[ss].position,varlist[ss].allele1,varlist[ss].allele2,varlist[ss].shift);
+	}
+	if (VERBOSE)
+	{
+		//for (i=f1-2;i<=f2+2;i++) fprintf(stderr,"%d%c ",fcigarlist[i]>>4,INT_CIGAROP[fcigarlist[i]&0xf]); 
 		fprintf(stderr," cigar f1=%d f2=%d L %d--%d  R %d--%d\n",f1,f2,left_anchor_read,right_anchor_read,left_anchor_ref,right_anchor_ref);
 	}
 	// call function to find left anchor
 	int offsetL = varlist[snplst[0]].position-left_anchor_ref; // hap_pos[1] is the start of the 'f1' cigar operation
-	int offsetR = varlist[snplst[n_variants-1]].position-left_anchor_ref;
+	//int offsetR = varlist[snplst[n_variants-1]].position-hap_pos[4];
+	int offsetR = rightboundary-hap_pos[4];
 	int foundL = find_left_anchor(fcigarlist,fcigs,f1,reflist,offsetL,&left_anchor_read,&left_anchor_ref);
 	// call function to find right anchor
 	if (VERBOSE) fprintf(stderr,"offset %d lastpos %d nvar %d\n",offsetR,varlist[snplst[n_variants-1]].position,n_variants);
-	int foundR = find_right_anchor(fcigarlist,fcigs,f2,reflist,offsetR,&right_anchor_read,&right_anchor_ref);
+	int foundR = find_right_anchor(fcigarlist,fcigs,f2,reflist,offsetR,&right_anchor_read,&right_anchor_ref,rightboundary);
 	if (foundL ==0 || foundR ==0) 
 	{
 		if (VERBOSE) fprintf(stderr,"one of the anchors was not found, not allelotyping\n");
@@ -536,11 +543,12 @@ int realign_and_extract_variants_read(struct alignedread* read,HASHTABLE* ht,CHR
 	}
 
 	int l1=0,l2=read->position; // l1 is advance on read, l2 is advance on reference genome
-	int hap_pos[4] = {-1,-1,-1,-1};
+	int hap_pos[4] = {-1,-1,-1,-1,-1};
 	// hap_pos[0] is advance on read for first variant in haplotype
 	// hap_pos[1] is advance on ref for first variant in haplotype
 	// hap_pos[2] is advance on read for last variant in haplotype
 	// hap_pos[3] is advance on ref for last variant in haplotype
+	int offsetR=0;
 
 	int op=0,ol=0;
 	int n_variants = 0; int n_snvs=0;
@@ -585,7 +593,7 @@ int realign_and_extract_variants_read(struct alignedread* read,HASHTABLE* ht,CHR
 						if (n_snvs > 0 || PARSEINDELS) compare_read_HAPs(read,varlist,snplst,n_variants,hap_pos,fcigarlist,fcigs,f1,f2,reflist,fragment);
 						// empty the current cluster of variants
 						n_variants = 0; n_snvs=0;
-						for (j=0; j < 4; j++)hap_pos[j] = -1;
+						for (j=0; j < 5; j++)hap_pos[j] = -1;
 					}
 
 					if (n_variants == 0){
@@ -610,9 +618,10 @@ int realign_and_extract_variants_read(struct alignedread* read,HASHTABLE* ht,CHR
 						prev_snp_position = varlist[ss].position + len_a2;
 					}
 
-					f2 = i;
+					f2 = i; hap_pos[4] = l2; 
 					// add variant to the list
 					snplst[n_variants] = ss; // no check on length of this list, not needed
+					calculate_rightshift(varlist, ss, reflist); // no need to do it multiple times..
 					if (varlist[ss].type ==0) n_snvs++;
 					n_variants++;
 				}
