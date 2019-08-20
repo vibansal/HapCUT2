@@ -311,7 +311,6 @@ int find_left_anchor(int* fcigarlist,int fcigs,int f1,REFLIST* reflist,int offse
 	// surprisingly, it doesn't affect overall results at all..
 
 	// keep going left until we find a cigar CMATCH of length at least MINLEN 
-	// need to add condition, if we have gone too left, decrease MINLEN to 3-4 bases and stop..
 	while (f1 >= 0 && flag ==1)
 	{
 		op = fcigarlist[f1]&0xf; ol = fcigarlist[f1]>>4;
