@@ -5,7 +5,7 @@
 #include <assert.h>
 #include <stdlib.h>
 
-int MINLEN= 8;
+int MINLEN= 10;
 int COMPLEXITY_K = 5; // anchor sequences must have unique kmers of this length
 int SHORT_HAP_CUTOFF = 20; // separation between variants to be considered part of the same local haplotype for realignment
 extern int VERBOSE;
@@ -297,7 +297,7 @@ int find_left_anchor(int* fcigarlist,int fcigs,int f1,REFLIST* reflist,int offse
 
 	// if current cigar is CEQUAL and the variant position is at least MINLEN bases after the cigar start, we are done
 	op = fcigarlist[f1]&0xf; ol = fcigarlist[f1]>>4;
-	if ((offset >= MINLEN ) && op == BAM_CEQUAL && ol >= offset) 
+	if ((offset >= MINLEN) && op == BAM_CEQUAL && ol >= offset) 
 	{
 		if (VERBOSE) fprintf(stderr,"done in first pass cigar %d \n",offset);
 		if (offset > MINLEN) // too long
@@ -325,7 +325,7 @@ int find_left_anchor(int* fcigarlist,int fcigs,int f1,REFLIST* reflist,int offse
 		else if (op == BAM_CDEL || op == BAM_CREF_SKIP ) *left_anchor_ref -= ol;
 		if (VERBOSE) fprintf(stderr,"updating leftanchor %d %d f1 %d %d%c\n",*left_anchor_read,*left_anchor_ref,f1,ol,INT_CIGAROP[op]);
 
-		if ( op == BAM_CEQUAL && (ol >= MINLEN || (f1 ==0 && ol >= 4))) // found = cigar operation of length at least MINLEN or it is the first cigar operation, beginning of read
+		if ( op == BAM_CEQUAL && (ol >= MINLEN || (f1 ==0 && ol >= MINLEN))) // found = cigar operation of length at least MINLEN or it is the first cigar operation, beginning of read
 		{
 			// don't forget +1 to strlen for end character
 			anchor_start = *left_anchor_ref +ol-MINLEN - COMPLEXITY_K;

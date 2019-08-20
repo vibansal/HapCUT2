@@ -35,7 +35,7 @@ def parse_args():
     parser.add_argument('-v2', '--vcf2', nargs='+', type = str, help='A phased, single sample  VCF file to use as the "ground truth" haplotype.')
     parser.add_argument('-h1', '--haplotype_blocks1', nargs='+', type = str, help='Override the haplotype information in "-v1" with the information in this HapCUT2-format haplotype block file. If this option is used, then the VCF specified with -v1 MUST be the same VCF used with HapCUT2 (--vcf) to produce the haplotype block file!')
     parser.add_argument('-h2', '--haplotype_blocks2', nargs='+', type = str, help='Override the haplotype information in "-v2" with the information in this HapCUT2-format haplotype block file. If this option is used, then the VCF specified with -v2 MUST be the same VCF used with HapCUT2 (--vcf) to produce the haplotype block file!')
-    parser.add_argument('-i', '--indels', action="store_true", help='Use this flag to consider indel variants. Default: Indels ignored.',default=False)
+    parser.add_argument('-i', '--indels', action="store_true",help='Use this flag to consider indel variants. Default: Indels ignored.',default=False)
 
     # default to help option. credit to unutbu: http://stackoverflow.com/questions/4042452/display-help-message-with-python-argparse-when-script-is-called-without-any-argu
     if len(sys.argv) < 3:
@@ -496,15 +496,15 @@ class error_result():
     def __str__(self):
 
         s = ('''
-switch_rate:        {}
-mismatch_rate:      {}
+switch_rate:        {} ({}/{})
+mismatch_rate:      {} ({}/{})
 hamming_rate:          {}
 phased_count:       {}
 phased_count(fraction):       {}
 AN50:               {}
 N50:                {}
 num_snps_max_blk:   {}
-            '''.format(self.get_switch_rate(), self.get_mismatch_rate(),
+            '''.format(self.get_switch_rate(), self.get_switch_count(),self.get_poss_sw(),self.get_mismatch_rate(),self.get_mismatch_count(),self.get_poss_sw(),
                    self.get_flat_error_rate(), self.get_phased_count(),self.get_phased_count()/self.get_num_snps(),
                    self.get_AN50(), self.get_N50_phased_portion(), sum(self.maxblk_snps.values())))
 
