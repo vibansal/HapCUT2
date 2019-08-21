@@ -5,7 +5,7 @@
 #include <assert.h>
 #include <stdlib.h>
 
-int MINLEN= 10;
+int MINLEN= 8;
 int COMPLEXITY_K = 5; // anchor sequences must have unique kmers of this length
 int SHORT_HAP_CUTOFF = 20; // separation between variants to be considered part of the same local haplotype for realignment
 extern int VERBOSE;
@@ -184,7 +184,7 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 			for (j = j; j<r; j++) 
 			{
 				althap[k++] = reflist->sequences[reflist->current][j-1];
-				if (VERBOSE) fprintf(stderr,"%d %c ",j,reflist->sequences[reflist->current][j-1]);
+				//if (VERBOSE) fprintf(stderr,"%d %c ",j,reflist->sequences[reflist->current][j-1]);
 			}
 			if (h & (int)(pow(2,s)) )
 			{
@@ -195,13 +195,13 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 				for (i=0;i<ref_len;i++) althap[k++] = varlist[ss].allele1[i];
 			}
 			j += ref_len;
-			if (VERBOSE) fprintf(stderr,"%d %s ",j,varlist[ss].allele1);
+			//if (VERBOSE) fprintf(stderr,"%d %s ",j,varlist[ss].allele1);
 		}
 
 		for (j = j; j < positions[3]; j++) 
 		{
 			althap[k++] = reflist->sequences[reflist->current][j-1];
-			if (VERBOSE) fprintf(stderr,"%d %c ",j,reflist->sequences[reflist->current][j-1]);
+			//if (VERBOSE) fprintf(stderr,"%d %c ",j,reflist->sequences[reflist->current][j-1]);
 		}
 		althap[k] = '\0';
 

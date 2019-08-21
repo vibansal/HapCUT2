@@ -150,13 +150,13 @@ def parse_hapblock_file(hapblock_file,vcf_file,indels=False):
     return [b for b in blocklist if len(b) > 1]
 
 def parse_vcf_phase(vcf_file, CHROM, indels = False):
-
+    print("reading file",vcf_file);
     #block = []
     PS_index = None
     blocks = defaultdict(list)
+    included=0
 
     with open(vcf_file, 'r') as vcf:
-
         snp_ix = 0
 
         for line in vcf:
@@ -228,10 +228,12 @@ def parse_vcf_phase(vcf_file, CHROM, indels = False):
 
             pos = int(el[1])-1
             if ps != None and consider and phase_data[1] == '|':
-                blocks[ps].append((snp_ix, pos, phase_data[0:1], phase_data[2:3], a0, a1, a2))
+                blocks[ps].append((snp_ix, pos, phase_data[0:1], phase_data[2:3], a0, a1, a2)); 
+                included +=1;
 
+            #print("var info",ps,consider);
             snp_ix += 1
-
+    print("variants",included)
     return [v for k,v in sorted(list(blocks.items())) if len(v) > 1]
 
 # given a VCF file, simply count the number of heterozygous SNPs present.
