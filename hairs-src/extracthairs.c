@@ -344,7 +344,7 @@ int main(int argc, char** argv) {
         }else if (strcmp(argv[i], "--pacbio") == 0 || strcmp(argv[i], "--SMRT") == 0 || strcmp(argv[i],"--pb") ==0){
             check_input_0_or_1(argv[i + 1]);
             if (atoi(argv[i + 1])){
-                REALIGN_VARIANTS = 1; PACBIO =1; MINQ = 7;
+                REALIGN_VARIANTS = 1; PACBIO =1; MINQ = 4;
 		SUM_ALL_ALIGN = 1; 
             }
 
@@ -361,7 +361,7 @@ int main(int argc, char** argv) {
         }else if (strcmp(argv[i], "--ont") == 0 || strcmp(argv[i], "--ONT") == 0){
             check_input_0_or_1(argv[i + 1]);
             if (atoi(argv[i + 1])){
-                REALIGN_VARIANTS = 1;  MINQ = 7;
+                REALIGN_VARIANTS = 1;  MINQ = 4;
             }
             // scores based on http://www.nature.com/nmeth/journal/v12/n4/abs/nmeth.3290.html
             MATCH = log10(1.0 - (0.051 + 0.049 + 0.078));

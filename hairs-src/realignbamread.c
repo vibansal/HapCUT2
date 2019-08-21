@@ -87,9 +87,7 @@ int test_complexity(char* seq, int k){
 
 	for (i = 0; i < l - k + 1; i++){
 		for (j = 0; j < l - k + 1; j++){
-			if (i == j)
-				continue;
-
+			if (i == j) continue;
 			match = 1;
 			for (q = 0; q < k; q++){
 				if (seq[i+q] != seq[j+q]){
@@ -105,6 +103,26 @@ int test_complexity(char* seq, int k){
 		}
 	}
 	return 1;
+}
+
+// measure complexity of a sequence using the number of distinct kmers, avoid repetitive sequence
+// AAAAAAAAA is bad, ACACACAGAGAGAG is also bad... 
+int complexity(char* seq,int n)
+{
+	int k=2;
+	if (n >= 10) k = 3; 
+	int max_count = n-k+1;  // min of (n-k+1,4^k)
+	int* kmers = calloc(sizeof(short),n-k+1);
+	int i=0,j=0;
+	int kmer2int=0;
+	for (i=0;i<n-k;i++)
+	{
+		kmer2int=0;
+		for (j=i;j<i+k;j++) kmer2int *=4;
+		kmers[i]= kmer2int; 
+	}
+	// sort the kmers list and count number of unique k-mers
+	free(kmers);
 }
 
 // realign sequence read to haplotype sequences defined by 'k' variants (typically k=1), local realignment for computing quality scores

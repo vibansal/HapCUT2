@@ -4,6 +4,8 @@
 
 const char* GTYPES[] = {"0/0","0/1","1/1","0|1","1|0"};
 
+#define max(a,b)            (((a) > (b)) ? (a) : (b))
+
 void init_varlist(PVAR* varlist,int snps,struct fragment* Flist,int fragments) // also calculates unphased genotype likelihoods (GLL)
 {
 	int i=0,j=0,k=0,s=0,h=0;
@@ -159,7 +161,7 @@ void print_variant_GLL(struct SNPfrags* snpfrag,PVAR* varlist,char* HAP1,int i)
 	fprintf(stdout,"VAR %d %9d %s %s (%.15s) %s ",i,snpfrag[i].position,snpfrag[i].allele0,snpfrag[i].allele1,snpfrag[i].genotypes,snpfrag[i].id);
 	fprintf(stdout,"%s ",GTYPES[varlist[i].genotype]);
 	fprintf(stdout," %c %3d %3.2f ",HAP1[i],varlist[i].frags,varlist[i].PGLL[1]);
-	fprintf(stdout,"het: %3.2f %3.2f ",varlist[i].PGLL[3],varlist[i].PGLL[4]);
+	fprintf(stdout,"het: %3.2f %3.2f delta %3.2f ",varlist[i].PGLL[3],varlist[i].PGLL[4],max(varlist[i].PGLL[3],varlist[i].PGLL[4])-varlist[i].PGLL[1]);
 	fprintf(stdout,"0/0:%3.2f 1/1:%3.2f ",varlist[i].PGLL[0],varlist[i].PGLL[2]);
 	fprintf(stdout,"%0.1f,%0.1f,%0.1f %0.1f %d:%d %d\n",varlist[i].GLL[0],varlist[i].GLL[1],varlist[i].GLL[2],varlist[i].AC0,varlist[i].AC1,varlist[i].updated);
 }
@@ -173,9 +175,10 @@ int local_optimization(DATA* data)
 	float hetprior = 0.001; 
 	float priors[5] = {0.0,0.0,0.0,0.0,0.0}; // by changing priors we can enforce only het genotypes 
 	// prior for unphased variant should be lower = frequency of such variants...
-	priors[1] = hetprior; priors[2] = hetprior/2; priors[0] = 1.0-priors[1]-priors[2]; 
-	priors[3] = hetprior/2; priors[4] = hetprior/2;
+	priors[1] = hetprior; priors[3] = hetprior/2; priors[4] = hetprior/2;
+	priors[2] = hetprior/2; priors[0] = 1.0-priors[1]-priors[2]; 
 	for (i=0;i<5;i++) priors[i]= log10(priors[i]);
+	priors[2] -= 10; priors[0] -=10; // reduce priors for 0|0 and 1|1 genotypes
 
 	PVAR* varlist = data->varlist;
 	init_varlist(varlist,data->snps,data->full_Flist,data->full_fragments); 
