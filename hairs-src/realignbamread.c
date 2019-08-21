@@ -147,9 +147,9 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 	}
 
 	double altscore=0;
+	int r =0;
 
-
-	if (VERBOSE) fprintf(stderr,"%s\n",subread);
+	//if (VERBOSE) fprintf(stderr,"%s subread\n",subread);
 	if (VERBOSE) fprintf(stderr,"read %d:%d:%d ",positions[0],positions[2],positions[2]-positions[0]);
 	if (VERBOSE) fprintf(stderr,"on ref %d:%d:%d\n",positions[1],positions[3],positions[3]-positions[1]);
 	for (h = 0; h < pow(2,n_variants); h++){
@@ -171,37 +171,45 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 		if (VERBOSE) fprintf(stderr,"new alt hap len %d %d\n",positions[3]-positions[1]+1+total_alt_len-total_ref_len,total_alt_len);
 		//althap = malloc(positions[3]-positions[1]+1+total_alt_len-total_ref_len);
 
-		j = positions[1];
-		k = 0;
-
+		j = positions[1]; k = 0;
 		for (s = 0; s < n_variants; s++)
 		{
 			ss = snplst[s];
 			ref_len = strlen(varlist[ss].allele1);
 			alt_len = strlen(varlist[ss].allele2);
 
-			for (j = j; j<varlist[ss].position; j++)
+			if (varlist[ss].type != 0) r = varlist[ss].position-1;
+			else  r = varlist[ss].position;  // added condition so that the position is correct for indels, 08/20/19
+
+			for (j = j; j<r; j++) 
+			{
 				althap[k++] = reflist->sequences[reflist->current][j-1];
-			if (h & (int)(pow(2,s))){
+				if (VERBOSE) fprintf(stderr,"%d %c ",j,reflist->sequences[reflist->current][j-1]);
+			}
+			if (h & (int)(pow(2,s)) )
+			{
 				for (i=0;i<alt_len;i++) althap[k++] = varlist[ss].allele2[i];
-			}else{
+			}
+			else
+			{
 				for (i=0;i<ref_len;i++) althap[k++] = varlist[ss].allele1[i];
 			}
-
 			j += ref_len;
+			if (VERBOSE) fprintf(stderr,"%d %s ",j,varlist[ss].allele1);
 		}
 
-		for (j = j; j < positions[3]; j++){
+		for (j = j; j < positions[3]; j++) 
+		{
 			althap[k++] = reflist->sequences[reflist->current][j-1];
+			if (VERBOSE) fprintf(stderr,"%d %c ",j,reflist->sequences[reflist->current][j-1]);
 		}
-
 		althap[k] = '\0';
 
 		if (SUM_ALL_ALIGN ==0) altscore = nw(althap,subread,0);
 		else if (SUM_ALL_ALIGN ==1) altscore = sum_all_alignments_fast(althap,subread,AP,20);
 		else if (SUM_ALL_ALIGN ==2) altscore = sum_all_alignments_logspace(althap,subread,AP,20);  
 
-		if (VERBOSE) fprintf(stderr,"h %d score: %f \n%s\n%s\n",h,altscore,althap,subread);
+		if (VERBOSE) fprintf(stderr,"h %d score: %f \n%s haplotype\n%s subread\n",h,altscore,althap,subread);
 
 		// for an index s in the short haplotype,
 		// maintain the log sum of scores that have a variant at s
@@ -232,7 +240,6 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 
 		// add the alternate score to the total
 		total_score = addlogs(total_score, altscore);
-
 		//free(althap);
 	}
 
