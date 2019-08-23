@@ -45,7 +45,7 @@ int read_vcffile(char* vcffile, struct SNPfrags* snpfrag, int snps) {
 		header_lines++;
 		continue;
 	}
-	if (header_lines ==0) fprintf(stderr,"VCF file has no header\n");
+	if (header_lines ==0 && var==0) fprintf(stderr,"VCF file has no header\n");
 
 	k = splitString(buffer,'\t',string_list); 
 	if (k < 10) 

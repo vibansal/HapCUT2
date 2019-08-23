@@ -103,12 +103,15 @@ int estimate_counts_read(struct alignedread* read,REFLIST* reflist,int* emission
                 }
 		if (op == BAM_CDEL) 
 		{
-			/*
-			for (t=-5;t<0;t++) fprintf(stderr,"%c",reflist->sequences[current][read->position+l2+t-1]);
-			fprintf(stderr,"|"); for (t=0;t<l;t++) fprintf(stderr,"%c",reflist->sequences[current][read->position+l2+t-1]);
-			fprintf(stderr,"|"); for (t=l;t<l+10;t++) fprintf(stderr,"%c",reflist->sequences[current][read->position+l2+t-1]);
-			fprintf(stderr," DEL %d %d\n",l,l2+read->position-1);
-			*/
+			if (VERBOSE==3 && l < 10)
+			{
+				for (t=-5;t<0;t++) fprintf(stderr,"%c",reflist->sequences[current][read->position+l2+t-1]);
+				fprintf(stderr,"|"); for (t=0;t<l;t++) fprintf(stderr,"%c",reflist->sequences[current][read->position+l2+t-1]);
+				fprintf(stderr,"|"); for (t=l;t<l+15;t++) fprintf(stderr,"%c",reflist->sequences[current][read->position+l2+t-1]);
+				fprintf(stderr," DEL %d %d\n",l,l2+read->position-1);
+				/*
+				*/
+			}
 			
 			if (prevop == BAM_CMATCH || prevop == BAM_CEQUAL || prevop == BAM_CDIFF) trans_counts[0*3 + 2] +=1; 
 			if (l < 10) trans_counts[2*3+2] +=l-1;
@@ -116,12 +119,15 @@ int estimate_counts_read(struct alignedread* read,REFLIST* reflist,int* emission
 		}
 		if (op == BAM_CINS)
 		{
+			if (VERBOSE==3 && l < 10)
+			{
+				for (t=-5;t<0;t++) fprintf(stderr,"%c",reflist->sequences[current][read->position+l2+t-1]);
+				fprintf(stderr,"|"); for (t=0;t<l;t++) fprintf(stderr,"%c",read->sequence[l1+t]);
+				fprintf(stderr,"|"); for (t=l;t<l+15;t++) fprintf(stderr,"%c",reflist->sequences[current][read->position+l2+t-1]);
+				fprintf(stderr," INS %d %d\n",l,read->position+l2-1);
 			/*
-			for (t=-5;t<0;t++) fprintf(stderr,"%c",reflist->sequences[current][read->position+l2+t-1]);
-			fprintf(stderr,"|"); for (t=0;t<l;t++) fprintf(stderr,"%c",read->sequence[l1+t]);
-			fprintf(stderr,"|"); for (t=l;t<l+10;t++) fprintf(stderr,"%c",reflist->sequences[current][read->position+l2+t-1]);
-			fprintf(stderr," INS %d %d\n",l,read->position+l2-1);
 			*/
+			}
 			if (prevop == BAM_CMATCH || prevop == BAM_CEQUAL || prevop == BAM_CDIFF) trans_counts[0*3 + 1] +=1; 
 			if (l < 10) trans_counts[1*3+1] +=l-1;
 			if (l < 20) indel_lengths[l+20] +=1;

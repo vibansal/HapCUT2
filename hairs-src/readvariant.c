@@ -4,7 +4,6 @@
 #include <assert.h>
 #include "htslib/hts.h" // read bgzipped VCF files
 
-
 // count the # of variants in VCF file to allocate space for VCF variant array
 
 int count_variants(char* vcffile, char* sampleid, int* samplecol) {
@@ -37,89 +36,57 @@ int count_variants(char* vcffile, char* sampleid, int* samplecol) {
 	return variants;
 }
 
-// in VCF format all data lines are tab-delimited but we still allow spaces (why ??)
-// we do not check the VCF file for consistency with format, assume that it is in correct format
+// split a string using a single separator, '\n' and '\0' are also delimitors 
+int splitString(char* input,char sep,char** var_list)
+{
+        int n=0,i=0,s=0,e=0,j=0;
+        while (1)
+        {
+                if ( (input[i] == sep || input[i] == '\n' || input[i] == '\0') && (i-s)> 0)
+                {
+                        var_list[n] = malloc(i-s+1);
+                        for (j = s; j < i; j++) var_list[n][j - s] = input[j]; var_list[n][j-s] = '\0';
+                        s = i+1; n +=1; // start of next string
+                }
+                if (input[i] =='\n' || input[i] == '\0') break;
+                i++;
+        }
+        return n;
+}
 
-int parse_variant(VARIANT* variant, char* buffer, int samplecol) {
+int parse_variant(VARIANT* variant, char* buffer, int samplecol) 
+{
 	int i = 0, j = 0, k = 0, s = 0, e = 0;
-	int col = 10;
 	int flag = 0;
-	char* tempstring;
-
-	// additional variables added so that we can calculate genotype likelihoods and allele counts for each variant using all reads not just haplotype-informative reads
+	// additional variables so can calculate genotype likelihoods and allele counts for each variant using all reads not just haplotype-informative reads
 	variant->depth = 0;
 	variant->A1 = 0;
 	variant->A2 = 0;
-	variant->H1 = 0;
-	variant->H2 = 0;
+	int l0=0,l1=0;
 
-	while (buffer[i] == ' ' || buffer[i] == '\t') i++;
-	s = i;
-	while (buffer[i] != ' ' && buffer[i] != '\t') i++;
-	e = i;
-	variant->chrom = (char*) malloc(e - s + 1);
-	for (j = s; j < e; j++) variant->chrom[j - s] = buffer[j];
-	variant->chrom[j - s] = '\0';
-	while (buffer[i] == ' ' || buffer[i] == '\t') i++;
-	s = i;
-	while (buffer[i] != ' ' && buffer[i] != '\t') i++;
-	e = i;
-	tempstring = (char*) malloc(e - s + 1);
-	for (j = s; j < e; j++) tempstring[j - s] = buffer[j];
-	tempstring[j - s] = '\0';
-	variant->position = atoi(tempstring);
-	free(tempstring);
-
-	while (buffer[i] == ' ' || buffer[i] == '\t') i++;
-	s = i;
-	while (buffer[i] != ' ' && buffer[i] != '\t') i++;
-	e = i; // varid
-	while (buffer[i] == ' ' || buffer[i] == '\t') i++;
-	s = i;
-	while (buffer[i] != ' ' && buffer[i] != '\t') i++;
-	e = i;
-	variant->RA = (char*) malloc(e - s + 1);
-	for (j = s; j < e; j++) variant->RA[j - s] = buffer[j];
-	variant->RA[j - s] = '\0';
-	while (buffer[i] == ' ' || buffer[i] == '\t') i++;
-	s = i;
-	while (buffer[i] != ' ' && buffer[i] != '\t') i++;
-	e = i;
-	variant->AA = (char*) malloc(e - s + 1);
-	for (j = s; j < e; j++) variant->AA[j - s] = buffer[j];
-	variant->AA[j - s] = '\0';
-
-	while (buffer[i] == ' ' || buffer[i] == '\t') i++;
-	s = i;
-	while (buffer[i] != ' ' && buffer[i] != '\t') i++;
-	e = i;
-	while (buffer[i] == ' ' || buffer[i] == '\t') i++;
-	s = i;
-	while (buffer[i] != ' ' && buffer[i] != '\t') i++;
-	e = i;
-	while (buffer[i] == ' ' || buffer[i] == '\t') i++;
-	s = i;
-	while (buffer[i] != ' ' && buffer[i] != '\t') i++;
-	e = i;
-	while (buffer[i] == ' ' || buffer[i] == '\t') i++;
-	s = i;
-	while (buffer[i] != ' ' && buffer[i] != '\t') i++;
-	e = i;
-
+        char** string_list = (char**)malloc(sizeof(char*)*4096); // if VCF file has more than 4096 columns... 
+	char** alist = (char**)malloc(sizeof(char*)*16);
+	k = splitString(buffer,'\t',string_list);
+        if (k < samplecol)
+        {
+                fprintf(stderr,"ERROR reading VCF file: less than %d columns in VCF file\n",samplecol);
+		for (i=0;i<k;i++) free(string_list[i]); // free array of split strings
+		free(string_list);
+                return -1;
+        }
+        variant->chrom = (char*)malloc(strlen(string_list[0])+1); strcpy(variant->chrom,string_list[0]);
+	variant->position = atoi(string_list[1]);
+	l0 = strlen(string_list[3]);  l1 = strlen(string_list[4]);  // length of alleles
+	variant->RA =  (char*)malloc(l0+1); strcpy(variant->RA,string_list[3]);
+	variant->AA =  (char*)malloc(l1+1); strcpy(variant->AA,string_list[4]);
 	// assert that GT field is the first field
-	assert(buffer[s] == 'G' && buffer[s+1] == 'T' && (buffer[s+2] == ':' || buffer[s+2] == '\t'));
+	assert(string_list[8][0] == 'G' && string_list[8][1] == 'T');
+	variant->genotype=(char*)malloc(strlen(string_list[samplecol-1])+1); strcpy(variant->genotype,string_list[samplecol-1]);
 
-	while (buffer[i] != '\n') {
-		while (buffer[i] == ' ' || buffer[i] == '\t') i++;
-		s = i;
-		while (buffer[i] != ' ' && buffer[i] != '\t' && buffer[i] != '\n') i++;
-		e = i;
-		if (col == samplecol) {
-			variant->genotype = (char*) malloc(e - s + 1);
-			for (j = s; j < e; j++) variant->genotype[j - s] = buffer[j];
-			variant->genotype[j - s] = '\0';
-		} else col++;
-	}
+        for (i=0;i<k;i++) free(string_list[i]); // free array of split strings
+	free(string_list);
+	// split genotype to get the sub-fields, split variant->AA to get the alternate alleles 
+ //       int altalleles = splitString(variant->AA,',',alist);
 
 	int gl = strlen(variant->genotype);
 	// check that the genotype field is diploid
@@ -208,14 +175,14 @@ int parse_variant(VARIANT* variant, char* buffer, int samplecol) {
 			//if (variant->genotype[0] == variant->genotype[2] && variant->genotype[0] =='1') variant->heterozygous = '1';
 			return 0;
 		}
-	} else {
+	} 
+        else 
+        {
 		fprintf(stdout, "\nERROR: Non-diploid VCF entry detected. Each VCF entry must have a diploid genotype (GT) field consisting of two alleles in the set {0,1,2} separated by either \'/\' or \'|\'. For example, \"1/1\", \"0/1\", and \"0|2\" are valid diploid genotypes for HapCUT2, but \"1\", \"0/3\", and \"0/0/1\" are not.\nThe invalid entry is: \n\n%s\n", buffer);
 		exit(1);
 	}
 	//free(variant->genotype); free(variant->AA); free(variant->RA); free(variant->chrom);
 }
-
-// change this to VCF file now
 
 int read_variantfile(char* vcffile, VARIANT* varlist, HASHTABLE* ht, int* hetvariants, int samplecol) {
 	FILE* fp = fopen(vcffile, "r");
@@ -294,7 +261,6 @@ void build_intervalmap(CHROMVARS* chromvars, int chromosomes, VARIANT* varlist, 
 }
 
 // this will only work for pure insertions and deletions, not for block substitutions
-
 int calculate_rightshift(VARIANT* varlist, int ss, REFLIST* reflist) {
 	int i = 0, j = 0;
 	int a1 = 0, a2 = 0;
@@ -343,81 +309,3 @@ int calculate_rightshift(VARIANT* varlist, int ss, REFLIST* reflist) {
 
 
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-int count_variants_oldformat(char* snpfile) {
-	FILE* sf;
-	char ch = '0';
-	int snps = 0;
-	sf = fopen(snpfile, "r");
-	if (sf == NULL) {
-		fprintf(stdout, "error opening file \n");
-		exit(0);
-	}
-	while (1) {
-		ch = fgetc(sf);
-		if (ch == EOF) break;
-		if (ch == '\n') snps++;
-	}
-	fclose(sf);
-	fprintf(stderr, "read %d variants from file %s\n", snps, snpfile);
-	return snps;
-}
-
-int read_variantfile_oldformat(char* snpfile, VARIANT* varlist, HASHTABLE* ht, int snps) {
-	//fprintf(stderr,"old variant format is no longer supported, use --VCF variantfile.VCF option \n"); return -1;
-
-	time_t ts;
-	time(&ts);
-	srand48((long int) ts);
-	FILE* sf; //  char ch ='0';
-
-	char allele1[256];
-	char allele2[256];
-	char genotype[256];
-	int quality;
-	char type[64];
-	char prevchrom[256];
-	char chrom[256];
-	strcpy(prevchrom, "----");
-	int i = 0;
-	int chromosomes = 0;
-	//char buffer[10000];
-
-	sf = fopen(snpfile, "r");
-	for (i = 0; i < snps; i++) {
-		fscanf(sf, "%s %s %d %s %s %s %d\n", type, chrom, &varlist[i].position, allele1, allele2, genotype, &quality);
-		varlist[i].allele1 = (char*) malloc(strlen(allele1) + 1);
-		strcpy(varlist[i].allele1, allele1);
-		varlist[i].allele2 = (char*) malloc(strlen(allele2) + 1);
-		strcpy(varlist[i].allele2, allele2);
-		varlist[i].chrom = (char*) malloc(strlen(chrom) + 1);
-		strcpy(varlist[i].chrom, chrom);
-		if (strcmp(type, "SNP") == 0 || strstr(type, "SNP") != NULL || strstr(type, "SNV") != NULL) {
-			varlist[i].type = 0;
-			if (genotype[0] == varlist[i].allele1[0] && genotype[2] == varlist[i].allele2[0]) varlist[i].heterozygous = '1';
-			else if (genotype[0] == varlist[i].allele2[0] && genotype[2] == varlist[i].allele1[0]) varlist[i].heterozygous = '1';
-			else varlist[i].heterozygous = '0';
-			//printf("variant SNP %s %d \n",varlist[i].chrom,varlist[i].position);
-		} else if (strcmp(type, "DNM") == 0) {
-			varlist[i].type = 0;
-		} else if (strcmp(type, "DEL") == 0) {
-			varlist[i].type = -1 * strlen(allele1);
-		} else if (strcmp(type, "INS") == 0) {
-			varlist[i].type = strlen(allele2);
-		}
-		if (strcmp(varlist[i].chrom, prevchrom) != 0) {
-			//fprintf(stdout,"%d %s %d %s %s %s %d %s\n",varlist[i].type,varlist[i].chrom,varlist[i].position,allele1,allele2,genotype,quality,prevchrom);
-			//			fprintf(stderr,"chromosomes %d %d\n",chromosomes,i);
-			// insert chromname into hashtable
-			insert_keyvalue(ht, varlist[i].chrom, strlen(varlist[i].chrom), chromosomes);
-			strcpy(prevchrom, varlist[i].chrom);
-			chromosomes++;
-		}
-	}
-	fclose(sf); //chromosomes--;
-
-	fprintf(stderr, "read %d variants from file %s chromosomes %d\n", snps, snpfile, chromosomes);
-	return chromosomes;
-
-}

@@ -842,7 +842,10 @@ if __name__ == '__main__':
         sys.exit(1)
 
     if args.haplotype_blocks1 == None and args.haplotype_blocks2 == None:
-        print(vcf_vcf_error_rate_multiple(args.vcf1, args.vcf2, args.indels))
+        print("analysis using SNVs only\n")
+        print(vcf_vcf_error_rate_multiple(args.vcf1, args.vcf2, False))
+        print("\n\nanalysis using SNVs and indels\n")
+        print(vcf_vcf_error_rate_multiple(args.vcf1, args.vcf2, True))
     elif args.haplotype_blocks1 != None and args.haplotype_blocks2 == None:
         print("analysis using SNVs only\n")
         print(hapblock_vcf_error_rate_multiple(args.haplotype_blocks1, args.vcf1, args.vcf2, False))

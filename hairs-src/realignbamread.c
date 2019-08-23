@@ -279,14 +279,14 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 
 		if (max_hap & (int)(pow(2,s))){
 			align_qual = (int) (-10.0 * (ref_score_single[s] - total_score));
-			if(VERBOSE) fprintf(stderr,"varid %d alt-alele %f qv %d \n",ss,ref_score_single[s],align_qual);
+			if(VERBOSE) fprintf(stderr,"varid %d alt-alele %f qv %d %30s\n",ss,ref_score_single[s],align_qual,read->readid);
 
 			if (align_qual < MINQ) continue;
 
 			fragment->alist[fragment->variants].allele = '1';
 		}else{
 			align_qual = (int) (-10.0 * (alt_score_single[s] - total_score));
-			if(VERBOSE) fprintf(stderr,"varid %d ref-alele %f qv %d \n",ss,ref_score_single[s],align_qual);
+			if(VERBOSE) fprintf(stderr,"varid %d ref-alele %f qv %d %30s\n",ss,ref_score_single[s],align_qual,read->readid);
 
 			if (align_qual < MINQ) continue;
 
@@ -509,7 +509,8 @@ int compare_read_HAPs(struct alignedread* read,VARIANT* varlist,int* snplst, int
 	int foundR = find_right_anchor(fcigarlist,fcigs,f2,reflist,offsetR,&right_anchor_read,&right_anchor_ref,rightboundary);
 	if (foundL ==0 || foundR ==0) 
 	{
-		if (VERBOSE) fprintf(stderr,"one of the anchors was not found, not allelotyping\n");
+		if (VERBOSE && foundL==0) fprintf(stderr,"no left anchor for block %d\n",varlist[snplst[0]].position);
+		if (VERBOSE && foundR==0) fprintf(stderr,"no right anchor for block %d\n",varlist[snplst[0]].position);
 		return 0;
 	}
 
