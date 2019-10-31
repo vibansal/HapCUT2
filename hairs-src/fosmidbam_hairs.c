@@ -1,7 +1,7 @@
 #include<stdint.h>
 int MIN_CLUSTER_DISTANCE = 10000;
 #include "print_clusters.c"
-#include "sam.h"
+#include "htslib/sam.h"
 int BLOCK_SIZE = 100; // 100 bp blocks
 int BF = 10;
 #define BS1 20
@@ -265,16 +265,22 @@ int parse_bamfile_fosmid(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
     int prevtid = -1; //int prevposition = -1; // position of previous read in sorted bam file
     int lastread = 0;
 
-    samfile_t *fp;
-    if ((fp = samopen(bamfile, "rb", 0)) == 0) {
+    samFile *fp;
+    if ((fp = sam_open(bamfile, "r")) == NULL) {
         fprintf(stderr, "Fail to open BAM file %s\n", bamfile);
+        return -1;
+    }
+    bam_hdr_t *hdr;
+    if ((hdr = sam_hdr_read(fp)) == NULL) {
+        fprintf(stderr, "Fail to read header from file %s\n", bamfile);
+        sam_close(fp);
         return -1;
     }
     bam1_t *b = bam_init1();
 
-    while (samread(fp, b) >= 0) {
+    while (sam_read1(fp, hdr, b) >= 0) {
         //readlist[r] = calloc(1,sizeof(struct alignedread));
-        fetch_func(b, fp, readlist[r]);
+        fetch_func(b, hdr, readlist[r]);
         if ((readlist[r]->flag & (BAM_FUNMAP | BAM_FSECONDARY | BAM_FQCFAIL | BAM_FDUP))) // unmapped reads, PCR/optical dups are ignored
         {
             free_readmemory(readlist[r]);
@@ -326,6 +332,8 @@ int parse_bamfile_fosmid(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
     for (reads = 0; reads < MAX_READS; reads++) free(readlist[reads]);
     free(readlist);
     bam_destroy1(b);
+    bam_hdr_destroy(hdr);
+    sam_close(fp);
     return 0;
 }
 

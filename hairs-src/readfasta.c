@@ -6,7 +6,7 @@
 #include<time.h>
 #include<zlib.h>
 
-#include "kseq.h"
+#include "htslib/kseq.h"
 KSEQ_INIT(gzFile, gzread)
 
 #include "readfasta.h"
@@ -218,6 +218,7 @@ int read_fasta(char* seqfile, REFLIST* reflist) {
 	//fprintf(stderr,"reflist %d used %d \n",i,reflist->used[i]);
         i++;
     }
+    kseq_destroy(seq);
     gzclose(fp); fp=NULL;
     for (i = 0; i < reflist->ns && i < 10; i++) {
            //fprintf(stderr, "%s %d ", reflist->names[i], reflist->lengths[i]);
