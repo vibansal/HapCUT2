@@ -29,6 +29,9 @@ If you use HapCUT2 in your research, please cite:
 The makefile will attempt to build samtools 1.2 and htslib 1.2.1 as git submodules.
 If you already have samtools 1.2 and htslib 1.2.1 installed, you can optionally edit the SAMTOOLS and HTSLIB variables in the Makefile to point to the directories where they are installed, prior to building.
 
+## dependencies:
+requires htslib > 1.2.1. It is assumed that htslib is installed, but otherwise the path can be specified in the Makefile.
+
 ## to install:
 
 ```
