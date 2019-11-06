@@ -9,8 +9,7 @@ CFLAGS=-c -Wall
 B=build
 H=hairs-src
 X=hapcut2-src
-HTSLIB=submodules/htslib
-SAMTOOLS=submodules/samtools
+#HTSLIB='' #path/to/htslib/
 T=test
 # below is the path to CUnit directory, change if need be
 CUNIT=/usr/include/CUnit
@@ -20,19 +19,19 @@ all: $(B)/extractHAIRS $(B)/HAPCUT2
 # if HTSlib makefile not present, then submodules have not yet been downloaded (init & updated)
 # first check if git present, else print error message
 # credit to lhunath for the one-line check for git below http://stackoverflow.com/questions/592620/check-if-a-program-exists-from-a-bash-script
-$(HTSLIB)/Makefile:
-	@hash git 2>/dev/null || { echo >&2 "Git not installed (required for auto-download of required submodules). Install git and retry, or manually download samtools 1.2 and htslib 1.2.1 and place the unzipped folders in \"submodules\" directory with names matching their Makefile variables (default \"samtools\" and \"htslib\")"; exit 1; }
-	git submodule init
-	git submodule update
+#$(HTSLIB)/Makefile:
+#	@hash git 2>/dev/null || { echo >&2 "Git not installed (required for auto-download of required submodules). Install git and retry, or manually download samtools 1.2 and htslib 1.2.1 and place the unzipped folders in \"submodules\" directory with names matching their Makefile variables (default \"samtools\" and \"htslib\")"; exit 1; }
+#	git submodule init
+#	git submodule update
 
-$(HTSLIB)/libhts.a: $(HTSLIB)/Makefile
-	echo "Building HTSlib libraries..."
-	make -C $(HTSLIB) lib-static
+#$(HTSLIB)/libhts.a: $(HTSLIB)/Makefile
+#	echo "Building HTSlib libraries..."
+#	make -C $(HTSLIB) lib-static
 
 # BUILD HAIRS
 
 #temporarily removed -O2 flag after -I$(HTSLIB)
-$(B)/extractHAIRS: $(B)/bamread.o $(B)/hashtable.o $(B)/readvariant.o $(B)/readfasta.o $(B)/hapfragments.o $(H)/extracthairs.c $(HTSLIB)/libhts.a $(H)/parsebamread.c $(H)/realignbamread.c $(H)/nw.c $(H)/realign_pairHMM.c $(H)/estimate_hmm_params.c | $(B)
+$(B)/extractHAIRS: $(B)/bamread.o $(B)/hashtable.o $(B)/readvariant.o $(B)/readfasta.o $(B)/hapfragments.o $(H)/extracthairs.c $(H)/parsebamread.c $(H)/realignbamread.c $(H)/nw.c $(H)/realign_pairHMM.c $(H)/estimate_hmm_params.c | $(B)
 	$(CC) -I$(HTSLIB) -g $(B)/bamread.o $(B)/hapfragments.o $(B)/hashtable.o $(B)/readfasta.o $(B)/readvariant.o -o $(B)/extractHAIRS $(H)/extracthairs.c -L$(HTSLIB) -pthread -lhts -lm -lz
 #temporarily removed -O2 flag after -I$(HTSLIB)
 
@@ -42,7 +41,7 @@ $(B)/hapfragments.o: $(H)/hapfragments.c $(H)/hapfragments.h $(H)/readvariant.h 
 $(B)/readvariant.o: $(H)/readvariant.c $(H)/readvariant.h $(H)/hashtable.h $(H)/hashtable.c | $(B)
 	$(CC) -c -I$(HTSLIB) $(H)/readvariant.c -o $(B)/readvariant.o
 
-$(B)/bamread.o: $(H)/bamread.h $(H)/bamread.c $(H)/readfasta.h $(H)/readfasta.c $(HTSLIB)/libhts.a | $(B)
+$(B)/bamread.o: $(H)/bamread.h $(H)/bamread.c $(H)/readfasta.h $(H)/readfasta.c | $(B)
 	$(CC) -I$(HTSLIB) -c $(H)/bamread.c -o $(B)/bamread.o
 
 $(B)/hashtable.o: $(H)/hashtable.h $(H)/hashtable.c | $(B)
@@ -75,10 +74,6 @@ $(B):
 # INSTALL
 install: install-hapcut2 install-hairs
 
-install-samtools:
-	make -C $(SAMTOOLS)
-	make -C $(SAMTOOLS) install
-
 install-hapcut2:
 	cp $(B)/HAPCUT2 /usr/local/bin
 
@@ -97,9 +92,5 @@ uninstall-hairs:
 
 
 # CLEANUP
-nuke: clean
-	make clean -C submodules/samtools
-	make clean -C submodules/htslib
-
 clean:
 	rm -rf $(B)
