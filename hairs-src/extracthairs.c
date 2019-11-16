@@ -11,7 +11,7 @@
 #include "hashtable.h"
 #include "readfasta.h"
 #include "bamread.h"
-#include "sam.h"
+#include "htslib/sam.h"
 #include "readvariant.h"
 #include "hapfragments.h"
 
@@ -144,35 +144,38 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
     fragment.variants = 0;
     fragment.alist = (allele*) malloc(sizeof (allele)*16184);
 
-    samfile_t *fp;
+    samFile *fp;
+    bam_hdr_t *hdr;
     bam1_t *b;
-    int ref=-1,beg=0,end=0;
     int ret; // for reading indexed bam files
-    bam_index_t *idx; // bam file index
-    bam_iter_t iter = NULL;
+    hts_idx_t *idx; // bam file index
+    hts_itr_t *iter = NULL;
 
-    if ((fp = samopen(bamfile, "rb", 0)) == 0) {
+    if ((fp = sam_open(bamfile, "r")) == NULL) {
         fprintf(stderr, "Fail to open BAM file %s\n", bamfile);
         return -1;
     }
+    if ((hdr = sam_hdr_read(fp)) == NULL) {
+        fprintf(stderr, "Fail to read header from file %s\n", bamfile);
+        sam_close(fp);
+        return -1;
+    }
     if (regions != NULL &&  (idx = bam_index_load(bamfile)) ==0) { fprintf(stderr,"unable to load bam index for file %s\n",bamfile); return -1; }
-    if (regions == NULL) b = bam_init1();  // samread(fp,b)
+    if (regions == NULL) b = bam_init1();  // sam_read1(fp,hdr,b)
     else
     {
-    	bam_parse_region(fp->header,regions,&ref,&beg,&end);
-        if (ref < 0) { fprintf(stderr,"invalid region for bam file %s \n",regions); return -1; }
-	fprintf(stderr,"parsing region %s of bam file %d %d-%d\n",regions,ref,beg,end); //return -1;
         b = bam_init1();
-        iter = bam_iter_query(idx,ref,beg,end);
+        iter = sam_itr_querys(idx,hdr,regions);
+        if (iter == NULL) { fprintf(stderr,"invalid region for bam file %s \n",regions); return -1; }
     }
 
 
     while (1) {
-	if (ref < 0) ret = samread(fp,b);  // read full bam file
-	else ret = bam_iter_read(fp->x.bam,iter,b);  // specific region
+	if (!iter) ret = sam_read1(fp,hdr,b);  // read full bam file
+	else ret = sam_itr_next(fp,iter,b);  // specific region
 	//fprintf(stderr,"here %d %d\n",ret,iter);
 	if (ret < 0) break;
-        fetch_func(b, fp, read);
+        fetch_func(b, hdr, read);
         if ((read->flag & (BAM_FUNMAP | BAM_FSECONDARY | BAM_FQCFAIL | BAM_FDUP)) || read->mquality < MIN_MQ || (USE_SUPP_ALIGNMENTS == 0 && (read->flag & 2048))) {
             free_readmemory(read);
             continue;
@@ -499,7 +502,12 @@ int main(int argc, char** argv) {
 		free(reflist->names[i]);
 		if (reflist->used[i] ==1) free(reflist->sequences[i]);
 	}
-	free(reflist->names); free(reflist->sequences); free(reflist->lengths); free(reflist->used);
+	if (reflist->ns > 0) {
+		free(reflist->names);
+        	free(reflist->sequences);
+	        free(reflist->lengths);
+        	free(reflist->used);
+	}
 	//free(reflist->offsets);
 	for (i=0;i<variants;i++){
 		free(varlist[i].genotype); free(varlist[i].RA); 	free(varlist[i].AA);free(varlist[i].chrom);

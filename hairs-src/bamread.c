@@ -14,8 +14,8 @@ void print_read_debug(struct alignedread* read)
 }
 
 int fetch_func(const bam1_t *b, void *data, struct alignedread* read) {
-    samfile_t *fp = (samfile_t*) data;
-    uint32_t *cigar = bam1_cigar(b);
+    bam_hdr_t *hdr = (bam_hdr_t*) data;
+    uint32_t *cigar = bam_get_cigar(b);
     const bam1_core_t *c = &b->core;
     int i, op, ol;
     read->cigs = 0;
@@ -28,9 +28,9 @@ int fetch_func(const bam1_t *b, void *data, struct alignedread* read) {
     read->sequence = (char*) malloc(b->core.l_qseq + 1);
     read->quality = (char*) malloc(b->core.l_qseq + 1);
 
-    uint8_t* sequence = bam1_seq(b);
-    uint8_t* quality = bam1_qual(b);
-    for (i = 0; i < b->core.l_qseq; i++) read->sequence[i] = bam_nt16_rev_table[bam1_seqi(sequence, i)];
+    uint8_t* sequence = bam_get_seq(b);
+    uint8_t* quality = bam_get_qual(b);
+    for (i = 0; i < b->core.l_qseq; i++) read->sequence[i] = seq_nt16_str[bam_seqi(sequence, i)];
     read->sequence[i] = '\0';
     if (quality[0] == 255) // quality string is missing, 01/29/2014, quality is set to minimum quality value specified using --minq
     {
@@ -99,9 +99,9 @@ int fetch_func(const bam1_t *b, void *data, struct alignedread* read) {
     for (i = 0; i < c->l_qname; i++) read->readid[i] = qs[i];
     read->readid[i] = '\0';
 
-    if (c->tid >= 0) read->chrom = fp->header->target_name[c->tid];
+    if (c->tid >= 0) read->chrom = hdr->target_name[c->tid];
     else read->chrom = NULL;
-    if (c->mtid >= 0) read->matechrom = fp->header->target_name[c->mtid];
+    if (c->mtid >= 0) read->matechrom = hdr->target_name[c->mtid];
     else read->matechrom = NULL;
     read->tid = c->tid;
     read->mtid = c->mtid;
