@@ -129,7 +129,7 @@ def main():
     args = parseargs()
 
     if args.testexecutables:
-        run_command('extractHAIRS 2>&1| grep VCF','test.e','test.o')
+        run_command('extractHAIRS 2>&1| grep VCF','/dev/null','/dev/null')
         run_command('LinkFragments.py | grep FRAGMENTS','/dev/null','/dev/null')
         run_command('HAPCUT2 2>&1 | grep VCF','/dev/null','/dev/null')
         print('Executables tested. No error codes returned.')
