@@ -195,9 +195,6 @@ int realignment_params(char* bamfile,REFLIST* reflist,char* regions,Align_Params
 	        return -1;
     	}
 
-<<<<<<< HEAD
-        if (regions != NULL)
-=======
 	if ((hdr = sam_hdr_read(fp)) == NULL)
 	{
 		fprintf(stderr, "Fail to read header from file %s\n", bamfile);
@@ -206,7 +203,6 @@ int realignment_params(char* bamfile,REFLIST* reflist,char* regions,Align_Params
 	}
 
         if (regions != NULL)
->>>>>>> master
 	{
 		strcpy(newregion,regions);
 		for (i=0;i<strlen(newregion);i++)

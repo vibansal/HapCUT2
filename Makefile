@@ -14,7 +14,7 @@ T=test
 # below is the path to CUnit directory, change if need be
 CUNIT=/usr/include/CUnit
 
-all: $(B)/extractHAIRS $(B)/HAPCUT2PHASE
+all: $(B)/extractHAIRS $(B)/HAPCUT2
 
 # BUILD HAIRS
 
@@ -31,7 +31,7 @@ $(B)/readvariant.o: $(H)/readvariant.c $(H)/readvariant.h $(H)/hashtable.h $(H)/
 	$(CC) -c -I$(HTSLIB) $(H)/readvariant.c -o $(B)/readvariant.o
 
 $(B)/bamread.o: $(H)/bamread.h $(H)/bamread.c $(H)/readfasta.h $(H)/readfasta.c | $(B)
-	$(CC) -I$(HTSLIB) -c $(H)/bamread.c -lhts -o $(B)/bamread.o
+	$(CC) -I$(HTSLIB) -c $(H)/bamread.c -l1hts -o $(B)/bamread.o
 
 $(B)/hashtable.o: $(H)/hashtable.h $(H)/hashtable.c | $(B)
 	$(CC) -c $(H)/hashtable.c -o $(B)/hashtable.o
@@ -41,8 +41,8 @@ $(B)/readfasta.o: $(H)/readfasta.c $(H)/readfasta.h | $(B)
 
 # BUILD HAPCUT2
 
-$(B)/HAPCUT2PHASE: $(B)/fragmatrix.o $(B)/readinputfiles.o $(B)/pointerheap.o $(B)/common.o $(X)/hapcut2.c $(X)/find_maxcut.c $(X)/post_processing.c| $(B)
-	$(CC) $(B)/common.o $(B)/fragmatrix.o $(B)/readinputfiles.o $(B)/pointerheap.o -o $(B)/HAPCUT2 -lm $(X)/hapcut2.c -L$(HTSLIB) -lhts
+$(B)/HAPCUT2: $(B)/fragmatrix.o $(B)/readinputfiles.o $(B)/pointerheap.o $(B)/common.o $(X)/hapcut2.c $(X)/find_maxcut.c $(X)/post_processing.c| $(B)
+	$(CC) $(B)/common.o $(B)/fragmatrix.o $(B)/readinputfiles.o $(B)/pointerheap.o -o $(B)/HAPCUT2 -lm $(X)/hapcut2.c -lz
 
 $(B)/common.o: $(X)/common.h $(X)/common.c | $(B)
 	$(CC) -c $(X)/common.c -o $(B)/common.o
