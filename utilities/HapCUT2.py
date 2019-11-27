@@ -16,6 +16,7 @@ import shutil
 
 SPACER = "---------------------------------------------------------------------------------"
 DEBUG = False
+ENV = os.environ.copy()
 
 def open_maybe_gz(file, mode):
     assert(mode in 'rw')
@@ -42,6 +43,7 @@ def parseargs():
     parser.add_argument('-v', '--vcf', nargs='?', type = str, help='VCF file with variants to phase',required=True)
     parser.add_argument('-b', '--bams', nargs='+', type = str, help='generic bamfile(s)', default=[])
     parser.add_argument('-o', '--out', nargs='?', type = str, help='output (phased) VCF file',required=True)
+    parser.add_argument('-l', '--logs', nargs='?', type = str, help='directory to write logs to (by default <output.vcf>.logs)',default=None)
     parser.add_argument('-p', '--processes', nargs='?', type = int, help='number of processes to use', default=4)
     parser.add_argument('-il', '--illumina_bams', nargs='+', type = str, help='illumina bamfile(s)', default=[])
     parser.add_argument('-hic', '--hic_bams', nargs='+', type = str, help='Hi-C bamfile(s)', default=[])
@@ -61,6 +63,7 @@ def parseargs():
     parser.add_argument('--PEonly', action='store_true', help='do not use single end reads')
     parser.add_argument('--noquality', nargs='?', type = int, help='if the bam file does not have quality string, this value will be used as the uniform quality value',default=0)
     parser.add_argument('--ep', action='store_true', help='set this flag to estimate HMM parameters from aligned reads (only with long reads)')
+    parser.add_argument('--testexecutables', action='store_true', help='don\'t process anything, just test that extractHAIRS, LinkFragments and HAPCUT2 can be run')
 
 
     # optional nicknames for the genomes that the samfiles map to (recommended)
@@ -77,10 +80,10 @@ def parseargs():
 # prints the PID and the command before running
 # pid: the PID of the current process
 # cmd: the command to run
-def run_command(cmd):
+def run_command(cmd, log_out, log_err):
     pid = os.getpid()
 
-    prog = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    prog = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, env=ENV)
     #except subprocess.CalledProcessError as e:
     #    print("ERROR: PID {} returned non-zero return code {}".format(pid, e.returncode), file=sys.stderr)
     #    print(e.output,file=sys.stderr)
@@ -89,12 +92,10 @@ def run_command(cmd):
     o = out.decode("ISO-8859-1")
     e = err.decode("ISO-8859-1")
 
-    print(SPACER)
-    print("[PID {}] {}".format(pid, cmd))
-    for line in o.split('\n'):
-        print("[PID {}] {}".format(pid, line),file=sys.stdout)
-    for line in e.split('\n'):
-        print("[PID {}] {}".format(pid, line),file=sys.stderr)
+    with open(log_out,'w') as out, open(log_err,'w') as err:
+        print("COMMAND: {}".format(cmd), file=out)
+        print(o,file=out)
+        print(e,file=err)
 
     if prog.returncode != 0:
 
@@ -127,6 +128,18 @@ def main():
     # parse command line arguments
     args = parseargs()
 
+    if args.testexecutables:
+        run_command('extractHAIRS 2>&1| grep VCF','/dev/null','/dev/null')
+        run_command('LinkFragments.py | grep FRAGMENTS','/dev/null','/dev/null')
+        run_command('HAPCUT2 2>&1 | grep VCF','/dev/null','/dev/null')
+        print('Executables tested. No error codes returned.')
+        exit(0)
+
+    log_dir = args.logs
+    if log_dir == None:
+        log_dir = args.out+".logs"
+    if not os.path.exists(log_dir):
+        os.mkdir(log_dir)
     # check that at least one BAM file was provided
     bams_len = (len(args.bams) + len(args.illumina_bams) + len(args.hic_bams)
                + len(args.tenX_bams) + len(args.pacbio_bams) + len(args.ont_bams))
@@ -155,11 +168,20 @@ def main():
 
     files_to_remove = []
 
-    def process_tasks(cmd_lst):
+    def process_tasks(cmd_lst, logs_lst):
         futures = []
         with ProcessPoolExecutor(max_workers=args.processes) as executor:
-            for cmd in cmd_lst:
-                futures.append(executor.submit(run_command, cmd))
+            for cmd, log in zip(cmd_lst,logs_lst):
+                futures.append(executor.submit(run_command, cmd, log+'.o', log+'.e'))
+
+        for log in logs_lst:
+            with open(log+'.o','r') as out:
+                print(out.read(),file=sys.stdout)
+            with open(log+'.e','r') as err:
+                print(err.read(),file=sys.stderr)
+
+        print(SPACER,file=sys.stdout)
+        print(SPACER,file=sys.stderr)
 
         job_failed = False
         for f in futures:
@@ -225,7 +247,7 @@ def main():
             os.close(handle)
             cmd = build_extractHAIRS_command(args, chrom, bam, frag_filename_unlinked, "--10X 1");
 
-            cmd += "; LinkFragments -f {} -v {} -b {} -d {} -o {}".format(frag_filename_unlinked, args.vcf, bam, args.tenX_distance, frag_filename_linked)
+            cmd += "; LinkFragments.py -f {} -v {} -b {} -d {} -o {}".format(frag_filename_unlinked, args.vcf, bam, args.tenX_distance, frag_filename_linked)
             files_to_remove.append(frag_filename_unlinked)
 
             frag_files[chrom].append(frag_filename_linked)
@@ -257,7 +279,8 @@ def main():
             task_list.append(cmd)
 
     # process extractHAIRS jobs
-    process_tasks(task_list)
+    logs_lst = [os.path.join(log_dir,'extractHAIRS{}'.format(i)) for i in range(1,len(task_list)+1)]
+    process_tasks(task_list,logs_lst)
     task_list.clear()
 
     # for each chromosome,
@@ -272,7 +295,8 @@ def main():
         task_list.append(cmd)
 
     # process cat jobs
-    process_tasks(task_list)
+    logs_lst = [os.path.join(log_dir,'cat{}'.format(i)) for i in range(1,len(task_list)+1)]
+    process_tasks(task_list,logs_lst)
     task_list.clear()
 
     # for each chromosome,
@@ -289,13 +313,14 @@ def main():
         hic = int(len(args.hic_bams) > 1)
 
         # run HAPCUT2
-        cmd = ("HAPCUT2PHASE --f {} --vcf {} --out {} --only_chrom {} --helper_script_mode 1 --converge {} --verbose {} --qo {} --long_reads {} --hic {} --nf 1"
+        cmd = ("HAPCUT2 --f {} --vcf {} --out {} --only_chrom {} --helper_script_mode 1 --converge {} --verbose {} --qo {} --long_reads {} --hic {} --nf 1"
                .format(combined_fragment_files[chrom], args.vcf, out_vcf_filename, chrom, args.converge, int(args.verbose), args.qvoffset, long_reads, hic))
 
         task_list.append(cmd)
 
     # process HapCUT2 jobs
-    process_tasks(task_list)
+    logs_lst = [os.path.join(log_dir,'HAPCUT2{}'.format(i)) for i in range(1,len(task_list)+1)]
+    process_tasks(task_list, logs_lst)
     task_list.clear()
 
     print(SPACER)

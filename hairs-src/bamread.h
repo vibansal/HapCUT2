@@ -7,7 +7,7 @@
 #include<string.h>
 #include<ctype.h>
 #include "readfasta.h"
-#include "sam.h"
+#include "htslib/sam.h"
 #include "htslib/hts.h"
 
 extern int QVoffset;

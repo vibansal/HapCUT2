@@ -22,12 +22,12 @@ If you use HapCUT2 in your research, please cite:
 
 [Edge, P., Bafna, V. & Bansal, V. HapCUT2: robust and accurate haplotype assembly for diverse sequencing technologies. Genome Res. gr.213462.116 (2016). doi:10.1101/gr.213462.116](http://genome.cshlp.org/content/early/2016/12/09/gr.213462.116.abstract)
 
+## dependencies:
+Requires htslib > 1.2.1. It is assumed that htslib is installed, but otherwise the path can be specified in the Makefile.
+
 ## to build:
 
  ```make ```
-
-The makefile will attempt to build samtools 1.2 and htslib 1.2.1 as git submodules.
-If you already have samtools 1.2 and htslib 1.2.1 installed, you can optionally edit the SAMTOOLS and HTSLIB variables in the Makefile to point to the directories where they are installed, prior to building.
 
 ## to install:
 
@@ -45,7 +45,7 @@ sudo make uninstall-hapcut2
 ## Input:
 HapCUT2 requires the following input:
 - BAM file for an individual containing reads aligned to a reference genome
-- VCF file containing **diploid** SNVs (and short indel calls) for the individual with respect to the reference genome
+- VCF file containing short variant calls (SNVs and indels) and **diploid** genotypes for the same individual with respect to the reference genome
 
 **Note: the program does not accept gzipped VCF files**
 
@@ -55,12 +55,12 @@ Assembling haplotypes requires two steps:
 
 (1) use extractHAIRS to convert BAM file to the compact fragment file format containing only haplotype-relevant information. This is a necessary precursor step to running HapCUT2.
 ```
-./build/extractHAIRS [options] --bam reads.sorted.bam --VCF variants.VCF --out fragment_file
+./build/extractHAIRS [options] --bam reads.sorted.bam --VCF variants.vcf --out fragment_file
 ```
 
 (2) use HAPCUT2 to assemble fragment file into haplotype blocks.
 ```
-./build/HAPCUT2 --fragments fragment_file --VCF variantcalls.vcf --output haplotype_output_file
+./build/HAPCUT2 --fragments fragment_file --VCF variants.vcf --output haplotype_output_file
 ```
 
 Run the programs without arguments to see all options.
