@@ -13,6 +13,7 @@ import pickle
 import pysam
 import argparse
 import os
+import gzip
 
 barcode_tag = 'BX'
 
@@ -34,6 +35,20 @@ from subprocess import call
 import pysam
 
 min_mapq = 20
+
+
+def open_maybe_gz(file, mode):
+    assert(mode in 'rw')
+    if mode == 'r':
+        if file[-3:] == '.gz':
+            return gzip.open(file,mode='rt')
+        else:
+            return open(file,mode='r')
+    else:
+        if file[-3:] == '.gz':
+            return gzip.open(file,mode='wt')
+        else:
+            return open(file,mode='w')
 
 def get_gemcode_regions(ibam, dist):
     """
@@ -184,7 +199,7 @@ def read_fragment_matrix(frag_matrix, vcf_file, chrom_filter=None):
 
     snp_ix = 0
     vcf_dict = dict()
-    with open(vcf_file,'r') as infile:
+    with open_maybe_gz(vcf_file,'r') as infile:
         for line in infile:
             if line[:1] == '#':
                 continue
@@ -300,7 +315,7 @@ def link_fragments(hairs_file, vcf_file, bam_file, outfile, dist, single_SNP_fra
 
     chroms = []
     chrom_set = set()
-    with open(vcf_file,'r') as infile:
+    with open_maybe_gz(vcf_file,'r') as infile:
         for line in infile:
             if line[:1] == '#':
                 continue
