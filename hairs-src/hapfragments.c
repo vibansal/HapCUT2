@@ -234,7 +234,7 @@ void clean_fragmentlist(FRAGMENT* flist, int* fragments, VARIANT* varlist, int c
                     }
 
                 }
-                else if (flist[i].variants+flist[i+1].variants ==2 && SINGLEREADS ==1)print_fragment(&flist[i],varlist,fragment_file); // added 05/31/2017 for OPE
+                else if (flist[i].variants+flist[i+1].variants ==2 && SINGLEREADS ==1 && flist[i].variants >= 1)print_fragment(&flist[i],varlist,fragment_file); // added 05/31/2017 for OPE
 
                 //else if (flist[i].variants ==1 && flist[i+1].variants >1) print_fragment(&flist[i+1],varlist);
                 //else if (flist[i].variants > 1 && flist[i+1].variants ==1) print_fragment(&flist[i],varlist);
