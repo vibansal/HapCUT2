@@ -44,7 +44,7 @@ int print_fragment(FRAGMENT* fragment, VARIANT* varlist, FILE* outfile) {
     //for (i=0;i<fragment->variants;i++) fprintf(stdout,"%c",fragment->alist[i].qv);
     // varid is printed with offset of 1 rather than 0 since that is encoded in the Hapcut program
 
-    if (PRINT_COMPACT ==1) 
+    if (PRINT_COMPACT ==1)
 	{
 
 	    fprintf(outfile, " %d %c", fragment->alist[0].varid + 1, fragment->alist[0].allele);
@@ -212,7 +212,7 @@ void clean_fragmentlist(FRAGMENT* flist, int* fragments, VARIANT* varlist, int c
                             k++;
                         }
                     }
-                    if (fragment.variants >= 2 || SINGLEREADS ==1) {
+                    if  (fragment.variants >= 2 || (SINGLEREADS == 1 && fragment.variants >= 1)) {
                         sl = strlen(flist[i].id);
                         fragment.id = (char*) malloc(sl + 1);
                         for (j = 0; j < sl; j++) fragment.id[j] = flist[i].id[j];
@@ -241,7 +241,7 @@ void clean_fragmentlist(FRAGMENT* flist, int* fragments, VARIANT* varlist, int c
                 // april 27 2012 these PE reads were being ignored until now
                 i += 2;
                 // what about overlapping paired-end reads.... reads..... ???? jan 13 2012,
-            } else if (flist[i].variants >= 2 || SINGLEREADS == 1) {
+            } else if (flist[i].variants >= 2 || (SINGLEREADS == 1 && flist[i].variants >= 1)) {
                 print_fragment(&flist[i], varlist, fragment_file);
                 i++;
             } else i++;
@@ -249,11 +249,11 @@ void clean_fragmentlist(FRAGMENT* flist, int* fragments, VARIANT* varlist, int c
         }
         // last read examined if it is not paired
         if (i < *fragments) {
-            if (flist[i].variants >= 2 || SINGLEREADS == 1) print_fragment(&flist[i], varlist, fragment_file);
+            if (flist[i].variants >= 2 || (SINGLEREADS == 1 && flist[i].variants >= 1)) print_fragment(&flist[i], varlist, fragment_file);
         }
     } else // only one fragment in fraglist single end
     {
-        if (flist[first].variants >= 2 || SINGLEREADS == 1) print_fragment(&flist[first], varlist, fragment_file);
+        if (flist[first].variants >= 2 || (SINGLEREADS == 1 && flist[first].variants >= 1)) print_fragment(&flist[first], varlist, fragment_file);
     }
 
     // free the fragments starting from first....
