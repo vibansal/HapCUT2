@@ -33,7 +33,7 @@ int ERROR_ANALYSIS_MODE = 0;
 int SKIP_PRUNE = 0;
 int SNVS_BEFORE_INDELS = 0;
 int OUTPUT_RH_ASSIGNMENTS =0; // read-haplotype assignments
-int OUTPUT_VCF =0;
+int OUTPUT_VCF =1; // default set to ON
 
 int AUTODETECT_LONGREADS = 1;
 int LONG_READS = 0; // if this variable is 1, the data contains long read data
@@ -241,7 +241,7 @@ int maxcut_haplotyping(char* fragmentfile, char* variantfile, char* outputfile) 
                 fprintf_time(stdout, "PHASING ITER %d\n", iter);
             converged_count = 0;
             for (k = 0; k < components; k++){
-                if(VERBOSE && iter == 0)
+                if(VERBOSE > 1 && iter == 0)
                     fprintf_time(stdout, "component %d length %d phased %d %d...%d\n", k, clist[k].length, clist[k].phased, clist[k].offset, clist[k].lastvar);
                 if (clist[k].SCORE > 0)
                     converged_count += evaluate_cut_component(Flist, snpfrag, clist, k, slist, HAP1);
@@ -466,6 +466,8 @@ int main(int argc, char** argv) {
         print_hapcut_options();
         return 0;
     }
+
+    esl_flogsum10_init(); // logsum approximation init
 
 	fprintf(stderr, "\n\n");
     fprintf_time(stderr, "fragment file: %s\n", fragfile);

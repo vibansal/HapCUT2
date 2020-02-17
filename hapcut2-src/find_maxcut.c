@@ -149,7 +149,7 @@ int evaluate_cut_component(struct fragment* Flist, struct SNPfrags* snpfrag, str
         clist[k].iters_since_improvement = 0;
     }
 
-    if (VERBOSE && clist[k].SCORE > 0) fprintf_time(stdout, "component %d offset %d length %d phased %d LL %0.1f cutvalue %f bestLL %0.2f\n", k, clist[k].offset, clist[k].length, clist[k].phased, -1*clist[k].SCORE, cutvalue, -1*clist[k].bestSCORE);
+    if (VERBOSE > 1 && clist[k].SCORE > 0) fprintf_time(stdout, "component %d offset %d length %d phased %d LL %0.1f cutvalue %f bestLL %0.2f\n", k, clist[k].offset, clist[k].length, clist[k].phased, -1*clist[k].SCORE, cutvalue, -1*clist[k].bestSCORE);
 
     // return 0 to specify that this component hasn't converged.
     return 0;

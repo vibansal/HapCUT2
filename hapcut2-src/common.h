@@ -2,6 +2,7 @@
 #ifndef _COMMON_H
 #define _COMMON_H
 #include <stdint.h>
+#include "logsum10.h"
 
 //Tue May 29 23:13:29 PDT 2007
 extern int QVoffset;
@@ -10,7 +11,8 @@ extern int MINQ;
 #define MAXBUF 1000000
 
 // given a=log10(x) and b=log10(y), returns log10(x+y)
-#define addlogs(a, b) (((a) > (b)) ? ((a) + log10(1.0 + pow(10.0, (b) - (a)))) : ((b) + log10(1.0 + pow(10.0, (a) - (b)))))
+//#define addlogs(a, b) (((a) > (b)) ? ((a) + log10(1.0 + pow(10.0, (b) - (a)))) : ((b) + log10(1.0 + pow(10.0, (a) - (b)))))
+#define addlogs(a, b) esl_flogsum10(a, b)
 // given a=log10(x) and b=log10(y), returns log10(x-y)
 #define subtractlogs(a, b) (((a) > (b)) ? ((a) + log10(1.0 - pow(10, (b) - (a)))) : ((b) + log10(1.0 - pow(10.0, (a) - (b)))))
 

@@ -278,7 +278,7 @@ void generate_clist_structure(struct fragment* Flist, int fragments, struct SNPf
         clist[snpfrag[Flist[i].list[0].offset].bcomp].frags++;
     }
     for (i = 0; i < components; i++) {
-        if (VERBOSE) fprintf_time(stdout, "comp %d first %d last %d phased %d fragments %d \n", i, clist[i].offset, clist[i].lastvar, clist[i].phased, clist[i].frags);
+        if (VERBOSE >1) fprintf_time(stdout, "comp %d first %d last %d phased %d fragments %d \n", i, clist[i].offset, clist[i].lastvar, clist[i].phased, clist[i].frags);
     }
 }
 
