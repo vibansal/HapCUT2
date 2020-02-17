@@ -61,7 +61,7 @@ Assembling haplotypes requires two steps:
 ./build/HAPCUT2 --fragments fragment_file --VCF variants.vcf --output haplotype_output_file
 ```
 
-If you have data from different technologies or in different bam files for the same individual, run (1) separately on each input bam file and combine the output fragment files into a single file that can be used as input to (2). 
+If you have data from different technologies or in different bam files for the same individual, run step (1) separately on each input bam file and combine the output fragment files into a single file that can be used as input in step (2). 
 
 Run the programs without arguments to see all options.
 

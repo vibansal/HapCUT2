@@ -34,3 +34,16 @@ The values in field 10 and field 11 are quality scores that range from 0 to 100 
 Important note: flag "--split_blocks 1" (compute switch error confidence and automatically split blocks using the value of --split_threshold) is currently broken, for the time being use "--error_analysis_mode 1" and manually split using field 10.
 
 Field 11 is useful for controlling mismatch (single SNV) haplotype errors, similarly to field 9. The default behavior of HapCUT2 is to prune individual SNVs for which this confidence is less than 6.98 (probability of error 0.2), as these are highly likely to be errors.
+
+#### sample of output format 
+
+BLOCK: offset: 46 len: 215 phased: 167 SPAN: 81447 fragments 240
+46      1       0       chr20   152792  A       C       1|0:1071:157,192:257,285:495:0/1:.:PATMAT       0       .       100.00  3
+48      1       0       chr20   153259  C       G       1|0:1171:198,192:316,293:495:0/1:.:PATMAT       0       .       100.00  25
+49      0       1       chr20   153376  A       G       0|1:1085:171,190:282,289:495:0/1:.:PATMAT       0       .       100.00  23
+52      1       0       chr20   153759  G       A       1|0:879:176,201:140,164:448:0/1:.:PATMAT        0       .       100.00  22
+56      1       0       chr20   153898  A       T       1|0:1125:205,194:283,249:643:0/1:.:PATMAT       0       .       100.00  40
+60      1       0       chr20   156080  T       C       1|0:1024:190,181:263,241:495:0/1:.:PATMAT       0       .       100.00  3
+62      1       0       chr20   156473  A       G       1|0:1143:190,207:287,297:495:0/1:.:PATMAT       0       .       100.00  4
+63      0       1       chr20   156486  A       G       0|1:1124:193,174:293,276:527:0/1:.:PATMAT       0       .       100.00  4
+********
