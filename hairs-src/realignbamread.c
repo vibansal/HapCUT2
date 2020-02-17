@@ -4,6 +4,7 @@
 #include "nw.c"
 #include <assert.h>
 #include <stdlib.h>
+//#include "logsum10.h"
 
 int MINLEN= 10;
 int COMPLEXITY_K = 5; // anchor sequences must have unique kmers of this length
@@ -15,10 +16,11 @@ extern int PARSEINDELS;
 float TINYLOG = -10000;
 //int MIN_QUAL = 10;
 int MAX_SNPs_SHORT_HAP = 10; // max number of SNVs in a short haplotype
+
 // given a=log10(x) and b=log10(y), returns log10(x+y)
+//#define  addlogs(a, b) esl_flogsum10(a, b)
 #define addlogs(a, b) (((a) > (b)) ? ((a) + log10(1.0 + pow(10.0, (b) - (a)))) : ((b) + log10(1.0 + pow(10.0, (a) - (b)))))
-// given a=log10(x) and b=log10(y), returns log10(x-y)
-#define subtractlogs(a, b) (((a) > (b)) ? ((a) + log10(1.0 - pow(10, (b) - (a)))) : ((b) + log10(1.0 - pow(10.0, (a) - (b)))))
+
 
 int compare_strings(const void* a, const void* b)
 {
