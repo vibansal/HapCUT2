@@ -12,8 +12,8 @@ BLOCK: offset: \<SNV offset\> len: \<SNV span of block\> phased: \<\# SNVs phase
 Following the header, there is one line per SNV with the following tab-delimited fields:
 
 1. VCF file index (1-based index of the line in the input VCF describing variant)
-2. allele on haploid chromosome copy A (0 means reference allele, 1 means variant allele, - means an unphased variant)
-3. allele on haploid chromosome copy B (0 means reference allele, 1 means variant allele, - means an unphased variant)
+2. allele on haploid chromosome copy A (0 means reference allele, 1 means variant allele, - for an unphased variant)
+3. allele on haploid chromosome copy B (0 means reference allele, 1 means variant allele, - for an unphased variant)
 4. chromosome
 5. position
 6. reference allele (allele corresponding to 0 in column 2 or 3)
@@ -25,7 +25,7 @@ Following the header, there is one line per SNV with the following tab-delimited
 
 Each block ends with a line with '********'. 
 
-Some variants can be left unphased by HapCUT2 or unphased after post-processing. Such variants have the two alleles as '-'  in columns 2 and 3. 
+Some variants can be unphased after post-processing. Such variants have the allele as '-'  in columns 2 and 3. 
 
 Field 9 describes the status of the SNV under the discrete SNV pruning method introduced by RefHap (an SNV is pruned if there are equal reads consistent and inconsistent with the phase), with the slight difference that reads are assigned to haplotypes using likelihoods in our implementation. Use the option "--discrete_pruning 1" to automatically prune SNPs ('- -' phasing) based on the value of this field.
 
