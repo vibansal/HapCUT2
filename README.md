@@ -105,5 +105,5 @@ The calculate_haplotype_statistics script in the utilities directory calculates 
 
 The directory **recipes** contains example pipelines to assemble haplotypes from various types of sequencing data.
 
-##Updates to the code: [see this page](UPDATED.md)
+##Updates to the code: [see this page](UPDATES.md)
 
