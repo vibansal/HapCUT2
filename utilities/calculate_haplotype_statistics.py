@@ -1,8 +1,6 @@
-from __future__ import print_function
+#!/usr/bin/env python3
 
-import sys
-if sys.version_info[0] < 3:
-    raise Exception("Python 3 or a more recent version is required."); 
+from __future__ import print_function
 # test
 # Author : Peter Edge
 # Email  : pedge@eng.ucsd.edu
@@ -12,6 +10,7 @@ if sys.version_info[0] < 3:
 # imports
 from collections import defaultdict
 import argparse
+import sys
 import statistics
 
 desc = '''
@@ -35,7 +34,7 @@ def parse_args():
     parser.add_argument('-v2', '--vcf2', nargs='+', type = str, help='A phased, single sample  VCF file to use as the "ground truth" haplotype.')
     parser.add_argument('-h1', '--haplotype_blocks1', nargs='+', type = str, help='Override the haplotype information in "-v1" with the information in this HapCUT2-format haplotype block file. If this option is used, then the VCF specified with -v1 MUST be the same VCF used with HapCUT2 (--vcf) to produce the haplotype block file!')
     parser.add_argument('-h2', '--haplotype_blocks2', nargs='+', type = str, help='Override the haplotype information in "-v2" with the information in this HapCUT2-format haplotype block file. If this option is used, then the VCF specified with -v2 MUST be the same VCF used with HapCUT2 (--vcf) to produce the haplotype block file!')
-    parser.add_argument('-i', '--indels', action="store_true",help='Use this flag to consider indel variants. Default: Indels ignored.',default=False)
+    parser.add_argument('-i', '--indels', action="store_true", help='Use this flag to consider indel variants. Default: Indels ignored.',default=False)
 
     # default to help option. credit to unutbu: http://stackoverflow.com/questions/4042452/display-help-message-with-python-argparse-when-script-is-called-without-any-argu
     if len(sys.argv) < 3:
@@ -150,13 +149,40 @@ def parse_hapblock_file(hapblock_file,vcf_file,indels=False):
     return [b for b in blocklist if len(b) > 1]
 
 def parse_vcf_phase(vcf_file, CHROM, indels = False):
-    print("reading file",vcf_file);
+
     #block = []
     PS_index = None
     blocks = defaultdict(list)
-    included=0
 
     with open(vcf_file, 'r') as vcf:
+
+        for line in vcf:
+            if line[0] == '#':
+                continue
+
+            el = line.strip().split('\t')
+            if len(el) < 10:
+                continue
+            if len(el) != 10:
+                print("VCF file must be single-sample.")
+                exit(1)
+
+            # get the index where the PS information is
+            for i,f in enumerate(el[8].split(':')):
+                if i == 0:
+                    assert(f == 'GT')
+                if f == 'PS':
+                    if PS_index == None:
+                        PS_index = i
+                    else:
+                        assert(PS_index == i)
+                    break
+
+    if PS_index == None:
+        print("WARNING: PS flag is missing from VCF. Assuming that all phased variants are in the same phase block.")
+
+    with open(vcf_file, 'r') as vcf:
+
         snp_ix = 0
 
         for line in vcf:
@@ -185,17 +211,6 @@ def parse_vcf_phase(vcf_file, CHROM, indels = False):
                 else:
                     consider = False
 
-            # get the index where the PS information is
-            for i,f in enumerate(el[8].split(':')):
-                if i == 0:
-                    assert(f == 'GT')
-                if f == 'PS':
-                    if PS_index == None:
-                        PS_index = i
-                    else:
-                        assert(PS_index == i)
-                    break
-
             dat = el[9].split(':')
             genotype = dat[0]
 
@@ -211,12 +226,12 @@ def parse_vcf_phase(vcf_file, CHROM, indels = False):
                 consider = False
 
             ps = None
-            if consider and PS_index != None and len(dat) > PS_index:
+            if PS_index == None:
+                ps = 1    # put everything in one block
+            elif consider and len(dat) > PS_index:
                 ps = dat[PS_index]
                 if ps == '.':
                     consider = False
-            else:
-                ps = None
 
             chrom = el[0]
 
@@ -228,12 +243,10 @@ def parse_vcf_phase(vcf_file, CHROM, indels = False):
 
             pos = int(el[1])-1
             if ps != None and consider and phase_data[1] == '|':
-                blocks[ps].append((snp_ix, pos, phase_data[0:1], phase_data[2:3], a0, a1, a2)); 
-                included +=1;
+                blocks[ps].append((snp_ix, pos, phase_data[0:1], phase_data[2:3], a0, a1, a2))
 
-            #print("var info",ps,consider);
             snp_ix += 1
-    print("variants",included)
+
     return [v for k,v in sorted(list(blocks.items())) if len(v) > 1]
 
 # given a VCF file, simply count the number of heterozygous SNPs present.
@@ -423,7 +436,6 @@ class error_result():
     def get_switch_rate(self):
         switch_count = self.get_switch_count()
         poss_sw = self.get_poss_sw()
-
         if poss_sw > 0:
             return float(switch_count)/poss_sw
         else:
@@ -498,16 +510,15 @@ class error_result():
     def __str__(self):
 
         s = ('''
-switch_rate:        {} ({}/{})
-mismatch_rate:      {} ({}/{})
-hamming_rate:          {}
-phased_count:       {}
-phased_count(fraction):       {}
+switch rate:        {}
+mismatch rate:      {}
+flat rate:          {}
+phased count:       {}
 AN50:               {}
 N50:                {}
-num_snps_max_blk:   {}
-            '''.format(self.get_switch_rate(), self.get_switch_count(),self.get_poss_sw(),self.get_mismatch_rate(),self.get_mismatch_count(),self.get_poss_sw(),
-                   self.get_flat_error_rate(), self.get_phased_count(),self.get_phased_count()/self.get_num_snps(),
+num snps max blk:   {}
+            '''.format(self.get_switch_rate(), self.get_mismatch_rate(),
+                   self.get_flat_error_rate(), self.get_phased_count(),
                    self.get_AN50(), self.get_N50_phased_portion(), sum(self.maxblk_snps.values())))
 
         return s
@@ -823,6 +834,9 @@ def error_rate_calc(t_blocklist, a_blocklist, vcf_file, indels=False, phase_set=
 
     poss_flat  = poss_mm
 
+    if poss_sw == 0 and poss_mm == 0:
+        print('WARNING: Possible switch positions and possible mismatch positions are both 0, it is likely that something is very wrong.',file=sys.stderr)
+
     total_error = error_result(ref=ref_name,
              switch_count=switch_count,poss_sw=poss_sw, mismatch_count=mismatch_count,
              poss_mm=poss_mm,flat_count=flat_count,poss_flat=poss_flat,
@@ -842,15 +856,9 @@ if __name__ == '__main__':
         sys.exit(1)
 
     if args.haplotype_blocks1 == None and args.haplotype_blocks2 == None:
-        print("analysis using SNVs only\n")
-        print(vcf_vcf_error_rate_multiple(args.vcf1, args.vcf2, False))
-        print("\n\nanalysis using SNVs and indels\n")
-        print(vcf_vcf_error_rate_multiple(args.vcf1, args.vcf2, True))
+        print(vcf_vcf_error_rate_multiple(args.vcf1, args.vcf2, args.indels))
     elif args.haplotype_blocks1 != None and args.haplotype_blocks2 == None:
-        print("analysis using SNVs only\n")
-        print(hapblock_vcf_error_rate_multiple(args.haplotype_blocks1, args.vcf1, args.vcf2, False))
-        print("\n\nanalysis using SNVs and indels\n")
-        print(hapblock_vcf_error_rate_multiple(args.haplotype_blocks1, args.vcf1, args.vcf2, True))
+        print(hapblock_vcf_error_rate_multiple(args.haplotype_blocks1, args.vcf1, args.vcf2, args.indels))
     elif args.haplotype_blocks1 != None and args.haplotype_blocks2 != None:
         print(hapblock_hapblock_error_rate_multiple(args.haplotype_blocks1, args.vcf1, args.haplotype_blocks2, args.vcf2, args.indels))
     elif args.haplotype_blocks1 == None and args.haplotype_blocks2 != None:

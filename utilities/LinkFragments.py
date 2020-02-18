@@ -290,7 +290,7 @@ def parse_bedfile(input_file):
             barcode = el[3]
             yield (chrom, start, stop, barcode)
 
-def link_fragments(hairs_file, vcf_file, bam_file, outfile, dist, single_SNP_frags,maxbq):
+def link_fragments(hairs_file, vcf_file, bam_file, outfile, dist, single_SNP_frags):
 
     lines = []
 
@@ -379,12 +379,15 @@ def link_fragments(hairs_file, vcf_file, bam_file, outfile, dist, single_SNP_fra
                                         q2 = ord(new_fseq[i][3]) - 33
 
                                         Q = q1 + q2 # combined quality score
-                                        if Q > maxbq:
-                                            Q = maxbq;
+                                        if Q > 93:
+                                            Q = 93
+
                                         Q_char = chr(33 + Q)
+
                                         new_fseq[i] = (new_fseq[i][0], new_fseq[i][1], new_fseq[i][2], Q_char)
 
                                     else:
+
                                         del new_fseq[i]
                                         bad_snps.add(snp_ix)
 
@@ -465,7 +468,6 @@ def parseargs():
     parser.add_argument('-b', '--bam_file', nargs='?', type = str, help='bam file with barcoded reads')
     parser.add_argument('-o', '--outfile', nargs='?', type = str, help='output file with linked fragments')
     parser.add_argument('-d', '--distance', nargs='?', type = int, help='distance in base pairs that delineates separate 10X molecules',default=20000)
-    parser.add_argument('-m', '--maxbq', nargs='?', type = int, help='maximum base quality for an allele call',default=40)
 
     parser.add_argument('-s', '--single_SNP_frags', action='store_true', help='whether to keep fragments overlapping only one SNP', default=False)
 
@@ -481,4 +483,4 @@ def parseargs():
 # parse input and run function to call alleles
 if __name__ == '__main__':
     args = parseargs()
-    link_fragments(args.fragments,args.VCF,args.bam_file, args.outfile, args.distance, args.single_SNP_frags,args.maxbq)
+    link_fragments(args.fragments,args.VCF,args.bam_file, args.outfile, args.distance, args.single_SNP_frags)
