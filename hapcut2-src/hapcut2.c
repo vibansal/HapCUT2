@@ -147,6 +147,8 @@ int main(int argc, char** argv) {
     data.varlist = calloc(sizeof(PVAR),data.snps); 
     data.MINQ = MINQ;
 
+    esl_flogsum10_init(); // logsum approximation init
+
     LONG_READS = detect_long_reads(data.full_Flist,data.full_fragments); // detect if data corresponds to long_reads (pacbio/ONT/10X)
 
     // CALL MAIN FUNCTION

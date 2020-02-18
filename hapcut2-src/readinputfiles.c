@@ -37,9 +37,9 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
     int i = 0, j = 0, k = 0, t = 0, t1 = 0, done = 0;
     int blocks = 0, type = 0, l = 0, biter = 0, offset = 0,dtype=0,isize = 0;
     char buffer[MAXBUF];
-    char blockseq[500000];
+    char blockseq[5000000];
     for (i=0;i<MAXBUF;i++) buffer[i] = 0;
-    for (i=0;i<500000;i++) blockseq[i] = 0;
+    for (i=0;i<5000000;i++) blockseq[i] = 0;
     char ch;
     int num_fields;
     int expected_num_fields;

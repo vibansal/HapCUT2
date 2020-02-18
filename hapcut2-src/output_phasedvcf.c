@@ -7,7 +7,7 @@ void print_VCF_header(FILE* outfile)
         fprintf(outfile,"##FORMAT=<ID=PQ,Number=1,Type=Integer,Description=\"Phred QV indicating probability that this variant is incorrectly phased relative to the haplotype\">\n");
         //fprintf(outfile,"##FORMAT=<ID=JQ,Number=1,Type=Integer,Description=\"Phred QV indicating probability of a phasing switch error in gap prior to this variant\">\n");
         //fprintf(outfile,"##FORMAT=<ID=BX,Number=.,Type=String,Description=\"Barcodes for this variant\">\n");
-        fprintf(outfile,"##FORMAT=<ID=PD,Number=1,Type=Integer,Description=\" phased Read Depth\">\n");
+        fprintf(outfile,"##FORMAT=<ID=PD,Number=1,Type=Integer,Description=\"phased Read Depth\">\n");
         //fprintf(outfile,"##commandline=\"....\"";
 
 }

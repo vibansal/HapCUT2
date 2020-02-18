@@ -127,3 +127,25 @@ int splitString_full(char* input,char sep,char** out)
 	}
 	return strings;
 }
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// statically allocate the lookup table
+float flogsum10_lookup[p7_LOGSUMTEN_TBL]; 
+
+// initialize
+int esl_flogsum10_init(void)
+{
+  static int firsttime = TRUE;
+  if (!firsttime) {
+      return eslOK;
+  }
+  firsttime = FALSE;
+
+  int i;
+  for (i = 0; i < p7_LOGSUMTEN_TBL; i++) {
+    flogsum10_lookup[i] = log10(1. + pow(10., (double) -i / p7_LOGSUMTEN_SCALE));
+  }
+  return eslOK;
+}

@@ -500,7 +500,12 @@ int main(int argc, char** argv) {
 		free(reflist->names[i]);
 		if (reflist->used[i] ==1) free(reflist->sequences[i]);
 	}
-	free(reflist->names); free(reflist->sequences); free(reflist->lengths); free(reflist->used);
+	if (reflist->ns > 0) { 
+		free(reflist->names); 
+		free(reflist->sequences); 
+		free(reflist->lengths); 
+		free(reflist->used);
+	}
 	//free(reflist->offsets);
 	int xor = pow(2,16)-1; int c=0;
 	for (i=0;i<variants;i++){
