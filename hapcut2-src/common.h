@@ -45,16 +45,26 @@ static inline float esl_flogsum10(float a, float b)
   return (min == -eslINFINITY || (max-min) >= 15.7f) ? max : max + flogsum10_lookup[(int)((max-min)*p7_LOGSUMTEN_SCALE)];
 }
 
+// approximation to log(10^a + 10^b)
+static inline float esl_flogsub10(float a, float b)
+{
+  extern float flogsum10_lookup[p7_LOGSUMTEN_TBL]; 
+  const float max = ESL_MAX(a, b);
+  const float min = ESL_MIN(a, b);
+  return (min == -eslINFINITY || (max-min) >= 15.7f) ? max : max - flogsum10_lookup[(int)((max-min)*p7_LOGSUMTEN_SCALE)];
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #define MAXBUF 1000000
 #define LOG_HALF log10(0.5)
 
 // given a=log10(x) and b=log10(y), returns log10(x+y)
-#define addlogs(a, b) (((a) > (b)) ? ((a) + log10(1.0 + pow(10.0, (b) - (a)))) : ((b) + log10(1.0 + pow(10.0, (a) - (b)))))
-//#define addlogs(a, b) esl_flogsum10(a, b)
-// given a=log10(x) and b=log10(y), returns log10(x-y)
+//#define addlogs(a, b) (((a) > (b)) ? ((a) + log10(1.0 + pow(10.0, (b) - (a)))) : ((b) + log10(1.0 + pow(10.0, (a) - (b)))))
 #define subtractlogs(a, b) (((a) > (b)) ? ((a) + log10(1.0 - pow(10, (b) - (a)))) : ((b) + log10(1.0 - pow(10.0, (a) - (b)))))
+#define addlogs(a, b) esl_flogsum10(a, b)
+//#define subtractlogs(a, b) esl_flogsub10(a, b)
+// given a=log10(x) and b=log10(y), returns log10(x-y)
 
 #define flip(allele) if (allele == '1') allele = '0'; else if (allele == '0') allele = '1'
 
