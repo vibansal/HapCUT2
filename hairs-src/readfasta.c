@@ -7,7 +7,7 @@
 #include<time.h>
 #include<zlib.h>
 
-#include "kseq.h"
+#include "htslib/kseq.h"
 KSEQ_INIT(gzFile, gzread)
 
 #include "readfasta.h"

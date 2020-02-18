@@ -189,17 +189,24 @@ int realignment_params(char* bamfile,REFLIST* reflist,char* regions,Align_Params
         // 0 = M | I =1, D = 2 from cigar encoding 
 	char* newregion = calloc(4096,sizeof(char));
 
-	samfile_t *fp;
+	samFile *fp;
+	bam_hdr_t *hdr;
 	bam1_t *b;
-	bam_iter_t iter;
-        bam_index_t *idx; // bam file index
-	int ret; int ref=-1,beg=0,end=0;
+	hts_itr_t *iter = NULL;
+        hts_idx_t *idx; // bam file index
+	int ret; //int ref=-1,beg=0,end=0;
 
-	if ((fp = samopen(bamfile, "rb", 0)) == 0) 
+	if ((fp = sam_open(bamfile, "r")) == NULL) 
 	{
         	fprintf(stderr, "Fail to open BAM file %s\n", bamfile);
 	        return -1;
     	}
+	if ((hdr = sam_hdr_read(fp)) == NULL)
+	{
+		fprintf(stderr, "Fail to read header from file %s\n", bamfile);
+		sam_close(fp);
+		return -1;
+	}
 
         if (regions != NULL) 
 	{
@@ -211,12 +218,11 @@ int realignment_params(char* bamfile,REFLIST* reflist,char* regions,Align_Params
 		newregion[i+1] = '\0';
 		//fprintf(stderr,"newrion %s %s \n",regions,newregion);
 		if ((idx = bam_index_load(bamfile)) ==0) { fprintf(stderr,"unable to load bam index for file %s\n",bamfile); return -1; }
-		bam_parse_region(fp->header,newregion,&ref,&beg,&end);
-	        if (ref < 0) { fprintf(stderr,"invalid region for bam file %s \n",regions); return -1; }
-		iter = bam_iter_query(idx,ref,beg,end);
+		iter = sam_itr_querys(idx,hdr,newregion);
+	        if (iter == NULL) { fprintf(stderr,"invalid region for bam file %s \n",regions); return -1; }
 	}
 
-	b = bam_init1();  // samread(fp,b)
+	b = bam_init1();  // sam_read1(fp,hdr,b)
 
 	int prevtid =-1;
 	int reads=0,ureads=0,useful=0;
@@ -225,10 +231,10 @@ int realignment_params(char* bamfile,REFLIST* reflist,char* regions,Align_Params
 
 	while (reads < 10000)	
 	{
-		if (ref < 0) ret = samread(fp,b);  // read full bam file 
-	        else ret = bam_iter_read(fp->x.bam,iter,b);  // specific region 
+		if (!iter) ret = sam_read1(fp,hdr,b);  // read full bam file
+	        else ret = sam_itr_next(fp,iter,b);  // specific region
 		if (ret < 0) break;
-	        fetch_func(b, fp, read);
+	        fetch_func(b, hdr, read);
                 if ((read->flag & (BAM_FUNMAP | BAM_FSECONDARY | BAM_FQCFAIL | BAM_FDUP | 2048)) || read->mquality < MIN_MQ) 
 		{
 	            free_readmemory(read);  	    continue;
@@ -256,6 +262,6 @@ int realignment_params(char* bamfile,REFLIST* reflist,char* regions,Align_Params
 	fprintf(stderr,"using %d reads to estimate realignment parameters for HMM \n",reads);
 	if (ureads > 1000) print_error_params(emission_counts,trans_counts,indel_lengths,AP);
 	
-	bam_destroy1(b); samclose(fp); free(newregion);
+	bam_destroy1(b); bam_hdr_destroy(hdr); sam_close(fp); free(newregion);
 
 }
