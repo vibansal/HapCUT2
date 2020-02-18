@@ -146,60 +146,67 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
 	fragment.variants = 0;
 	fragment.alist = (allele*) malloc(sizeof (allele)*16184);
 
-	samFile *fp;
-	bam_hdr_t *hdr;
-	bam1_t *b;
-	int ref=-1,beg=0,end=0;
-	int ret; // for reading indexed bam files 
-	hts_idx_t *idx; // bam file index
-	hts_itr_t *iter = NULL; 
+    samFile *fp;
+    bam_hdr_t *hdr;
+    bam1_t *b;
+    int ret; // for reading indexed bam files 
+    hts_idx_t *idx; // bam file index
+    hts_itr_t *iter = NULL;
+    
+    if ((fp = sam_open(bamfile, "r")) == NULL) {
+        fprintf(stderr, "Fail to open BAM file %s\n", bamfile);
+        return -1;
+    }
+    if ((hdr = sam_hdr_read(fp)) == NULL) {
+        fprintf(stderr, "Fail to read header from file %s\n", bamfile);
+        sam_close(fp);
+        return -1;
+    }
+    if (regions != NULL &&  (idx = bam_index_load(bamfile)) ==0) { fprintf(stderr,"unable to load bam index for file %s\n",bamfile); return -1; }
+    if (regions == NULL) b = bam_init1();  // sam_read1(fp,hdr,b)
+    else 
+    {
+        b = bam_init1();
+        iter = sam_itr_querys(idx,hdr,regions);
+        if (iter == NULL) { fprintf(stderr,"invalid region for bam file %s \n",regions); return -1; }
+    }
 
-	if ((fp = sam_open(bamfile, "r")) == NULL) {
-		fprintf(stderr, "Fail to open BAM file %s\n", bamfile);
-		return -1;
-	}
-	if (regions != NULL &&  (idx = bam_index_load(bamfile)) ==0) { fprintf(stderr,"unable to load bam index for file %s\n",bamfile); return -1; }
-	if (regions == NULL) b = bam_init1();  // sam_read1(fp,hdr,b)
-	else 
-	{
-		b = bam_init1();
-	        iter = sam_itr_querys(idx,hdr,regions);
-	        if (iter == NULL) { fprintf(stderr,"invalid region for bam file %s \n",regions); return -1; }
-	}
+
+    while (1) {
+	if (!iter) ret = sam_read1(fp,hdr,b);  // read full bam file
+	else ret = sam_itr_next(fp,iter,b);  // specific region
+	//fprintf(stderr,"here %d %d\n",ret,iter);
+	if (ret < 0) break;  
+        fetch_func(b, hdr, read);
+        if ((read->flag & (BAM_FUNMAP | BAM_FSECONDARY | BAM_FQCFAIL | BAM_FDUP)) || read->mquality < MIN_MQ || (USE_SUPP_ALIGNMENTS == 0 && (read->flag & 2048))) {
+            free_readmemory(read);
+            continue;
+        }
+        // find the chromosome in reflist that matches read->chrom if the previous chromosome is different from current chromosome
+        if (read->tid != prevtid) {
+            chrom = getindex(ht, read->chrom); // this will return -1 if the contig name is not  in the VCF file
+	    if (chrom < 0) fprintf(stderr,"chrom \"%s\" not in VCF file, skipping all reads for this chrom.... \n",read->chrom);
+	    else fprintf(stderr,"processing reads mapped to chrom \"%s\" \n",read->chrom);
+		// doing this for every read, can replace this by string comparison ..april 4 2012
+            i = read->tid;
+            if (reflist->ns > 0) {
+                reflist->current = i;
+                if (i >= reflist->ns || i < 0 || strcmp(reflist->names[i], read->chrom) != 0) {
+                    reflist->current = -1;
+                    for (i = 0; i < reflist->ns; i++) {
+                        if (strcmp(reflist->names[i], read->chrom) == 0) {
+                            reflist->current = i;
+                            break;
+                        }
+                    }
+                }
+            }
+        } else chrom = prevchrom;
+        //if (chrom_missing_index ==1) { prevtid = read->tid; free_readmemory(read); continue; }
 
 
-	while (1) {
-		if (!iter) ret = sam_read1(fp,hdr,b);  // read full bam file 
-		else ret = sam_itr_next(fp,iter,b);  // specific region 
-		//fprintf(stderr,"here %d %d\n",ret,iter);
-		if (ret < 0) break;  
-		fetch_func(b, hdr, read);
-		if ((read->flag & (BAM_FUNMAP | BAM_FSECONDARY | BAM_FQCFAIL | BAM_FDUP)) || read->mquality < MIN_MQ || (USE_SUPP_ALIGNMENTS == 0 && (read->flag & 2048))) {
-			free_readmemory(read);
-			continue;
-		}
-		// find the chromosome in reflist that matches read->chrom if the previous chromosome is different from current chromosome
-		if (read->tid != prevtid) {
-			chrom = getindex(ht, read->chrom); // this will return -1 if the contig name is not  in the VCF file
-			if (chrom < 0) fprintf(stderr,"chrom \"%s\" not in VCF file, skipping all reads for this chrom.... \n",read->chrom);
-			else fprintf(stderr,"processing reads mapped to chrom \"%s\" \n",read->chrom);
-			// doing this for every read, can replace this by string comparison ..april 4 2012
-			i = read->tid;
-			if (reflist->ns > 0) {
-				reflist->current = i;
-				if (i >= reflist->ns || i < 0 || strcmp(reflist->names[i], read->chrom) != 0) {
-					reflist->current = -1;
-					for (i = 0; i < reflist->ns; i++) {
-						if (strcmp(reflist->names[i], read->chrom) == 0) {
-							reflist->current = i;
-							break;
-						}
-					}
-				}
-			}
-		} else chrom = prevchrom;
-		//if (chrom_missing_index ==1) { prevtid = read->tid; free_readmemory(read); continue; }
-
+        //////////
+        	
 		fragment.absIS = (read->IS < 0) ? -1 * read->IS : read->IS;
 		// add check to see if the mate and its read are on same chromosome, bug for contigs, july 16 2012
 		if ((read->flag & 8) || fragment.absIS > MAX_IS || fragment.absIS < MIN_IS || read->IS == 0 || !(read->flag & 1) || read->tid != read->mtid) // single read
