@@ -21,7 +21,7 @@ If you use HapCUT2 in your research, please cite:
 [Edge, P., Bafna, V. & Bansal, V. HapCUT2: robust and accurate haplotype assembly for diverse sequencing technologies. Genome Res. gr.213462.116 (2016). doi:10.1101/gr.213462.116](http://genome.cshlp.org/content/early/2016/12/09/gr.213462.116.abstract)
 
 ## dependencies:
-Requires htslib > 1.2.1. It is assumed that htslib is installed, but otherwise the path can be specified in the Makefile.
+Requires htslib > 1.2.1. It is assumed that htslib is installed, but otherwise the path can be specified in the Makefile (HTSLIB=path)
 
 ## to build:
 

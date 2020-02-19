@@ -205,4 +205,3 @@ int read_fragment_matrix(char* fragmentfile, struct fragment* Flist, int fragmen
 
     return fragments;
 }
-

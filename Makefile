@@ -11,7 +11,7 @@ H=hairs-src
 X=hapcut2-src
 #HTSLIB=submodules/htslib
 #SAMTOOLS=submodules/samtools
-#HTSLIB='/home/vbansal/Public/tools/htslib-1.9/' #path/to/htslib/
+HTSLIB=htslib #path/to/htslib/
 T=test
 # below is the path to CUnit directory, change if need be
 CUNIT=/usr/include/CUnit
@@ -44,7 +44,7 @@ $(B)/readvariant.o: $(H)/readvariant.c $(H)/readvariant.h $(H)/hashtable.h $(H)/
 	$(CC) -c -I$(HTSLIB) $(H)/readvariant.c -o $(B)/readvariant.o
 
 $(B)/bamread.o: $(H)/bamread.h $(H)/bamread.c $(H)/readfasta.h $(H)/readfasta.c | $(B)
-	$(CC) -I$(HTSLIB) -c $(H)/bamread.c -o $(B)/bamread.o
+	$(CC) -I$(HTSLIB) -c $(H)/bamread.c -lhts -o $(B)/bamread.o
 
 $(B)/hashtable.o: $(H)/hashtable.h $(H)/hashtable.c | $(B)
 	$(CC) -c $(H)/hashtable.c -o $(B)/hashtable.o
@@ -96,7 +96,7 @@ install-hairs:
 
 
 # UNINSTALL
-uninstall: uninstall-hapcut2 uninstall-hairs uninstall-fosmid
+uninstall: uninstall-hapcut2 uninstall-hairs
 
 uninstall-hapcut2:
 	rm /usr/local/bin/HAPCUT2
