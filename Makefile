@@ -11,7 +11,7 @@ H=hairs-src
 X=hapcut2-src
 #HTSLIB=submodules/htslib
 #SAMTOOLS=submodules/samtools
-HTSLIB='/home/vbansal/Public/tools/htslib-1.9/' #path/to/htslib/
+#HTSLIB='/home/vbansal/Public/tools/htslib-1.9/' #path/to/htslib/
 T=test
 # below is the path to CUnit directory, change if need be
 CUNIT=/usr/include/CUnit
