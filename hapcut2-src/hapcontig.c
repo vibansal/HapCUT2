@@ -55,6 +55,24 @@ void generate_contigs(struct fragment* Flist, int fragments, struct SNPfrags* sn
     }
 }
 
+void switch_haplotype_order(struct BLOCK* clist, int blocks, char* h1)
+{
+    int i=0,k=0;	
+    char c;
+    for (i = 0; i < blocks; i++) 
+    {
+	if (h1[clist[i].slist[0]] == '1') // first allele should always be '0'
+        { // flip the haplotype in h1
+		for (k = 0; k < clist[i].phased; k++) 
+		{
+			c = h1[clist[i].slist[k]];
+			if (c == '0') h1[clist[i].slist[k]] = '1';
+			else if (c == '1') h1[clist[i].slist[k]] = '0';
+		}
+	}
+    }
+}
+
 
 // THIS FUNCTION PRINTS THE CURRENT HAPLOTYPE ASSEMBLY in a new file block by block
 int print_contigs(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* outfile) {
@@ -63,6 +81,8 @@ int print_contigs(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
     char c=0, c1=0, c2=0;
     FILE* fp;
     fp = fopen(outfile, "w");
+
+    switch_haplotype_order(clist,blocks,h1); // make sure that haplotype in column '2' has '0' allele for first variant in each block
 
     for (i = 0; i < blocks; i++) {
         span = snpfrag[clist[i].lastvar].position - snpfrag[clist[i].offset].position;
