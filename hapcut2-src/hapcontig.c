@@ -55,25 +55,6 @@ void generate_contigs(struct fragment* Flist, int fragments, struct SNPfrags* sn
     }
 }
 
-void switch_haplotype_order(struct BLOCK* clist, int blocks, char* h1)
-{
-    int i=0,k=0;	
-    char c;
-    for (i = 0; i < blocks; i++) 
-    {
-	if (h1[clist[i].slist[0]] == '1') // first allele should always be '0'
-        { // flip the haplotype in h1
-		for (k = 0; k < clist[i].phased; k++) 
-		{
-			c = h1[clist[i].slist[k]];
-			if (c == '0') h1[clist[i].slist[k]] = '1';
-			else if (c == '1') h1[clist[i].slist[k]] = '0';
-		}
-	}
-    }
-}
-
-
 // THIS FUNCTION PRINTS THE CURRENT HAPLOTYPE ASSEMBLY in a new file block by block
 int print_contigs(struct BLOCK* clist, int blocks, char* h1, struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, char* outfile) {
     // print a new file containing one block phasing and the corresponding fragments
@@ -82,12 +63,16 @@ int print_contigs(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
     FILE* fp;
     fp = fopen(outfile, "w");
 
-    switch_haplotype_order(clist,blocks,h1); // make sure that haplotype in column '2' has '0' allele for first variant in each block
+    int flip_alleles=0;
+   // switch_haplotype_order(clist,blocks,h1); // make sure that haplotype in column '2' has '0' allele for first variant in each block
 
     for (i = 0; i < blocks; i++) {
         span = snpfrag[clist[i].lastvar].position - snpfrag[clist[i].offset].position;
         fprintf(fp, "BLOCK: offset: %d len: %d phased: %d ", clist[i].offset + 1, clist[i].length, clist[i].phased);
         fprintf(fp, "SPAN: %d fragments %d\n", span, clist[i].frags);
+     
+	if (h1[clist[i].slist[0]] == '0') flip_alleles = 0;
+        else flip_alleles = 1;
         for (k = 0; k < clist[i].phased; k++) { // only variants linked in component are phased 
 
             t = clist[i].slist[k];
@@ -115,9 +100,11 @@ int print_contigs(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
                     c2 = snpfrag[t].genotypes[0];
                     c1 = snpfrag[t].genotypes[2];
                 }
-                fprintf(fp, "%d\t%c\t%c\t", t + 1, c1, c2); // two alleles that are phased in VCF like format
+		if (flip_alleles ==0)  fprintf(fp, "%d\t%c\t%c\t", t + 1, c1, c2); // two alleles that are phased in VCF like format
+		else  fprintf(fp, "%d\t%c\t%c\t", t + 1, c2, c1); // two alleles that are phased in VCF like format
             } else {
-                fprintf(fp, "%d\t%c\t%c\t", t + 1, h1[t], c);
+                if (flip_alleles ==0) fprintf(fp, "%d\t%c\t%c\t", t + 1, h1[t], c);
+                else fprintf(fp, "%d\t%c\t%c\t", t + 1,c, h1[t]);
             }
 
             // generate the string for the switch confidence

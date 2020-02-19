@@ -22,6 +22,7 @@ Following the header, there is one line per SNV with the following tab-delimited
 9. discrete pruning status (1 means pruned, 0 means phased)
 10. switch quality: phred-scaled estimated probability that there is a switch error starting at this SNV (0 means switch error is likely, 100 means switch is unlikely)
 11. mismatch quality: phred-scaled estimated probability that there is a mismatch [single SNV] error at this SNV (0 means SNV is low quality, 100 means SNV is high quality)
+12. number of haplotype-informative fragments covering this variant in the input
 
 Each block ends with a line with '********'. 
 
