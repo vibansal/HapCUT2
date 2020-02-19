@@ -1,5 +1,5 @@
 
-## 10X Genomics Linked-Reads
+## Haplotyping using Linked-Reads
 
 10X Genomics Linked Reads require an extra step to link short reads together into barcoded molecules.
 
@@ -9,7 +9,7 @@ NOTE: It is required that the BAM reads have the BX (corrected barcode) tag.
 ```
 ./build/extractHAIRS --10X 1 --bam reads.sorted.bam --VCF variants.VCF --out unlinked_fragment_file
 ```
-(2) use LinkFragments to link fragments into barcoded molecules:
+(2) use LinkFragments script to link fragments into barcoded molecules:
 ```
 python3 utilities/LinkFragments.py --bam reads.sorted.bam --VCF variants.VCF --fragments unlinked_fragment_file --out linked_fragment_file
 ```

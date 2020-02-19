@@ -14,6 +14,11 @@ Each pipeline is in a separate directory as described here:
 - **HiC_Longread:** HiC + Generic long read (e.g. PacBio) combination
 
 
+### Processing Hi-C reads (updated 02/18/2020)
+
+BWA-mem can map Hi-C read pairs using the command "bwa mem -5SPM ref.fa read1.fq read2.fq" that preserves mate-pair information (thanks to @conchoecia)
+for highlighting this. There is no need for further processing except for marking PCR duplicates
+
 
 ## how to combine 10X + long read data for phasing
 
