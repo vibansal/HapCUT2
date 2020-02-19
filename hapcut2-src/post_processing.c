@@ -71,9 +71,9 @@ void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfr
 
             // denominator of posterior probabilities;
             // sum of all 4 data probabilities times their priors
-            total = addlogs(
-                    addlogs((log_het_prior + P_data_H), (log_het_prior + P_data_Hf)),
-                    addlogs((log_hom_prior + P_data_H00), (log_hom_prior + P_data_H11)));
+            total = addlogsEXACT(
+                    addlogsEXACT((log_het_prior + P_data_H), (log_het_prior + P_data_Hf)),
+                    addlogsEXACT((log_hom_prior + P_data_H00), (log_hom_prior + P_data_H11)));
 
             post_hap = log_het_prior + P_data_H - total;
             post_hapf = log_het_prior + P_data_Hf - total;
@@ -100,7 +100,7 @@ void likelihood_pruning(int snps, struct fragment* Flist, struct SNPfrags* snpfr
             // get prior probabilities for homozygous and heterozygous genotypes
             log_het_prior = log10(0.5);
 
-            total = addlogs((log_het_prior + P_data_H), (log_het_prior + P_data_Hf));
+            total = addlogsEXACT((log_het_prior + P_data_H), (log_het_prior + P_data_Hf));
 
             post_hap = log_het_prior + P_data_H - total;
             post_hapf = log_het_prior + P_data_Hf - total;
@@ -141,8 +141,8 @@ int split_block(char* HAP, struct BLOCK* clist, int k, struct fragment* Flist, s
             P_data_Hsw += fragment_ll1(Flist,f, HAP, -1, i);
         }
         // posterior probability of no switch error
-        post_sw = P_data_Hsw - addlogs(P_data_H, P_data_Hsw);
-        //post_sw_total = addlogs(post_sw_total, post_sw);
+        post_sw = P_data_Hsw - addlogsEXACT(P_data_H, P_data_Hsw);
+        //post_sw_total = addlogsEXACT(post_sw_total, post_sw);
         snpfrag[i].post_notsw = subtractlogs(0,post_sw);
         //snpfrag[i].post_notsw_total = subtractlogs(0,post_sw_total);
         // flip the haplotype at this position if necessary

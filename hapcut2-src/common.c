@@ -7,14 +7,12 @@
 #include "common.h"
 #include<string.h>
 
-
 void check_input_0_or_1(char* x){
     if (!(strcmp(x, "0") == 0 || strcmp(x, "1") == 0)){
         fprintf(stderr, "\nERROR: Invalid input \"%s\" for <0/1> option flag.\n",x);
         exit(1);
     }
 }
-
 
 /** Adapted from http://stackoverflow.com/questions/3673226/how-to-print-time-in-format-2009-08-10-181754-811 */
 int fprintf_time(FILE *stream, const char *format, ...)

@@ -62,6 +62,7 @@ int print_contigs(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
     char c=0, c1=0, c2=0;
     FILE* fp;
     fp = fopen(outfile, "w");
+    float logthresh=log10(THRESHOLD);
 
     int flip_alleles=0;
    // switch_haplotype_order(clist,blocks,h1); // make sure that haplotype in column '2' has '0' allele for first variant in each block
@@ -84,7 +85,7 @@ int print_contigs(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
             // print this line to keep consistency with old format
             // if SNP was pruned then print '-'s
             if ((!ERROR_ANALYSIS_MODE)&&(!SKIP_PRUNE)
-                &&((snpfrag[t].post_hap < log10(THRESHOLD) && !DISCRETE_PRUNING)
+                &&((snpfrag[t].post_hap < logthresh && !DISCRETE_PRUNING)
                 ||(snpfrag[t].pruned_discrete_heuristic && DISCRETE_PRUNING))){
                 fprintf(fp, "%d\t-\t-\t", t + 1);
             }else if (snpfrag[t].genotypes[0] == '0' && snpfrag[t].genotypes[2] == '0'){
@@ -123,7 +124,7 @@ int print_contigs(struct BLOCK* clist, int blocks, char* h1, struct fragment* Fl
                 strcpy(switch_conf,".");
             }
 
-            // generate the string for the snp confidence
+            // generate the string for the snp confidence, single mismatch
             char snp_conf[100];
             char discrete_conf[100];
             if (SKIP_PRUNE){

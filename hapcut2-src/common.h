@@ -60,7 +60,7 @@ static inline float esl_flogsub10(float a, float b)
 #define LOG_HALF log10(0.5)
 
 // given a=log10(x) and b=log10(y), returns log10(x+y)
-//#define addlogs(a, b) (((a) > (b)) ? ((a) + log10(1.0 + pow(10.0, (b) - (a)))) : ((b) + log10(1.0 + pow(10.0, (a) - (b)))))
+#define addlogsEXACT(a, b) (((a) > (b)) ? ((a) + log10(1.0 + pow(10.0, (b) - (a)))) : ((b) + log10(1.0 + pow(10.0, (a) - (b)))))
 #define subtractlogs(a, b) (((a) > (b)) ? ((a) + log10(1.0 - pow(10, (b) - (a)))) : ((b) + log10(1.0 - pow(10.0, (a) - (b)))))
 #define addlogs(a, b) esl_flogsum10(a, b)
 //#define subtractlogs(a, b) esl_flogsub10(a, b)
