@@ -1,4 +1,8 @@
 
+/*
+auxilliary functions for hapcut2.c
+*/
+
 int detect_long_reads(struct fragment* Flist,int fragments)
 {
     int i=0;

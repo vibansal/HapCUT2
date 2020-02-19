@@ -6,7 +6,6 @@
 
 /*
 for Hi-C data, calculate number of unique linkages per variant
-
 also calculate the mean and median base quality value
 
 */
