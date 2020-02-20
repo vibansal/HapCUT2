@@ -1,5 +1,7 @@
 #include "hapfragments.h"
 
+int MAX_BQ=93; // base quality cannot exceed this, QV=60
+
 // sort such that mate pairs are together and reverse sorted by starting position of second read in a mate-piar
 
 int compare_fragments(const void *a, const void *b) {

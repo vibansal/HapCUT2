@@ -143,20 +143,20 @@ int generate_single_fragment(struct alignedread** readlist, int s, int e, int le
 
     counts[0] = counts[1] = counts[2] = counts[3] = 0;
     counts[(int) fragment.alist[0].allele - 48]++;
-    counts[(int) fragment.alist[0].allele - 48 + 2] += (int) fragment.alist[0].qv - QVoffset;
+    counts[(int) fragment.alist[0].allele - 48 + 2] += (int)fragment.alist[0].qv - QVoffset;
 
     j = 0;
     for (i = 1; i <= fragment.variants; i++) {
         if (i == fragment.variants || fragment.alist[i].varid != fragment.alist[i - 1].varid) {
             // print consensus base
-            if (counts[0] > counts[1] && counts[1] <= 1) {
+            if (counts[0] > counts[1] && counts[1] <= 1 && counts[2] > counts[3]) {
                 fp.alist[j].varid = fragment.alist[i - 1].varid;
                 fp.alist[j].allele = '0';
                 qv = (QVoffset + counts[2] - counts[3]);
                 if (counts[2] - counts[3] >= 60) qv = 60 + QVoffset;
                 fp.alist[j].qv = (char) (qv);
                 if (qv - QVoffset >= MINQ) j++;
-            } else if (counts[1] > counts[0] && counts[0] <= 1) {
+            } else if (counts[1] > counts[0] && counts[0] <= 1 && counts[3] > counts[2]) {
                 fp.alist[j].varid = fragment.alist[i - 1].varid;
                 fp.alist[j].allele = '1';
                 qv = (QVoffset + counts[3] - counts[2]);
@@ -168,7 +168,7 @@ int generate_single_fragment(struct alignedread** readlist, int s, int e, int le
         }
         if (i < fragment.variants) {
             counts[(int) fragment.alist[i].allele - 48]++;
-            counts[(int) fragment.alist[i].allele - 48 + 2] += (int) fragment.alist[i].qv - QVoffset;
+            counts[(int) fragment.alist[i].allele - 48 + 2] += (int)fragment.alist[i].qv - QVoffset;
         }
     }
     /*
