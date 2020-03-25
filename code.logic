@@ -1,8 +1,0 @@
-
-
-
-function: fragment_ll(Flist,f,HAP1,h,switch_ix)
-
-if 4th arg != -1: assume that variant 'h' has homozygous genotype
-if 5th arg != -1: switch at position 'switch_ix' for calculating read likelihood
-if 5th arg == 10: ignore variant 'h' for calculating genotype likelihood 
