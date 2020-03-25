@@ -18,20 +18,6 @@ CUNIT=/usr/include/CUnit
 
 all: $(B)/extractHAIRS $(B)/HAPCUT2
 
-# if HTSlib makefile not present, then submodules have not yet been downloaded (init & updated)
-# first check if git present, else print error message
-# credit to lhunath for the one-line check for git below http://stackoverflow.com/questions/592620/check-if-a-program-exists-from-a-bash-script
-#$(HTSLIB)/Makefile:
-#	@hash git 2>/dev/null || { echo >&2 "Git not installed (required for auto-download of required submodules). Install git and retry, or manually download samtools 1.2 and htslib 1.2.1 and place the unzipped folders in \"submodules\" directory with names matching their Makefile variables (default \"samtools\" and \"htslib\")"; exit 1; }
-#	git submodule init
-#	git submodule update
-
-#$(HTSLIB)/libhts.a: $(HTSLIB)/Makefile
-#	echo "Building HTSlib libraries..."
-#	make -C $(HTSLIB) lib-static
-
-# BUILD HAIRS
-
 #temporarily removed -O2 flag after -I$(HTSLIB)
 $(B)/extractHAIRS: $(B)/bamread.o $(B)/hashtable.o $(B)/readvariant.o $(B)/readfasta.o $(B)/hapfragments.o $(H)/extracthairs.c $(H)/parsebamread.c $(H)/realignbamread.c $(H)/nw.c $(H)/realign_pairHMM.c $(H)/estimate_hmm_params.c | $(B)
 	$(CC) -I$(HTSLIB) -g $(B)/bamread.o $(B)/hapfragments.o $(B)/hashtable.o $(B)/readfasta.o $(B)/readvariant.o -o $(B)/extractHAIRS $(H)/extracthairs.c -L$(HTSLIB) -pthread -lhts -lm -lz

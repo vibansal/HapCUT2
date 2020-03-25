@@ -4,10 +4,11 @@
 
 New release of HapCUT2 with following updates:
 
-1. uses fast logsum approximation for likelihood calculation that speeds up HapCUT2 by 6-7 times
+1. uses fast logsum approximation for likelihood calculation that speeds up HapCUT2 by 7-8 times
 2. fixes bugs in extracthairs for PacBio CCS/HiFi reads 
 3. several other bug fixes
 4. uses htslib for reading bam files
+5. reorganization of hapcut2 and vcf parsing code
 
 #### April 4, 2019
 
