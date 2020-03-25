@@ -1,5 +1,14 @@
 ## Updates and Announcements:
 
+#### March 24, 2020
+
+New release of HapCUT2 with following updates:
+
+1. uses fast logsum approximation for likelihood calculation that speeds up HapCUT2 by 6-7 times
+2. fixes bugs in extracthairs for PacBio CCS/HiFi reads 
+3. several other bug fixes
+4. uses htslib for reading bam files
+
 #### April 4, 2019
 
 New release of HapCUT2 with updates to local realignment for long read allelotyping and ability to process specific genomic regions (--region option in extractHAIRS). 
