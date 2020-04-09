@@ -202,7 +202,7 @@ def read_fragment_matrix(frag_matrix, vcf_file, chrom_filter=None):
 
     flist = []
 
-    with open(frag_matrix,"r") as fm:
+    with open(frag_matrix,"r",encoding="latin-1",errors='ignore') as fm:
         for line in fm:
             if len(line) < 2:
                 continue

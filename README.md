@@ -28,19 +28,6 @@ To install htslib directly from source: git clone https://github.com/samtools/ht
 
  ```make ```
 
-## to install:
-
-```
-sudo make install-hairs
-sudo make install-hapcut2
-```
-
-## to uninstall:
-
-```
-sudo make uninstall-hairs
-sudo make uninstall-hapcut2
-```
 ## Input:
 HapCUT2 requires the following input:
 - BAM file for an individual containing reads aligned to a reference genome
@@ -48,7 +35,7 @@ HapCUT2 requires the following input:
 
 **Note: the program does not accept gzipped VCF files**
 
-## To Run:
+### To Run:
 
 Assembling haplotypes requires two steps:
 
