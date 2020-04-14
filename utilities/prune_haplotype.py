@@ -2,6 +2,37 @@
 
 import argparse
 import sys
+import os
+
+## fix the 'BLOCK' line of each haplotype block in the pruned haplotype file
+def fix_block_header(hapblock_file, output_file):
+
+    with open(hapblock_file,'r') as inf, open(output_file,'w') as of:
+        varlines = []
+        for line in inf:
+            if 'BLOCK' in line: 
+                offset=-1; first = -1; last =0; phased=0; firstp=-1; lastp=0; fragments = 0; 
+            elif '****' in line:  ## end of block 
+                if len(varlines) >= 2: 
+                    print('BLOCK: offset:',offset,'len:',last-first+1,'phased:',phased,'SPAN:',lastp-firstp+1,'fragments',fragments,file=of)
+                    for var in varlines: print(var,file=of,end='')
+                    print(line,file=of,end='')
+                varlines= []
+            else: 
+                varlines.append(line)
+                var = line.split()
+                if offset < 0: offset = int(var[0]);
+                if first < 0: first = int(var[0]);
+                if firstp < 0: firstp = int(var[4]);
+                lastp  = int(var[4]);
+                last = int(var[0]); 
+                phased +=1; 
+
+        if len(varlines) >= 2: ## last block left
+            print('BLOCK: offset:',offset,'len:',last-first+1,'phased:',phased,'SPAN:',lastp-firstp+1,'fragments',fragments,file=of)
+            for var in varlines: print(var,file=of,end='')
+            print(line,file=of,end='')
+  
 
 def prune_hapblock_file(hapblock_file, output_file, snp_conf_cutoff, split_conf_cutoff, use_refhap_heuristic):
 
@@ -55,4 +86,6 @@ def parseargs():
 if __name__ == '__main__':
     args = parseargs()
 
-    prune_hapblock_file(args.input_haplotype_blocks, args.output_haplotype_blocks, args.min_mismatch_qual, args.min_switch_qual, args.discrete_pruning)
+    prune_hapblock_file(args.input_haplotype_blocks, args.output_haplotype_blocks+'.temp', args.min_mismatch_qual, args.min_switch_qual, args.discrete_pruning)
+    fix_block_header(args.output_haplotype_blocks+'.temp',args.output_haplotype_blocks);
+    os.remove(args.output_haplotype_blocks+'.temp');
