@@ -107,7 +107,7 @@ void print_options() {
 	fprintf(stderr, "--PEonly <0/1> : do not use single end reads, default is 0 (use all reads)\n");
 	fprintf(stderr, "--indels <0/1> : extract reads spanning INDELS, default is 0, variants need to specified in VCF format to use this option\n");
 	fprintf(stderr, "--noquality <INTEGER> : if the bam file does not have quality string, this value will be used as the uniform quality value, default 0 \n");
-	//fprintf(stderr,"--triallelic <0/1> : print information about , default 0 \n");
+	fprintf(stderr,"--triallelic <0/1> : include variants with genotype 1/2 for parsing, default 0 \n");
 	fprintf(stderr, "--ref <FILENAME> : reference sequence file (in fasta format, gzipped is okay), optional but required for indels, should be indexed\n");
 	fprintf(stderr, "--out <FILENAME> : output filename for haplotype fragments, if not provided, fragments will be output to stdout\n");
 	fprintf(stderr, "--region <chr:start-end> : chromosome and region in BAM file, useful to process individual chromosomes or genomic regions \n");
@@ -204,7 +204,6 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
         } else chrom = prevchrom;
         //if (chrom_missing_index ==1) { prevtid = read->tid; free_readmemory(read); continue; }
 
-
         //////////
         	
 		fragment.absIS = (read->IS < 0) ? -1 * read->IS : read->IS;
@@ -266,7 +265,7 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
 	} // end of main while loop
 	if (fragments > 0)  // still fragments left in buffer
 	{
-		fprintf(stderr, "final cleanup of fragment list: %d current chrom %s %d prev %d \n", fragments, read->chrom, read->position,prevchrom);
+		fprintf(stderr, "final cleanup of fragment list: %d current chrom %d prev %d \n", fragments, chrom,prevchrom);
 		if (prevchrom >=0) clean_fragmentlist(flist, &fragments, varlist, -1, read->position, prevchrom); // added extra filter 03/08/18
 	}
 	bam_destroy1(b);

@@ -40,7 +40,7 @@ int compare_read_SNP(struct alignedread* read, VARIANT* varlist, int ss, int sta
             if ((read->flag & 16) == 16) varlist[ss].A2 += 1 << 16;
             else varlist[ss].A2 += 1;
         }
-        if (TRI_ALLELIC == 1 && varlist[ss].heterozygous == '2') fprintf(stderr, "comparing read %s to non-ref-het SNP %d:%d %s %s | allele = %c\n", read->readid, ss + 1, varlist[ss].position, varlist[ss].allele1, varlist[ss].allele2, match);
+        //if (TRI_ALLELIC == 1 && varlist[ss].heterozygous == '2') fprintf(stderr, "comparing read %s to non-ref-het SNP %d:%d %s %s | allele = %c\n", read->readid, ss + 1, varlist[ss].position, varlist[ss].allele1, varlist[ss].allele2, match);
         return 1;
     }
     return 0;
@@ -280,7 +280,7 @@ int extract_variants_read(struct alignedread* read, HASHTABLE* ht, CHROMVARS* ch
 		if ((DATA_TYPE == 1 && offset > margin) || DATA_TYPE != 1) // filter only for HiC
 		{
 			if ((varlist[ss].heterozygous == '1' || HOMOZYGOUS ==1) && varlist[ss].type == 0) compare_read_SNP(read, varlist, ss, start, l1, l2, fragment);
-			else if (varlist[ss].heterozygous == '2' && varlist[ss].type == 0) {
+			else if (varlist[ss].heterozygous == '2' && varlist[ss].type == 0 && TRI_ALLELIC==1) {
 			    compare_read_SNP(read, varlist, ss, start, l1, l2, fragment);
 			} else if ((varlist[ss].heterozygous == '1' || HOMOZYGOUS ==1) && varlist[ss].type != 0 && varlist[ss].position < start + l2 + ol - 1 && reflist->current >= 0 && PARSEINDELS == 1) {
 			    compare_read_INDEL(read, varlist, ss, start, l1, l2, ol, fragment, i, reflist);
