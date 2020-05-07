@@ -168,8 +168,8 @@ int parse_variant(VARIANT* variant, char* buffer, int samplecol)
 		} else if (variant->genotype[0] != variant->genotype[2] && variant->genotype[0] != '.' && variant->genotype[2] != '.') {
 			if (TRI_ALLELIC == 1) fprintf(stderr, "non-ref het variant %d %s %s %s %s %s\n", variant->position, variant->RA, variant->AA, variant->allele1, variant->allele2, variant->genotype);
 			// if both alleles are different from reference, we ignore it
-			variant->heterozygous = '2';
-			return 0;
+			variant->heterozygous = '3';
+			return -1;
 		} else {
 			variant->heterozygous = '0';
 			//if (variant->genotype[0] == variant->genotype[2] && variant->genotype[0] =='1') variant->heterozygous = '1';
@@ -194,12 +194,14 @@ int read_variantfile(char* vcffile, VARIANT* varlist, HASHTABLE* ht, int* hetvar
 	int chromosomes = 0; //int blocks=0;
 	*hetvariants = 0;
 	int het = 0;
+	int non_biallelic =0;
 
 	while (fgets(buffer, 500000, fp)) {
 		if (buffer[0] == '#') continue;
 		else {
 			het = parse_variant(&varlist[i], buffer, samplecol);
-			(*hetvariants) += het;
+			if (het > 0) (*hetvariants) += het;
+			if (het == -1) non_biallelic++;
 			//if (het ==0) continue; else (*hetvariants)++;
 			//	fprintf(stdout,"%s %d %s %s %s %s\n",varlist[i].chrom,varlist[i].position,varlist[i].RA,varlist[i].AA,varlist[i].genotype,prevchrom);
 			if (strcmp(varlist[i].chrom, prevchrom) != 0) {
@@ -214,7 +216,8 @@ int read_variantfile(char* vcffile, VARIANT* varlist, HASHTABLE* ht, int* hetvar
 		}
 	}
 	fclose(fp); //chromosomes--;
-	fprintf(stderr, "vcffile %s chromosomes %d hetvariants %d %d\n", vcffile, chromosomes, *hetvariants, i);
+	fprintf(stderr, "vcffile %s chromosomes %d hetvariants %d variants %d \n", vcffile, chromosomes, *hetvariants, i);
+	fprintf(stderr,"detected %d variants with two non-reference alleles, these variants will not be phased\n",non_biallelic);
 	return chromosomes;
 
 }

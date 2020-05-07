@@ -58,10 +58,18 @@ int output_vcf(char* vcffile, struct SNPfrags* snpfrag, int snps,char* H1,struct
 	gn = splitString(var_list[9],':',geno_list); // split GENOTYPE column (10), assumption is single sample VCF
 	
 	thirdallele =0;
-	if (geno_list[0][0] == '2' || geno_list[0][2] =='2') thirdallele = 1; // need to fix phased genotype, hapcut only uses two alleles labeled 0 & 1
-	if (H1[var] == '0') { h1 = '0'; h2 = '1'; } 	
-	else if (H1[var] == '1') { h1 = '1'; h2 = '0'; } 
-	else {h1 = '.'; h2 = '.'; } // unphased by hapcut2	
+	if (geno_list[0][0] == '2' || geno_list[0][2] =='2') 
+	{
+		thirdallele = 1; // need to fix phased genotype, hapcut only uses two alleles labeled 0 & 1
+		if (H1[var] == '0') { h1 = geno_list[0][0]; h2 = geno_list[0][2]; } 
+		else if (H1[var] == '1') { h1 = geno_list[0][2]; h2 = geno_list[0][0]; } 
+	}
+	else
+	{
+		if (H1[var] == '0') { h1 = '0'; h2 = '1'; } 	
+		else if (H1[var] == '1') { h1 = '1'; h2 = '0'; } 
+		else {h1 = '.'; h2 = '.'; } // unphased by hapcut2	
+	}
             
 	component = snpfrag[var].component; 
 	if (H1[var] == '-' || component < 0 || snpfrag[component].csize < 2) phased=0; 
@@ -75,6 +83,7 @@ int output_vcf(char* vcffile, struct SNPfrags* snpfrag, int snps,char* H1,struct
 		if (snp_conf_fl > 100.0)     snp_conf_fl = 100.0; 
 		PQ = (int)(snp_conf_fl+0.5); // round to nearest int
 		PD = snpfrag[var].frags; // should we ignore singleton fragments 
+
 		sprintf(PGT,"%c|%c",h1,h2); 
 		
 		if ( (!ERROR_ANALYSIS_MODE) && (!SKIP_PRUNE) && (snpfrag[var].post_hap < log10(THRESHOLD) && !DISCRETE_PRUNING )) 
