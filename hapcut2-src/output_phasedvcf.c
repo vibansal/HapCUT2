@@ -22,17 +22,18 @@ int output_vcf(char* vcffile, struct SNPfrags* snpfrag, int snps,char* H1,struct
     int var=0;
 	
     char h1='0',h2='0';
-    int phased=0,component=0,PS=0,PQ=100,PD=0,thirdallele=0; 
+    int phased=0,component=0,PS=0,PQ=100,PD=0; 
     char PGT[4];
 
     char** var_list = calloc(1024,sizeof(char*)); 
     char** info_list = calloc(1024,sizeof(char*)); 
     char** geno_list = calloc(1024,sizeof(char*));
     char* newC9 = malloc(4096); char* newC10 = malloc(4096); // column 9 and 10 of new VCF file 
-    char* temp = malloc(10024); char* seek;
-    int i=0,vn=0,in=0,gn=0,j=0,k=0;
+    char* temp = malloc(10024); 
+    //char* seek;
+    int i=0,vn=0,in=0,gn=0;
     float snp_conf_fl;	
-    int b0=0,b1=0,b=0;
+    //int b0=0,b=0;
  
     int lines=0,formatline=0,infolines=0;
     while (fgets(buffer, 1000000, fp)) { // read input VCF
@@ -57,14 +58,12 @@ int output_vcf(char* vcffile, struct SNPfrags* snpfrag, int snps,char* H1,struct
 	in = splitString(var_list[8],':',info_list); // split INFO column (9)
 	gn = splitString(var_list[9],':',geno_list); // split GENOTYPE column (10), assumption is single sample VCF
 	
-	thirdallele =0;
-	if (geno_list[0][0] == '2' || geno_list[0][2] =='2') 
+	if (geno_list[0][0] == '2' || geno_list[0][2] =='2')  // tri-allelic genotype
 	{
-		thirdallele = 1; // need to fix phased genotype, hapcut only uses two alleles labeled 0 & 1
 		if (H1[var] == '0') { h1 = geno_list[0][0]; h2 = geno_list[0][2]; } 
 		else if (H1[var] == '1') { h1 = geno_list[0][2]; h2 = geno_list[0][0]; } 
 	}
-	else
+	else // standard bi-allelic genotype
 	{
 		if (H1[var] == '0') { h1 = '0'; h2 = '1'; } 	
 		else if (H1[var] == '1') { h1 = '1'; h2 = '0'; } 
@@ -107,7 +106,7 @@ int output_vcf(char* vcffile, struct SNPfrags* snpfrag, int snps,char* H1,struct
 	}
 	if (phased ==1) 
 	{
-		b0=0;b1=0;
+		//b0=0;b1=0;
 		// print PS,BQ,PQ,PD tags
 		strcat(newC9,":PQ"); strcat(newC10,":"); sprintf(temp,"%d",PQ); strcat(newC10,temp);
 		strcat(newC9,":PD"); strcat(newC10,":"); sprintf(temp,"%d",PD); strcat(newC10,temp);

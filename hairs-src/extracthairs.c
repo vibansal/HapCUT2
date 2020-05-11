@@ -131,7 +131,10 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
 	int reads = 0;
 	struct alignedread* read = (struct alignedread*) malloc(sizeof (struct alignedread));
 
-	if (REALIGN_VARIANTS && ESTIMATE_PARAMS) realignment_params(bamfile,reflist,regions,AP); // estimate alignment parameters from BAM file ONT/pacbio reads only 12/3/18
+	int rvalue =0;
+	// estimate alignment parameters from BAM file ONT/pacbio reads only 12/3/18
+	if (REALIGN_VARIANTS && ESTIMATE_PARAMS) rvalue = realignment_params(bamfile,reflist,regions,AP); 
+	if (rvalue < -1) return -1;
 	if (REALIGN_VARIANTS) fcigarlist = calloc(sizeof(int),400000);
 	int i = 0;
 	int chrom = 0; //int sl=0;
@@ -171,6 +174,7 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
         if (iter == NULL) { fprintf(stderr,"invalid region for bam file %s \n",regions); return -1; }
     }
 
+    int num_chroms_bam=0;
 
     while (1) {
 	if (!iter) ret = sam_read1(fp,hdr,b);  // read full bam file
@@ -184,9 +188,12 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
         }
         // find the chromosome in reflist that matches read->chrom if the previous chromosome is different from current chromosome
         if (read->tid != prevtid) {
-            chrom = getindex(ht, read->chrom); // this will return -1 if the contig name is not  in the VCF file
 	    if (chrom < 0) fprintf(stderr,"chrom \"%s\" not in VCF file, skipping all reads for this chrom.... \n",read->chrom);
-	    else fprintf(stderr,"processing reads mapped to chrom \"%s\" \n",read->chrom);
+	    else 
+	    {
+		fprintf(stderr,"processing reads mapped to chrom \"%s\" \n",read->chrom);
+                num_chroms_bam++;
+	    }
 		// doing this for every read, can replace this by string comparison ..april 4 2012
             i = read->tid;
             if (reflist->ns > 0) {
@@ -269,6 +276,10 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
 		if (prevchrom >=0) clean_fragmentlist(flist, &fragments, varlist, -1, read->position, prevchrom); // added extra filter 03/08/18
 	}
 	bam_destroy1(b);
+        if (num_chroms_bam > 1)
+	{
+		fprintf(stderr,"%d chromosomes/contigs detected, it is recommended to process each contig separately using --regions option\n",num_chroms_bam);
+	}
 
 	free(flist); free(read); free(fragment.alist);
 	if (REALIGN_VARIANTS) free(fcigarlist);
@@ -291,7 +302,7 @@ int main(int argc, char** argv) {
 	sampleid[0] = '-';
 	sampleid[1] = '\0';
 	int samplecol = 10; // default if there is a single sample in the VCF file
-	int i = 0, variants = 0, hetvariants = 0,j=0;
+	int i = 0, variants = 0, hetvariants = 0;
 	char** bamfilelist = NULL;
 	int bamfiles = 0;
 
@@ -512,7 +523,7 @@ int main(int argc, char** argv) {
 		free(reflist->used);
 	}
 	//free(reflist->offsets);
-	int xor = pow(2,16)-1; int c=0;
+	//int xor = pow(2,16)-1; int c=0;
 	for (i=0;i<variants;i++){
 		//fprintf(stderr,"variant %d %s %d cov %d %s %s ",i+1,varlist[i].genotype,varlist[i].position,varlist[i].depth,varlist[i].RA,varlist[i].AA);
 		//fprintf(stderr,"REF(strand) %d:%d ALT %d:%d\n",varlist[i].A1>>16,varlist[i].A1 & xor,varlist[i].A2>>16,varlist[i].A2 & xor);

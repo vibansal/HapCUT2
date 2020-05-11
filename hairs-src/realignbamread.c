@@ -107,11 +107,12 @@ int test_complexity(char* seq, int k){
 
 // measure complexity of a sequence using the number of distinct kmers, avoid repetitive sequence
 // AAAAAAAAA is bad, ACACACAGAGAGAG is also bad... 
+/*
 int complexity(char* seq,int n)
 {
 	int k=2;
 	if (n >= 10) k = 3; 
-	int max_count = n-k+1;  // min of (n-k+1,4^k)
+	//int max_count = n-k+1;  // min of (n-k+1,4^k)
 	int* kmers = calloc(sizeof(short),n-k+1);
 	int i=0,j=0;
 	int kmer2int=0;
@@ -124,6 +125,7 @@ int complexity(char* seq,int n)
 	// sort the kmers list and count number of unique k-mers
 	free(kmers);
 }
+*/
 
 // realign sequence read to haplotype sequences defined by 'k' variants (typically k=1), local realignment for computing quality scores
 // ALLELOTYPING 
@@ -318,7 +320,7 @@ int find_left_anchor(int* fcigarlist,int fcigs,int f1,REFLIST* reflist,int offse
 	int op,ol;
 	int anchor_start = 0, anchor_end = 0, j = 0;
 	int flag = 1;
-	int kmer_test=0;
+	//int kmer_test=0;
 
 	// if current cigar is CEQUAL and the variant position is at least MINLEN bases after the cigar start, we are done
 	op = fcigarlist[f1]&0xf; ol = fcigarlist[f1]>>4;
@@ -360,7 +362,7 @@ int find_left_anchor(int* fcigarlist,int fcigs,int f1,REFLIST* reflist,int offse
 			for (j = anchor_start; j < anchor_end; j++) anchor_seq[j-anchor_start] = reflist->sequences[reflist->current][j-1];
 			anchor_seq[j-anchor_start]  ='\0';
 
-			kmer_test = test_complexity(anchor_seq, COMPLEXITY_K);
+			//kmer_test = test_complexity(anchor_seq, COMPLEXITY_K);
 			//if (kmer_test >=0)
 			{
 				flag =0;
@@ -389,7 +391,7 @@ int find_right_anchor(int* fcigarlist,int fcigs,int f2,REFLIST* reflist,int offs
 {
 	char* anchor_seq = malloc(MINLEN+1);
 	int anchor_start = 0, anchor_end = 0, j = 0;
-	int kmer_test=0;
+	//int kmer_test=0;
 	int flag = 1;
 	int op=fcigarlist[f2]&0xf, ol=fcigarlist[f2]>>4;
 	int delta=0;
@@ -445,7 +447,7 @@ int find_right_anchor(int* fcigarlist,int fcigs,int f2,REFLIST* reflist,int offs
 			}
 			anchor_seq[j-anchor_start]  ='\0';
 
-			kmer_test = test_complexity(anchor_seq, COMPLEXITY_K);
+			//kmer_test = test_complexity(anchor_seq, COMPLEXITY_K);
 			//if (kmer_test >=0)
 			{
 				flag =0;
@@ -541,7 +543,8 @@ int compare_read_HAPs(struct alignedread* read,VARIANT* varlist,int* snplst, int
 int realign_and_extract_variants_read(struct alignedread* read,HASHTABLE* ht,CHROMVARS* chromvars,VARIANT* varlist,int paired,FRAGMENT* fragment,int chrom,REFLIST* reflist)
 {
 	int* snplst = malloc(MAX_SNPs_SHORT_HAP*2*sizeof(int));
-	int start = read->position; int end = start + read->span; int ss=0,firstvar=0,j=0,ov=0, i=0, k=0, has_a_SNV = 0;
+	int start = read->position; int end = start + read->span; int ss=0,firstvar=0,j=0,ov=0, i=0;
+	// int k=0, has_a_SNV = 0;
 	j = (int)(start/BSIZE);
 	if (j >= chromvars[chrom].blocks) return 0; 
 	ss = chromvars[chrom].intervalmap[j];
@@ -568,12 +571,12 @@ int realign_and_extract_variants_read(struct alignedread* read,HASHTABLE* ht,CHR
 	}
 
 	int l1=0,l2=read->position; // l1 is advance on read, l2 is advance on reference genome
-	int hap_pos[4] = {-1,-1,-1,-1,-1};
+	int hap_pos[5] = {-1,-1,-1,-1,-1};
 	// hap_pos[0] is advance on read for first variant in haplotype
 	// hap_pos[1] is advance on ref for first variant in haplotype
 	// hap_pos[2] is advance on read for last variant in haplotype
 	// hap_pos[3] is advance on ref for last variant in haplotype
-	int offsetR=0;
+        // hap_pos[4] is ...
 
 	int op=0,ol=0;
 	int n_variants = 0; int n_snvs=0;

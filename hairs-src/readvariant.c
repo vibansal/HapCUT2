@@ -14,7 +14,7 @@ int count_variants(char* vcffile, char* sampleid, int* samplecol) {
 	}
 	int variants = 0;
 	char buffer[500000];
-	int i = 0, j = 0, cols = 0,n=0;
+	int i = 0, j = 0, cols = 0;
 
 	while (fgets(buffer, 500000, fp)) {
 		if (buffer[0] != '#') variants++; // this should work for non-VCF files as well.
@@ -39,13 +39,17 @@ int count_variants(char* vcffile, char* sampleid, int* samplecol) {
 // split a string using a single separator, '\n' and '\0' are also delimitors 
 int splitString(char* input,char sep,char** var_list)
 {
-        int n=0,i=0,s=0,e=0,j=0;
+        int n=0,i=0,s=0,j=0;
         while (1)
         {
                 if ( (input[i] == sep || input[i] == '\n' || input[i] == '\0') && (i-s)> 0)
                 {
                         var_list[n] = malloc(i-s+1);
-                        for (j = s; j < i; j++) var_list[n][j - s] = input[j]; var_list[n][j-s] = '\0';
+                        for (j = s; j < i; j++) 
+			{
+				var_list[n][j - s] = input[j];
+			}
+			var_list[n][j-s] = '\0';
                         s = i+1; n +=1; // start of next string
                 }
                 if (input[i] =='\n' || input[i] == '\0') break;
@@ -56,7 +60,7 @@ int splitString(char* input,char sep,char** var_list)
 
 int parse_variant(VARIANT* variant, char* buffer, int samplecol) 
 {
-	int i = 0, j = 0, k = 0, s = 0, e = 0;
+	int i = 0, j = 0, k = 0;
 	int flag = 0;
 	// additional variables so can calculate genotype likelihoods and allele counts for each variant using all reads not just haplotype-informative reads
 	variant->depth = 0;
@@ -65,7 +69,7 @@ int parse_variant(VARIANT* variant, char* buffer, int samplecol)
 	int l0=0,l1=0;
 
         char** string_list = (char**)malloc(sizeof(char*)*4096); // if VCF file has more than 4096 columns... 
-	char** alist = (char**)malloc(sizeof(char*)*16);
+	//char** alist = (char**)malloc(sizeof(char*)*16);
 	k = splitString(buffer,'\t',string_list);
         if (k < samplecol)
         {

@@ -76,9 +76,9 @@ int estimate_counts_read(struct alignedread* read,REFLIST* reflist,int* emission
 
 	int current = reflist->current; 
 	if (current < 0 || reflist->used[current] ==0) return -1;
-	int f=0;
+	//int f=0;
         int i=0,t=0, l1=0,l2=0; 
-	int l=0; int m=0; int op;
+	int l=0; int op;
 	int prevop = -1;
         for (i=0;i<read->cigs;i++)
         {
@@ -93,7 +93,7 @@ int estimate_counts_read(struct alignedread* read,REFLIST* reflist,int* emission
                         {
 				//fprintf(stdout,"current %d len %d %d %d %c\n",current,reflist->lengths[current],read->position,l2,reflist->sequences[current][0]);
 				b1 = BTI[reflist->sequences[current][read->position+l2+t-1]]; 
-				b2 = BTI[read->sequence[l1+t]]; 
+				b2 = BTI[(int)read->sequence[l1+t]]; 
 				if (b1 > 0 && b2 > 0 && b1 <= 4 && b2 <= 4) 
 				{
 					if ((read->flag & 16) ==0) emission_counts[(b1-1)*4 + (b2-1)] +=1; 
@@ -144,7 +144,7 @@ void print_error_params(int* emission_counts,int* trans_counts,int* indel_length
 {
 	char ITB[] = {'A','C','G','T'};
 	char state[] = {'M','I','D'};
-	int pr =0,b1=0,b2=0;
+	int b1=0,b2=0;
 	for (b1=0;b1<4;b1++)
 	{
 		int total =0.01;
@@ -263,5 +263,6 @@ int realignment_params(char* bamfile,REFLIST* reflist,char* regions,Align_Params
 	if (ureads > 1000) print_error_params(emission_counts,trans_counts,indel_lengths,AP);
 	
 	bam_destroy1(b); bam_hdr_destroy(hdr); sam_close(fp); free(newregion);
+	return 0;
 
 }

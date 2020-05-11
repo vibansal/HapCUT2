@@ -163,15 +163,15 @@ void print_variant_GLL(struct SNPfrags* snpfrag,PVAR* varlist,char* HAP1,int i)
 	fprintf(stdout," %c %3d up: %3.2f ",HAP1[i],varlist[i].frags,varlist[i].PGLL[1]);
 	fprintf(stdout,"het: %3.2f %3.2f delta %3.2f ",varlist[i].PGLL[3],varlist[i].PGLL[4],max(varlist[i].PGLL[3],varlist[i].PGLL[4])-varlist[i].PGLL[1]);
 	fprintf(stdout,"0/0:%3.2f 1/1:%3.2f ",varlist[i].PGLL[0],varlist[i].PGLL[2]);
-	fprintf(stdout,"%0.1f,%0.1f,%0.1f %0.1f %d:%d %d\n",varlist[i].GLL[0],varlist[i].GLL[1],varlist[i].GLL[2],varlist[i].AC0,varlist[i].AC1,varlist[i].updated);
+	fprintf(stdout,"%0.1f,%0.1f,%0.1f %d:%d %d\n",varlist[i].GLL[0],varlist[i].GLL[1],varlist[i].GLL[2],varlist[i].AC0,varlist[i].AC1,varlist[i].updated);
 }
 
 // what about filtering low-quality allele calls, this is not being done currently, use MINQ
 // this function uses the full fragment list with alleles for homozygous variants 
 int local_optimization(DATA* data) 
 {
-	float max,delta;
-	int i, j, f;
+	float delta;
+	int i;
 	float hetprior = 0.001; 
 	float priors[5] = {0.0,0.0,0.0,0.0,0.0}; // by changing priors we can enforce only het genotypes 
 	// prior for unphased variant should be lower = frequency of such variants...
@@ -248,4 +248,5 @@ int local_optimization(DATA* data)
 		// should run one round of HapCUT2 to update phased variant haplotype
 		if (changes ==0) break;
 	}
+	return 1;
 }

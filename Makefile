@@ -9,7 +9,7 @@ CFLAGS=-c -Wall
 B=build
 H=hairs-src
 X=hapcut2-src
-HTSLIB=htslib #path/to/htslib/
+HTSLIB=/usr/common/src/htslib #path/to/htslib/
 T=test
 # below is the path to CUnit directory, change if need be
 CUNIT=/usr/include/CUnit

@@ -304,7 +304,7 @@ void init_variant(struct fragment* Flist,int fragments,struct SNPfrags* snpfrag,
 }
 
 void update_snpfrags(struct fragment* Flist, int fragments, struct SNPfrags* snpfrag, int snps) {
-    int f = 0,i = 0, h = 0 , j = 0, s=0, k = 0, calls = 0; //maxdeg=0,avgdeg=0;
+    int f = 0,h = 0 , j = 0, s=0, k = 0, calls = 0; //maxdeg=0,avgdeg=0;
     int prev = 0,curr=0;
 
     init_variant(Flist,fragments,snpfrag,snps);  // calculate number of fragments covering the variant and allocate space for lists

@@ -56,7 +56,7 @@ void init_random_hap(struct SNPfrags* snpfrag,int snps,char* HAP1)
     }
 }
 
-int build_readvariant_graph(DATA* data,int long_reads) 
+void build_readvariant_graph(DATA* data,int long_reads) 
 {
     int i=0; int components=0;
     update_snpfrags(data->Flist, data->fragments, data->snpfrag, data->snps);
@@ -127,7 +127,7 @@ int diploid_haplotyping(DATA* data) {
 }
 
 int main(int argc, char** argv) {
-    int i = 0;
+    //int i = 0;
     //char* fragfile = NULL; char* fragfile2 = NULL; char* VCFfile = NULL; char* outfile = NULL;
     char fragfile[10000]; char fragfile2[10000];
     strcpy(fragfile, "None");   strcpy(fragfile2, "None"); 

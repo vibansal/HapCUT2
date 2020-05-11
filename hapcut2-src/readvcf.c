@@ -12,11 +12,15 @@ int count_variants_vcf(char* vcffile) {
         return -1;
     }
     int variants = 0;
-    char buffer[10000];
-    while (fgets(buffer, 10000, fp)) {
+    int sbuf_size = 100000;
+    char buffer[sbuf_size];
+    while (fgets(buffer, sbuf_size, fp)) {
 
         if (buffer[0] == '#') { // only for header lines, keep reading until we get an endline character
-            while (buffer[strlen(buffer) - 1] != '\n') fgets(buffer, 10000, fp);
+            while (buffer[strlen(buffer) - 1] != '\n') 
+	    {
+		if (fgets(buffer, sbuf_size, fp) == NULL) break;
+	    }
             continue;
         }
         if (buffer[strlen(buffer) - 1] == '\n') variants++; // count only when we get an endline character
@@ -30,14 +34,14 @@ int count_variants_vcf(char* vcffile) {
 
 int read_vcffile(char* vcffile, struct SNPfrags* snpfrag, int snps) {
     char* buffer = (char*)malloc(1000000);
-    int i = 0, j = 0, k=0,k1=0,k2=0, var = 0;
-    int GQ_ix, format_ix,GT_ix;
+    int i = 0, k=0,k1=0,k2=0, var = 0;
+    int GQ_ix, GT_ix;
     int l0=0,l1=0;
     FILE* fp = fopen(vcffile, "r");
     char** string_list = (char**)malloc(sizeof(char*)*4096); // if VCF file has more than 4096 columns... 
     char** format_list = (char**)malloc(sizeof(char*)*4096);
     char** geno_list = (char**)malloc(sizeof(char*)*4096);
-    char* format; 
+    //char* format; 
     int header_lines =0;
     while (fgets(buffer, 1000000, fp)) {
         if (buffer[0] == '#') 

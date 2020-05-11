@@ -254,9 +254,11 @@ int extract_variants_read(struct alignedread* read, HASHTABLE* ht, CHROMVARS* ch
     int op = 0, ol = 0;
  
     // filter for HiC reads with soft/hard clipping near ligation junction, added 03/03/2018
-    int pclip=0; // is read soft or hard clipped at beginning or end
-    i=0; op = read->cigarlist[i]&0xf; if (op == BAM_CSOFT_CLIP || op == BAM_CHARD_CLIP) pclip = 1; // first part is clipped 
-    i=read->cigs-1; op = read->cigarlist[i]&0xf; if (op == BAM_CSOFT_CLIP || op == BAM_CHARD_CLIP) pclip = 2; // last part is clipped 
+    //int pclip=0; // is read soft or hard clipped at beginning or end
+    i=0; op = read->cigarlist[i]&0xf; 
+    //if (op == BAM_CSOFT_CLIP || op == BAM_CHARD_CLIP) pclip = 1; // first part is clipped 
+    i=read->cigs-1; op = read->cigarlist[i]&0xf; 
+    //if (op == BAM_CSOFT_CLIP || op == BAM_CHARD_CLIP) pclip = 2; // last part is clipped 
     int margin = 1; // 2 bases from clip location
     int offset=0;	
 

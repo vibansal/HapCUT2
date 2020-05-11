@@ -169,7 +169,7 @@ float compute_goodcut(struct SNPfrags* snpfrag, char* hap, int* slist, struct BL
     int totaledges = 0, i = 0, j = 0, k = 0, l = 0, f = 0;
     int wf = 0; //if (drand48() < 0.5) wf=1;
     float W = 0;
-    int N = component->phased;
+    size_t N = component->phased;
     int iters_since_improved_cut = 0;
 
     /* CODE TO set up the read-haplotype consistency graph */

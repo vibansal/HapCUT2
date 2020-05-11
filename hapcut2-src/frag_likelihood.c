@@ -160,7 +160,8 @@ void update_fragscore1(struct fragment* Flist,int f, char* h) {
 float fragment_ll1(struct fragment* Flist, int f, char* h, int homozygous, int switch_ix) {
     struct fragment* FRAG = &Flist[f];
     int j = 0, k = 0;
-    float p0 = 0, p1 = 0, p0h = 0, p1h =0, prob = 0, prob1 = 0, prob2 = 0;
+    float p0 = 0, p1 = 0, p0h = 0, p1h =0, prob = 0, prob2 = 0;
+    //float prob1=0;
     float ll=0;
     int snp_ix, switched, htrans_flipped;
 
@@ -175,7 +176,7 @@ float fragment_ll1(struct fragment* Flist, int f, char* h, int homozygous, int s
 
                 prob = QVoffset - (int) FRAG->list[j].qv[k];
                 prob /= 10;
-                prob1 = 1.0 - pow(10, prob);
+                //prob1 = 1.0 - pow(10, prob);
                 prob2 = FRAG->list[j].p1[k];
 
               //  if (h[FRAG->list[j].offset + k] == FRAG->list[j].hap[k]) good += prob1;
@@ -208,7 +209,7 @@ float fragment_ll1(struct fragment* Flist, int f, char* h, int homozygous, int s
                 htrans_flipped = (FRAG->mate2_ix != -1 && snp_ix >= FRAG->mate2_ix); // are we flipped due to h-trans?
                 prob = QVoffset - (int) FRAG->list[j].qv[k];
                 prob /= 10;
-                prob1 = 1.0 - pow(10, prob);
+                //prob1 = 1.0 - pow(10, prob);
                 prob2 = FRAG->list[j].p1[k];
 
                 //if (h[FRAG->list[j].offset + k] == FRAG->list[j].hap[k]) good += prob1;

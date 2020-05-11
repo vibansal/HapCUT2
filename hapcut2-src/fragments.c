@@ -16,7 +16,7 @@ void free_fragment(struct fragment* FRAG)
 
 void free_fragmentlist(struct fragment* Flist, int fragments)
 {
-    int i=0,j=0;
+    int i=0;
     for (i=0;i<fragments;i++) free_fragment(&Flist[i]);
     free(Flist);
 }
@@ -107,7 +107,7 @@ int filter_fragments(struct fragment* Flist,int fragments,struct SNPfrags* snpfr
 // output the block-ID (first SNP in block), haplotype-assignment and probability of assignment  | only for long-reads or linked reads
 int assign_fragment_2hap(struct fragment* FRAG, struct SNPfrags* snpfrag,char* h)
 {
-    int f=0,j = 0, k = 0,alleles=0,snpid=0,component;
+    int j = 0, k = 0,alleles=0,snpid=0,component;
     float p0 = 0, p1 = 0, prob = 0, prob2 = 0;
     char tag;
 
@@ -146,9 +146,7 @@ int assign_fragment_2hap(struct fragment* FRAG, struct SNPfrags* snpfrag,char* h
 // for each fragment, output the block-ID (first SNP in block), haplotype-assignment and probability of assignment  | only for long-reads or linked reads
 void fragment_assignments(struct fragment* Flist,int fragments, struct SNPfrags* snpfrag,char* h,char* outfile)
 {
-    int f=0,j = 0, k = 0,alleles=0,offset=0,component;
-    float p0 = 0, p1 = 0, prob = 0, prob2 = 0;
-    char tag;
+    int f=0;
     int valid = 0;
     FILE* OUTFILE = fopen(outfile,"w");
 

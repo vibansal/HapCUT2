@@ -95,7 +95,8 @@ double sum_all_alignments_logspace(char* v, char* w,Align_Params* params, int mi
 			double s = logsum(middle_from_lower,middle_continue);
 			double match_emission = params->lmatch;
 			if (v[i-1] != w[j-1]) match_emission = params->lmismatch;
-			b1 = BTI[v[i-1]]-1; b2 = BTI[w[j-1]]-1; 
+			b1 = BTI[(int)v[i-1]]-1; 
+                        b2 = BTI[(int)w[j-1]]-1; 
 			if (b1 >= 0 && b2 < 4 && b2 >= 0 && b2 < 4) 
 			{
 				//fprintf(stdout,"match %d %d %f \n",b1,b2,params->MEM[b1][b2]);
@@ -187,7 +188,7 @@ double sum_all_alignments_fast(char* v, char* w,Align_Params* params, int min_ba
 			double s = (middle_from_lower+middle_continue);
 			double match_emission = params->match;
 			if (v[i-1] != w[j-1]) match_emission = params->mismatch;
-			b1 = BTI[v[i-1]]-1; b2 = BTI[w[j-1]]-1; 
+			b1 = BTI[(int)v[i-1]]-1; b2 = BTI[(int)w[j-1]]-1; 
 			if (b1 >= 0 && b2 < 4 && b2 >= 0 && b2 < 4) 
 			{
 				//fprintf(stdout,"match %d %d %f \n",b1,b2,params->MEM[b1][b2]);

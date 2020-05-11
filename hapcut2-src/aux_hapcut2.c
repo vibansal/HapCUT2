@@ -106,6 +106,7 @@ void print_output_files(DATA* data,char* variantfile, char* outputfile)
     print_contigs(data->clist,data->components,data->HAP1,data->Flist,data->fragments,data->snpfrag,outputfile);
 
     float N50length = calculate_N50(data->clist,data->components,data->snpfrag,data->HAP1);
+    fprintf_time(stderr,"N50 haplotype length is %0.2f kilobases \n",N50length);
 
     char outvcffile[4096];  sprintf(outvcffile,"%s.phased.VCF",outputfile);
     if (OUTPUT_VCF ==1) {

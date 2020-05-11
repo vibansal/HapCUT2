@@ -200,11 +200,11 @@ int read_fasta(char* seqfile, REFLIST* reflist) {
     clock_t t;
     kseq_t *seq;
     gzFile fp = gzopen(seqfile, "r");
-    seq = kseq_init(fp);
     if (fp == NULL) {
         fprintf(stderr, "file %s not found \n", seqfile);
         return -1;
     }
+    seq = kseq_init(fp);
     fprintf(stderr, "reading reference sequence file %s with %d contigs\n", seqfile, reflist->ns);
     t = clock();
     int i=0, j=0;
@@ -219,6 +219,7 @@ int read_fasta(char* seqfile, REFLIST* reflist) {
 	//fprintf(stderr,"reflist %d used %d \n",i,reflist->used[i]);
         i++;
     }
+    kseq_destroy(seq);
     gzclose(fp); fp=NULL;
     for (i = 0; i < reflist->ns && i < 10; i++) {
            //fprintf(stderr, "%s %d ", reflist->names[i], reflist->lengths[i]);

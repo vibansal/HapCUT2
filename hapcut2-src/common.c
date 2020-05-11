@@ -78,14 +78,15 @@ char* concatStrings(char** var_list,int n,char sep)
 // split a string using a single separator, '\n' and '\0' are also delimitors at end of string
 int splitString(char* input,char sep,char** var_list)
 {
-	int n=0,i=0,s=0,e=0,j=0;
+	int n=0,i=0,s=0,j=0;
 	while (1)
 	{
 		if (input[i] == sep || input[i] == '\n' || input[i] == '\0')
 		{
 			if (i-s > 0) {
 				var_list[n] = malloc(i-s+1); 
-				for (j = s; j < i; j++) var_list[n][j - s] = input[j]; var_list[n][j-s] = '\0';
+				for (j = s; j < i; j++) var_list[n][j - s] = input[j]; 
+				var_list[n][j-s] = '\0';
 				n +=1;
 			}
 			s = i+1; // start of next string
@@ -100,7 +101,7 @@ int splitString(char* input,char sep,char** var_list)
 // split a string using a single separator, all memory is allocated in the function, not working
 int splitString_full(char* input,char sep,char** out)
 {
-	int n=0,i=0,s=0,e=0,j=0;
+	int n=0,i=0,s=0,j=0;
 	while (input[i] != '\n' && input[i] != '\0')
 	{
 		if (input[i] == sep) n++;
@@ -115,7 +116,8 @@ int splitString_full(char* input,char sep,char** out)
 		{
 			if (i-s > 0) {
 				out[n] = malloc(i-s+1); 
-				for (j = s; j < i; j++) out[n][j - s] = input[j]; out[n][j-s] = '\0';
+				for (j = s; j < i; j++) out[n][j - s] = input[j]; 
+				out[n][j-s] = '\0';
 				n +=1;
 			}
 			s = i+1; // start of next string

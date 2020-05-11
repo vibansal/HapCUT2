@@ -159,7 +159,7 @@ int cmpint (const void * a, const void * b) {
 
 float calculate_N50(struct BLOCK* clist, int blocks, struct SNPfrags* snpfrag, char* HAP1) 
 {
-    int i=0,k=0,t=0;
+    int i=0;
     int span=0,totalspan=0;
     int* lengths = calloc(sizeof(int),blocks);
 
@@ -167,10 +167,11 @@ float calculate_N50(struct BLOCK* clist, int blocks, struct SNPfrags* snpfrag, c
         span = snpfrag[clist[i].lastvar].position - snpfrag[clist[i].offset].position;
         lengths[i] = span; totalspan += span;
         //fprintf(fp, "BLOCK: offset: %d len: %d phased: %d ", clist[i].offset + 1, clist[i].length, clist[i].phased);
-        for (k = 0; k < clist[i].phased; k++)  t = clist[i].slist[k];
+        //for (k = 0; k < clist[i].phased; k++)  t = clist[i].slist[k];
     }
     qsort(lengths,blocks,sizeof(int),cmpint);
-    int N50block = 0,sumlengths=0;
+    //int N50block = 0;
+    int sumlengths=0;
     float N50length=0;
     for (i=0;i<blocks;i++)
     {
@@ -178,12 +179,13 @@ float calculate_N50(struct BLOCK* clist, int blocks, struct SNPfrags* snpfrag, c
 	sumlengths += span;
 	if (sumlengths*2 > totalspan) 
 	{
-		N50block = i; N50length = span;
+		//N50block = i; 
+		N50length = span;
 		break;
 	}
     }   
     N50length /=1000;
-    fprintf_time(stderr,"N50 haplotype length is %0.2f kilobases \n",N50length);
+   // fprintf_time(stderr,"N50 haplotype length is %0.2f kilobases \n",N50length);
     free(lengths);
     return N50length;
 }
