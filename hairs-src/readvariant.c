@@ -223,6 +223,14 @@ int read_variantfile(char* vcffile, VARIANT* varlist, HASHTABLE* ht, int* hetvar
 	fclose(fp); //chromosomes--;
 	fprintf(stderr, "vcffile %s chromosomes %d hetvariants %d variants %d \n", vcffile, chromosomes, *hetvariants, i);
 	if (TRI_ALLELIC ==0) fprintf(stderr,"detected %d variants with two non-reference alleles, these variants will not be phased\n",non_biallelic);
+	if (chromosomes > 1) 
+        {
+                fprintf(stderr,"\n##########################################################################################\n");
+	        fprintf(stderr,"%d chromosomes/contigs detected in input VCF file\n",chromosomes);
+		fprintf(stderr,"processing each contig separately using --regions option will be more efficient for large genomes\n");
+		fprintf(stderr,"############################################################################################\n\n");
+        }
+
 	return chromosomes;
 
 }

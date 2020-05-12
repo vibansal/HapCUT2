@@ -174,8 +174,6 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
         if (iter == NULL) { fprintf(stderr,"invalid region for bam file %s \n",regions); return -1; }
     }
 
-    int num_chroms_bam=0;
-
     while (1) {
 	if (!iter) ret = sam_read1(fp,hdr,b);  // read full bam file
 	else ret = sam_itr_next(fp,iter,b);  // specific region
@@ -192,7 +190,6 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
 	    else 
 	    {
 		fprintf(stderr,"processing reads mapped to chrom \"%s\" \n",read->chrom);
-                num_chroms_bam++;
 	    }
 		// doing this for every read, can replace this by string comparison ..april 4 2012
             i = read->tid;
@@ -276,10 +273,6 @@ int parse_bamfile_sorted(char* bamfile, HASHTABLE* ht, CHROMVARS* chromvars, VAR
 		if (prevchrom >=0) clean_fragmentlist(flist, &fragments, varlist, -1, read->position, prevchrom); // added extra filter 03/08/18
 	}
 	bam_destroy1(b);
-        if (num_chroms_bam > 1)
-	{
-		fprintf(stderr,"%d chromosomes/contigs detected, it is recommended to process each contig separately using --regions option\n",num_chroms_bam);
-	}
 
 	free(flist); free(read); free(fragment.alist);
 	if (REALIGN_VARIANTS) free(fcigarlist);
