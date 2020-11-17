@@ -294,10 +294,13 @@ def link_fragments(hairs_file, vcf_file, bam_file, outfile, dist, single_SNP_fra
 
     lines = []
 
-    if not (os.path.isfile(bam_file+'.bai')):
-        print("Bam file must be indexed.")
-        exit(1)
-
+    try:
+        with pysam.AlignmentFile(bam_file, "rb") as alignment:
+            if not alignment.check_index():
+                raise AttributeError("Alignment must be indexed")
+    except (AttributeError, ValueError) as ex:
+        exit(str(ex))
+    
     chroms = []
     chrom_set = set()
     with open(vcf_file,'r') as infile:
