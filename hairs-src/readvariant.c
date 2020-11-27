@@ -236,18 +236,17 @@ int read_variantfile(char* vcffile, VARIANT* varlist, HASHTABLE* ht, int* hetvar
 }
 
 // build a physical map that maps  intervals on chromosomes to the first variant that precedes the start of that interval
-
+// chromvars is an array of chromosomes 
 void build_intervalmap(CHROMVARS* chromvars, int chromosomes, VARIANT* varlist, int snps) {
 	int i = 0, j = 0, k = 0, blocks = 0;
 	chromvars[j].first = 0;
-	j = 0;
 	for (i = 0; i < snps - 1; i++) {
-		if (strcmp(varlist[i].chrom, varlist[i + 1].chrom) != 0) {
+		if (strcmp(varlist[i].chrom, varlist[i + 1].chrom) != 0) { // different chromosomes...
 			chromvars[j].last = i;
 			chromvars[j].variants = chromvars[j].last - chromvars[j].first + 1;
-			//fprintf(stderr,"new chrom %d %d %s %s\n",j,chromvars[j].variants,varlist[i].chrom,varlist[i+1].chrom);
+			fprintf(stderr,"new chrom %d %d %s %s\n",j,i+115,varlist[i].chrom,varlist[i+1].chrom);
 			j++;
-			chromvars[j].first = i + 1;
+			chromvars[j].first = i + 1; // initialize next chromosome
 		}
 	}
 	chromvars[j].last = i;

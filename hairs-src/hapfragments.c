@@ -140,7 +140,6 @@ int print_matepair(FRAGMENT* f1, FRAGMENT* f2, VARIANT* varlist, FILE* outfile) 
 
 // sort the fragment list by 'mate-position or position of 2nd read' so that reads that are from the same DNA fragment are together
 // also takes care of overlapping paired-end reads to avoid duplicates in fragments
-
 void clean_fragmentlist(FRAGMENT* flist, int* fragments, VARIANT* varlist, int currchrom, int currpos, int prevchrom) {
     int i = 0, j = 0, k = 0, first = 0, sl = 0, bl = 0;
     FRAGMENT fragment;
