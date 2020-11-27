@@ -244,7 +244,7 @@ void build_intervalmap(CHROMVARS* chromvars, int chromosomes, VARIANT* varlist, 
 		if (strcmp(varlist[i].chrom, varlist[i + 1].chrom) != 0) { // different chromosomes...
 			chromvars[j].last = i;
 			chromvars[j].variants = chromvars[j].last - chromvars[j].first + 1;
-			fprintf(stderr,"new chrom %d %d %s %s\n",j,i+115,varlist[i].chrom,varlist[i+1].chrom);
+			//fprintf(stderr,"new chrom %d %d %s %s\n",j,i+115,varlist[i].chrom,varlist[i+1].chrom);
 			j++;
 			chromvars[j].first = i + 1; // initialize next chromosome
 		}
