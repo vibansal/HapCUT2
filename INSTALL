@@ -5,8 +5,13 @@ HapCUT2 is written in C and requires a gcc like compiler to compile the source c
 
 git clone https://github.com/samtools/htslib.git
 cd htslib
+autoreconf -i
+./configure
 make
 
+Note that htslib has its own dependencies  (e.g. libssl-dev) that need to be installed. Once htslib is installed, the environment variable LD_LIBRARY_PATH variable should be updated as follows: 
+
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/path_to_htslib_directory"
 
 HOW TO COMPILE THE CODE
 ========================
@@ -14,7 +19,6 @@ HOW TO COMPILE THE CODE
 Run 'make' in the project master directory.
 
 
-HOW TO INSTALL THE PROGRAMS
-========================
+### There is a script "install.sh" that will compile htslib and HapCUT2 from source automatically.
 
-Run 'sudo make install' after compiling the code.
+
