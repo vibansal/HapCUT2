@@ -9,7 +9,7 @@ CFLAGS=-Wall
 B=build
 H=hairs-src
 X=hapcut2-src
-HTSLIB=/usr/common/src/htslib #path/to/htslib/
+HTSLIB=htslib #/usr/common/src/htslib #path/to/htslib/
 T=test
 # below is the path to CUnit directory, change if need be
 CUNIT=/usr/include/CUnit
@@ -19,7 +19,7 @@ all: $(B)/extractHAIRS $(B)/HAPCUT2
 
 #temporarily removed -O2 flag after -I$(HTSLIB)
 $(B)/extractHAIRS: $(B)/bamread.o $(B)/hashtable.o $(B)/readvariant.o $(B)/readfasta.o $(B)/hapfragments.o $(H)/extracthairs.c $(H)/parsebamread.c $(H)/realignbamread.c $(H)/nw.c $(H)/realign_pairHMM.c $(H)/estimate_hmm_params.c | $(B)
-	$(CC) $(CFLAGS) $(LDFLAGS) -I$(HTSLIB) -g $(B)/bamread.o $(B)/hapfragments.o $(B)/hashtable.o $(B)/readfasta.o $(B)/readvariant.o -o $(B)/extractHAIRS $(H)/extracthairs.c -pthread -lhts -lm -lz -lcurl -lcrypto -llzma -lbz2
+	$(CC) $(CFLAGS) $(LDFLAGS) -I$(HTSLIB) -g $(B)/bamread.o $(B)/hapfragments.o $(B)/hashtable.o $(B)/readfasta.o $(B)/readvariant.o -o $(B)/extractHAIRS $(H)/extracthairs.c -pthread -lhts -lm -lz -lcurl -llzma -lbz2
 #temporarily removed -O2 flag after -I$(HTSLIB)
 
 $(B)/hapfragments.o: $(H)/hapfragments.c $(H)/hapfragments.h $(H)/readvariant.h | $(B)

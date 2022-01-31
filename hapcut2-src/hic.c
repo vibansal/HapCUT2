@@ -3,6 +3,10 @@
 float HIC_EM_THRESHOLD = 0.99; 
 /*
 functions that are specific to processing of Hi-C reads for phasing: estimating h-trans error rates and I/O
+HTRANS_BINSIZE = 5000;
+HTRANS_MAXBINS = 10000; // this value will be overwritten at startup
+HTRANS_READ_LOWBOUND = 500;
+HTRANS_MAX_WINDOW = 4000000; // maximum window size for h-trans estimation
 */
 
 int count_htrans_bins(char* htrans_file) {
@@ -169,7 +173,7 @@ int estimate_htrans_probs(struct fragment* Flist, int fragments, char* HAP, stru
         }
     }
 
-	// using neighboring bins to calculate mean htrans for each bin
+    // using neighboring bins to calculate mean htrans for each bin if the number of reads in bin is less < 500 (READ_LOWBOUND)
     for (i = 0; i < HTRANS_MAXBINS; i++){
         adj_MLE_count[i] = MLE_count[i];
         adj_MLE_sum[i] = MLE_sum[i];

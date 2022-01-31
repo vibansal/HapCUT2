@@ -93,6 +93,7 @@ int parse_variant(VARIANT* variant, char* buffer, int samplecol)
  //       int altalleles = splitString(variant->AA,',',alist);
 
 	int gl = strlen(variant->genotype);
+        //fprintf(stderr,"variant genotype %d %s \n",variant->position,variant->genotype);
 	// check that the genotype field is diploid
 	if ((gl >= 3 && (variant->genotype[1] == '/' || variant->genotype[1] == '|')) &&
 			(gl == 3 || variant->genotype[3] == ':') &&
