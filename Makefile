@@ -2,8 +2,7 @@
 # HAPCUT2 MAKEFILE
 default: all
 
-CC=gcc -g -O3 -Wall -D_GNU_SOURCE
-CFLAGS=-Wall
+CFLAGS=-Wall -g -O3 -Wall -D_GNU_SOURCE
 
 # DIRECTORIES
 B=build
