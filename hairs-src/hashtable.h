@@ -13,7 +13,7 @@ typedef struct keyvalue {
     struct keyvalue* next;
 } keyvalue;
 
-keyvalue* keypointer;
+extern keyvalue* keypointer;
 
 typedef struct HASHTABLE {
     int htsize; // prime number that is also the size of HASHTABLE

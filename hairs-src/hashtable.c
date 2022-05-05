@@ -39,7 +39,7 @@ int insert_keyvalue(HASHTABLE* ht, char* key, int slen, int value) {
 
 int getindex(HASHTABLE* ht, char* chrom) {
     int hash = hashstring(chrom, ht->htsize);
-    keypointer = ht->blist[hash];
+    keyvalue* keypointer = ht->blist[hash];
     while (keypointer != NULL) {
         if (strcmp(keypointer->key, chrom) == 0) return keypointer->value;
         keypointer = keypointer->next;
