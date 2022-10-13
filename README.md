@@ -71,8 +71,8 @@ There are two output files with the phased variants:
 Use the --pacbio 1 and --ont 1 options in extractHAIRS for greatly improved accuracy when using Pacific Biosciences and Oxford Nanopore reads, respectively. 
 Here is an example using Pacific Biosciences data (replace --pacbio with --ont for oxford nanopore):
 ```
-./build/extractHAIRS --pacbio 1 --bam reads.sorted.bam --VCF variants.VCF --out fragment_file
-./build/HAPCUT2 --ea 1 --fragments fragment_file --VCF variantcalls.vcf --output haplotype_output_file
+./build/extractHAIRS --pacbio 1 --bam reads.sorted.bam --VCF variants.VCF --out fragment_file --ref reference.fasta
+./build/HAPCUT2 --ep 1 --fragments fragment_file --VCF variantcalls.vcf --output haplotype_output_file
 python3 utilities/prune_haplotype.py -i haplotype_output_file -o haplotype_output_file.pruned --min_mismatch_qual 30 --min_switch_qual 30
 # the quality-filtered haplotype is in haplotype_output_file.pruned
 ```
