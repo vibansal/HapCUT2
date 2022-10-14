@@ -152,7 +152,8 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 	for (j=positions[1];j<positions[3];j++)  refhap[j-positions[1]] = reflist->sequences[reflist->current][j-1];
 	refhap[j-positions[1]]  ='\0';
 
-	char* althap = malloc(positions[3]-positions[1]+1 + 4096); // edit on 11/26/18
+	int orig_alt_len = positions[3]-positions[1]+1 + 4096;
+	char* althap = malloc(orig_alt_len); // edit on 11/26/18
 	int h=0, s=0, ss=0, max_hap=0, ref_len=0, alt_len=0, total_ref_len=0, total_alt_len=0, n_max_haps = 0, rand_ix = 0;
 	double total_score = TINYLOG, max_score = -1000000000;
 	int align_qual = 0;
@@ -186,6 +187,12 @@ int realign_HAPs(struct alignedread* read, REFLIST* reflist, int positions[], VA
 			total_ref_len += strlen(varlist[ss].allele1);
 			if (h & (int)(pow(2,s))) total_alt_len += strlen(varlist[ss].allele2);
 			else 	total_alt_len += strlen(varlist[ss].allele1);
+		}
+		if (total_alt_len > orig_alt_len) {
+			fprintf(stderr,"ERR: overflow likely detected!!\n");
+			free(subread);free(refhap); free(max_haps);free(ref_score_single); free(alt_score_single);
+			free(althap);
+			return -1; // check on length in range (15,200)
 		}
 
 		if (VERBOSE) fprintf(stderr,"new alt hap len %d %d\n",positions[3]-positions[1]+1+total_alt_len-total_ref_len,total_alt_len);
