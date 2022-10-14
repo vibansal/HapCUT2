@@ -88,6 +88,7 @@ For improved haplotype accuracy with Hi-C reads, use the --hic 1 option for both
 ./build/extractHAIRS --hic 1 --bam HiC_reads.bam --VCF variants.vcf --out fragment_file --maxIS 10000000
 ./build/HAPCUT2 --hic 1 --fragments fragment_file --VCF variants.vcf --output haplotype_output_file
 ```
+The --maxIS parameter controls the maximum insert size for which a read pair (with both ends mapped to the same chromosome) is used for phasing as a single haplotype fragment. It is recommended to align the reads using BWA with the -5, -S and -P options (BWA mem -5SPM reference.fasta read1.fq read2.fq > reads.sam). This preserves the mate-pair information in the aligned reads file.
 
 ## Phasing using data from multiple sequencing technologies 
 
