@@ -73,8 +73,6 @@ Here is an example using Pacific Biosciences data (replace --pacbio with --ont f
 ```
 ./build/extractHAIRS --pacbio 1 --bam reads.sorted.bam --VCF variants.VCF --out fragment_file --ref reference.fasta
 ./build/HAPCUT2 --fragments fragment_file --VCF variantcalls.vcf --output haplotype_output_file
-[comment]: python3 utilities/prune_haplotype.py -i haplotype_output_file -o haplotype_output_file.pruned --min_mismatch_qual 30 --min_switch_qual 30
-[comment]: # the quality-filtered haplotype is in haplotype_output_file.pruned
 ```
 The --indels option may be used if desired -- the realignment strategy used with these options allows better detection of indel variants in fragments than the previous approach.
 
