@@ -63,18 +63,18 @@ There are two output files with the phased variants:
 
 1. A phased block output file. The format of this file is described [here](outputformat.md)
 
-2. A phased VCF file "output_haplotype_file.phased.vcf". The format of this file follows the standard VCF format. This is a recent addition.
+2. A phased VCF file "output_haplotype_file.phased.vcf". The format of this file follows the standard VCF format.
 
 
 ## Pacific Biosciences and Oxford Nanopore Reads
 
 Use the --pacbio 1 and --ont 1 options in extractHAIRS for greatly improved accuracy when using Pacific Biosciences and Oxford Nanopore reads, respectively. 
-Here is an example using Pacific Biosciences data (replace --pacbio with --ont for oxford nanopore):
+Here is an example using Pacific Biosciences data (replace --pacbio with --ont for Oxford Nanopore):
 ```
-./build/extractHAIRS --pacbio 1 --bam reads.sorted.bam --VCF variants.VCF --out fragment_file
-./build/HAPCUT2 --ea 1 --fragments fragment_file --VCF variantcalls.vcf --output haplotype_output_file
-python3 utilities/prune_haplotype.py -i haplotype_output_file -o haplotype_output_file.pruned --min_mismatch_qual 30 --min_switch_qual 30
-# the quality-filtered haplotype is in haplotype_output_file.pruned
+./build/extractHAIRS --pacbio 1 --bam reads.sorted.bam --VCF variants.VCF --out fragment_file --ref reference.fasta
+./build/HAPCUT2 --fragments fragment_file --VCF variantcalls.vcf --output haplotype_output_file
+[comment]: python3 utilities/prune_haplotype.py -i haplotype_output_file -o haplotype_output_file.pruned --min_mismatch_qual 30 --min_switch_qual 30
+[comment]: # the quality-filtered haplotype is in haplotype_output_file.pruned
 ```
 The --indels option may be used if desired -- the realignment strategy used with these options allows better detection of indel variants in fragments than the previous approach.
 
@@ -84,7 +84,17 @@ Phasing using Linked reads require an extra step to link the short reads togethe
 
 ## Hi-C (Proximity Ligation) Sequencing Reads
 
-For improved haplotype accuracy with Hi-C reads, use the --HiC 1 option for both extractHAIRS and HapCUT2 steps.
+For improved haplotype accuracy with Hi-C reads, use the --hic 1 option for both extractHAIRS and HapCUT2 steps
+
+```
+./build/extractHAIRS --hic 1 --bam HiC_reads.bam --VCF variants.vcf --out fragment_file --maxIS 10000000
+./build/HAPCUT2 --hic 1 --fragments fragment_file --VCF variants.vcf --output haplotype_output_file
+```
+
+## Phasing using data from multiple sequencing technologies 
+
+First, run extractHAIRS on each of the BAM/CRAM files independently and concatenate (linux “cat” command) the output files. The “--nf 1” option should be used when running extractHAIRS when combining data from different sequencing technologies. This outputs the fragments in the Hi-C fragment file format. The output files can then be concatenated and processed with HapCUT2 (also need to use the --nf 1 option).
+
 
 ## Calculating Haplotype Statistics
 The calculate_haplotype_statistics script in the utilities directory calculates haplotype error rates with respect to a reference haplotype, as well as completeness statistics such as N50 and AN50.
@@ -92,6 +102,7 @@ The calculate_haplotype_statistics script in the utilities directory calculates 
 ## Example pipelines for various types of sequencing data
 
 The directory **recipes** contains example pipelines to assemble haplotypes from various types of sequencing data.
+
 
 ## [Updates to the code](UPDATES.md)
 

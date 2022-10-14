@@ -33,7 +33,7 @@ int PARSEINDELS = 0;
 int SINGLEREADS = 0;
 int LONG_READS = 0;
 int REALIGN_VARIANTS = 0;
-int ESTIMATE_PARAMS = 0; // estimate realignment parameters from BAM 
+int ESTIMATE_PARAMS = 1; // estimate realignment parameters from input BAM file
 //int QVoffset = 33; declared in samread.h
 FILE* logfile;
 int PFLAG = 1;
@@ -111,7 +111,7 @@ void print_options() {
 	fprintf(stderr, "--ref <FILENAME> : reference sequence file (in fasta format, gzipped is okay), optional but required for indels, should be indexed\n");
 	fprintf(stderr, "--out <FILENAME> : output filename for haplotype fragments, if not provided, fragments will be output to stdout\n");
 	fprintf(stderr, "--region <chr:start-end> : chromosome and region in BAM file, useful to process individual chromosomes or genomic regions \n");
-	fprintf(stderr, "--ep <0/1> : set to 1 to estimate HMM parameters from aligned reads (only with long reads), default = 0\n");
+	fprintf(stderr, "--ep <0/1> : set to 1 to estimate HMM parameters from aligned reads (only with long reads), default = 1\n");
 	fprintf(stderr, "--hom <0/1> : set to 1 to include homozygous variants for processing, default = 0 (only heterozygous) \n\n");
 	//fprintf(stderr, "--sumall <0/1> : set to 1 to use sum of all local alignments approach (only with long reads), default = 1 \n\n");
 }
